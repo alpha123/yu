@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+echo '#pragma once' > $1.h
+echo '' >> $1.h
+echo '#include "yu_common.h"' >> $1.h
+
+echo "#include \"$1.h\"" > $1.c
+echo '' >> $1.c

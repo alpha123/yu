@@ -1,0 +1,7 @@
+*.o
+a.out
+*.core
+_*
+err
+*.tar.gz
+*.i
