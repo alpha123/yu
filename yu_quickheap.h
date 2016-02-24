@@ -2,6 +2,12 @@
 #error "Don't include yu_quickheap.h directly! Include yu_common.h instead."
 #endif
 
+/**
+ * A very fast, cache-friendly priority queue based on Incremental Quicksort.
+ * See http://www.dcc.uchile.cl/TR/2008/TR_DCC-2008-006.pdf for details
+ * This is a rather rough implementation almost directly from the paper.
+ */
+
 #define YU_QUICKHEAP_MINHEAP 0
 #define YU_QUICKHEAP_MAXHEAP 1
 
