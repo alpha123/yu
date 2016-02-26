@@ -1,52 +1,90 @@
-INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas
+DEBUG ?= yes
+
+INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -I.
 LIB_DIRS := -L/usr/local/lib -Lutf8proc 
-NUMLIBS := -lmpfr -lgmp -lopenblas -lm
-STRLIBS := -lm -l:libutf8proc.a
+LIBS := -lmpfr -lgmp -lm -l:libutf8proc.a
 ASAN_FLAGS := -fsanitize=address -O1 -fno-omit-frame-pointer
 
-CFLAGS := -std=c99 -O0 $(INCLUDE_DIRS) $(LIB_DIRS) -DDEBUG -DSFMT_MEXP=19937
+SFMT_MEXP ?= 19937
+CFLAGS ?= -std=c99 $(INCLUDE_DIRS) -DSFMT_MEXP=$(SFMT_MEXP)
 
-strtest:
-	clang37 -g strtest.c yu_common.c yu_buf.c yu_str.c $(CFLAGS) $(STRLIBS) $(ASAN_FLAGS)
+# cgdb <http://cgdb.github.io/> is a more convenient ncurses frontend
+# for gdb. Unlike gdb -tui it does syntax coloring and stuff.
+ifneq ($(shell which cgdb),)
+	DB ?= cgdb
+else
+	DB ?= gdb
+endif
 
-strtest_gcc:
-	gcc5 -g strtest.c yu_common.c yu_buf.c yu_str.c $(CFLAGS) $(STRLIBS)
+FMT ?= clang-format
 
-numtest:
-	clang37 -g numtest.c yu_common.c yu_numeric.c $(CFLAGS) $(NUMLIBS) $(ASAN_FLAGS)
+ifeq ($(DEBUG),yes)
+	# -Wparenthesis is annoying
+	CFLAGS += -gdwarf-4 -g3 -DDEBUG -Wall -Wextra -pedantic -Wno-parentheses
+	# GCC doesn't seem to build with ASAN on my machine
+	ifneq ($(findstring "clang",$(CC)),)
+		CFLAGS += $(ASAN_FLAGS)
+	endif
+else
+	CFLAGS += -DNDEBUG
+endif
 
-numtest_gcc:
-	gcc5 -g numtest.c yu_common.c yu_numeric.c $(CFLAGS) $(NUMLIBS)
+COMMON_HEADERS := $(wildcard src/yu_*.h)
+COMMON_SRCS := $(wildcard src/yu_*.c)
+COMMON_OBJS := $(COMMON_SRCS:.c=.o)
 
-hashtest:
-	clang37 -g hashtest.c yu_common.c $(CFLAGS) $(ASAN_FLAGS)
+TEST_OUT := test/test
+TEST_SRCS := $(wildcard test/*.c) $(COMMON_SRCS)
+TEST_OBJS := $(TEST_SRCS:.c=.o)
 
-hashtest_gcc:
-	gcc5 -g hashtest.c yu_common.c $(CFLAGS)
+.PHONY: all clean test
 
-treetest:
-	clang37 -g treetest.c yu_common.c $(CFLAGS) $(ASAN_FLAGS)
+all:
 
-treetest_gcc:
-	gcc5 -g treetest.c yu_common.c $(CFLAGS)
+test/%.o: test/%.c
+	$(CC) $(subst std=c99,std=c11,$(CFLAGS)) $(INCLUDE_DIRS) -c $< -o $@
 
-listtest:
-	clang37 -g listtest.c SFMT/SFMT.c yu_common.c $(CFLAGS) $(ASAN_FLAGS)
+%.o: %.c
+	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
-listtest_gcc:
-	gcc5 -g listtest.c SFMT/SFMT.c yu_common.c $(CFLAGS)
+test_driver: $(TEST_OBJS)
+	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) -o $(TEST_OUT) $(LIBS)
 
-heaptest:
-	clang37 -g heaptest.c SFMT/SFMT.c yu_common.c $(CFLAGS) $(ASAN_FLAGS)
+test: test_driver
+	./$(TEST_OUT)
 
-heaptest_gcc:
-	gcc5 -g heaptest.c SFMT/SFMT.c yu_common.c $(CFLAGS)
+clean:
+	rm src/*.o test/*.o $(TEST_OUT)
 
-lex.i: lex.l
-	flex -d -o $@ lex.l
+# This section is for debugging the giant macro ‘templates’ used for
+# common data structures.
+# Hopefully, you shouldn't have to fiddle with this.
 
-lextest: lex.i
-	clang37 -g linenoise.c lextest.c lexer.c yu_common.c $(CFLAGS) $(STRLIBS) $(ASAN_FLAGS)
+.PHONY: copy_templates build_debug_test debug_templates
 
-lextest_gcc: lex.i
-	gcc5 -g linenoise.c lextest.c lexer.c yu_common.c $(CFLAGS) $(STRLIBS)
+TMPL_SRCS = $(wildcard src/preprocessed/*.c)
+TMPL_OBJS = $(TMPL_SRCS:.c=.o)
+
+copy_templates:
+	cp $(filter-out test/ptest.c,$(TEST_SRCS)) src/preprocessed
+
+src/preprocessed/%.i: src/preprocessed/%.c
+	$(CC) -nostdinc -Iinclude/dummy $(CFLAGS) -E -P -c $< -o $@
+	$(FMT) $(FMTFLAGS) -i $@
+
+# TODO figure out how to get this to work without including every
+# file on the command line.
+src/preprocessed/%.o: src/preprocessed/%.i
+	$(CC) $(subst std=c99,std=c11,$(CFLAGS)) $(INCLUDE_DIRS) \
+            -include stdbool.h -include stddef.h -include stdint.h \
+            -include stdlib.h -include inttypes.h -include math.h \
+            -include utf8proc/utf8proc.h -include SFMT/SFMT.h \
+            -x c -c $< -o $@
+
+$(TMPL_OBJS): $(TMPL_SRCS:.c=.i)
+
+build_debug_test: copy_templates $(TMPL_OBJS) test/ptest.o
+	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) -o src/preprocessed/test $(LIBS)
+
+debug_templates: build_debug_test
+	$(DB) $(DBFLAGS) src/preprocessed/test
