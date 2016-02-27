@@ -56,9 +56,12 @@ test: test_driver
 clean:
 	rm src/*.o test/*.o $(TEST_OUT)
 
-# This section is for debugging the giant macro ‘templates’ used for
-# common data structures.
-# Hopefully, you shouldn't have to fiddle with this.
+
+######################################################################
+# This section is for debugging the giant macro ‘templates’ used for #
+# common data structures.                                            #
+# Hopefully, you shouldn't have to fiddle with this.                 #
+######################################################################
 
 .PHONY: copy_templates build_debug_test debug_templates
 
@@ -88,3 +91,53 @@ build_debug_test: copy_templates $(TMPL_OBJS) test/ptest.o
 
 debug_templates: build_debug_test
 	$(DB) $(DBFLAGS) src/preprocessed/test
+
+
+######################################################################
+# Expand the various m4 templates in m4/ to generate boilerplate.    #
+# This is something of a Makefile anti-pattern, so don't try this at #
+# home. It works by removing the ‘new’ part of MAKECMDGOALS and      #
+# using the other specified targets as arguments to m4. `%:` is a    #
+# catch-all rule so that `make new test:file` doesn't try to execute #
+# a (non-existent) `test:file` target.                               #
+#                                                                    #
+# See http://stackoverflow.com/a/6273809 if you want to try to       #
+# decipher this rule.                                                #
+#                                                                    #
+# Valid subcommands:                                                 #
+#   new test:<name> — expands m4/test.c.m4 into a test suite <name>  #
+#   new src:<name> — expands m4/src.{c,h}.m4 src/<name>.{c,h}        #
+#   new common:<name> — expands m4/common.h.m4 into src/yu_<name>.h  #
+######################################################################
+
+M4 ?= gm4
+
+new:
+	$(eval $@_FILE := $(subst :, ,$(filter-out $@,$(MAKECMDGOALS))))
+	$(eval $@_TYPE := $(word 1,$($@_FILE)))
+	$(eval $@_NAME := $(word 2,$($@_FILE)))
+	@echo 'if [[ $($@_TYPE) == t* ]]; \
+	then \
+	    $(M4) $(M4FLAGS) -Dtest_name=$($@_NAME) m4/test.c.m4 > test/test_$($@_NAME).c; \
+	    echo "✓ test/test_$($@_NAME).c created successfully"; \
+	elif [[ $($@_TYPE) == s* ]]; \
+	then \
+	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.c.m4 > src/$($@_NAME).c; \
+	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.h.m4 > src/$($@_NAME).h; \
+	    echo "✓ src/$($@_NAME).c created successfully"; \
+	    echo "✓ src/$($@_NAME).h created successfully"; \
+	elif [[ $($@_TYPE) == c* ]]; \
+	then \
+	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/common.h.m4 > src/yu_$($@_NAME).h; \
+	    echo "✓ src/yu_$($@_NAME).h created successfully"; \
+	    echo "Don'\''t forget to add it to yu_common.h"; \
+	else \
+	    echo "Don'\''t know how to generate ‘$($@_TYPE)’"; \
+	    echo "Valid templates:"; \
+	    echo "  • new test:$($@_NAME)	Create a test suite" | expand -t 30; \
+	    echo "  • new src:$($@_NAME)	Create a new source/header pair in the src/ directory" | expand -t 30; \
+	    echo "  • new common:$($@_NAME)	Create a new Yu internal header file" | expand -t 30; \
+	fi' | bash
+
+%:         # Catch all.
+	@: # Somewhat obscure sytax that means ‘silently do nothing’.
