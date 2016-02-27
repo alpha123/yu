@@ -27,7 +27,7 @@ const char *: "s", const unsigned char *: "s", \
     asprintf(&_fmt, "%s == %s: Expected '%%%s', got '%%%s'.", \
              #expr, #expect, PT_PRINTF_FORMAT(_hope), PT_PRINTF_FORMAT(_actual)), \
     asprintf(&_msg, _fmt, _hope, _actual); \
-    pt_assert_run(eql((expr),(expect)), _msg, __func__, __FILE__, __LINE__); \
+    pt_assert_run(eql(_actual,_hope), _msg, __func__, __FILE__, __LINE__); \
     free(_fmt); \
     free(_msg); \
 }while(0)
