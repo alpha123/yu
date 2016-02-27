@@ -5,3 +5,4 @@ _*
 err
 *.tar.gz
 *.i
+test/test

@@ -139,7 +139,7 @@ static void yu_buf_ctx_clean_free_list(yu_buf_ctx *ctx) {
     }
 }
 
-static void null_free(void *_) { }
+static void null_free(void * YU_UNUSED(_)) { }
 
 void yu_buf_ctx_init(yu_buf_ctx *ctx) {
     yu_buf_table_init(&ctx->frozen_bufs, 10);
@@ -197,7 +197,7 @@ yu_buf yu_buf_new(yu_buf_ctx *ctx, const u8 *contents, u64 size, bool frozen) {
         memcpy(buf, contents, size);
     YU_BUF_DAT(buf)->len = contents ? size : 0;
     if (frozen)
-        yu_buf_freeze(buf);
+        buf = yu_buf_freeze(buf);
     return buf;
 
     YU_ERR_DEFAULT_HANDLER(NULL)
@@ -219,15 +219,23 @@ void yu_buf_free(yu_buf buf) {
     }
 }
 
-void yu_buf_freeze(yu_buf buf) {
+yu_buf yu_buf_freeze(yu_buf buf) {
     yu_buf old;
     struct yu_buf_dat *d = YU_BUF_DAT(buf);
     if (d->is_frozen)
-        return;
+        return buf;
     d->is_frozen = true;
     yu_hash_buf(buf);
-    if (yu_buf_table_put(&d->ctx->frozen_bufs, d->hash, buf, &old))
-        yu_buf_table_put(&d->ctx->frozen_bufs, YU_BUF_DAT(old)->hash, old, NULL);
+    if (yu_buf_table_get(&d->ctx->frozen_bufs, d->hash, &old)) {
+        /* Free buf instead of old, because we're returning the new, interned
+           buffer here. This means we can free and replace it without the caller
+           ‘noticing’, so to speak, while freeing `old` would invalidate any
+           existing references to it. */
+        yu_buf_free(buf);
+        return old;
+    }
+    yu_buf_table_put(&d->ctx->frozen_bufs, d->hash, buf, &old);
+    return buf;
 }
 
 yu_buf yu_buf_cat(yu_buf a, yu_buf b, bool frozen) {
@@ -237,7 +245,7 @@ yu_buf yu_buf_cat(yu_buf a, yu_buf b, bool frozen) {
     // If we're concatenating short strings and the buffer is immutable,
     // do the concat first so that yu_buf_new can check if the
     // resulting string already exists.
-    if (d->len + e->len < YU_BUF_STACK_ALLOC_THRESHOLD && frozen) {
+    if (frozen && d->len + e->len < YU_BUF_STACK_ALLOC_THRESHOLD) {
         cat = alloca(d->len + e->len);
         memcpy(cat, a, d->len);
         memcpy(cat + d->len, b, e->len);
@@ -247,8 +255,9 @@ yu_buf yu_buf_cat(yu_buf a, yu_buf b, bool frozen) {
         c = yu_buf_new(d->ctx, NULL, d->len + e->len, false);
         memcpy(c, a, d->len);
         memcpy(c + d->len, b, e->len);
+        YU_BUF_DAT(c)->len = d->len + e->len;
         if (frozen)
-            yu_buf_freeze(c);
+            c = yu_buf_freeze(c);
     }
     return c;
 }

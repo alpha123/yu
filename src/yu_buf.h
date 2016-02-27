@@ -63,14 +63,14 @@ void yu_buf_ctx_free(yu_buf_ctx *ctx);
 
 /* Returns a new buffer of capacity 2^ceil(log2(size)) aligned to a 16-byte boundary.
    Returns NULL if the allocation failed. Generally use yu_buf_new instead. */
-YU_RETURN_ALIGNED(16)
+YU_MALLOC_LIKE YU_RETURN_ALIGNED(16)
 yu_buf yu_buf_alloc(yu_buf_ctx *ctx, u64 size);
 
 yu_buf yu_buf_new(yu_buf_ctx *ctx, const u8 *contents, u64 size, bool frozen);
 
 void yu_buf_free(yu_buf buf);
 
-void yu_buf_freeze(yu_buf buf);
+yu_buf yu_buf_freeze(yu_buf buf);
 
 YU_INLINE
 u64 yu_buf_len(yu_buf buf) {

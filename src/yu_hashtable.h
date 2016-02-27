@@ -6,11 +6,11 @@
 typedef u32 (* YU_NAME(tbl, iter_cb))(key_t, val_t, void *); \
 \
 struct YU_NAME(tbl, bucket) { \
-    u8 is_set; \
     key_t key1; \
     val_t val1; \
     key_t key2; \
     val_t val2; \
+    u8 is_set; \
 }; \
 \
 typedef struct { \
@@ -33,7 +33,9 @@ bool YU_NAME(tbl, remove)(tbl *t, key_t k, val_t *v_out);
 #define YU_HASHTABLE_IMPL(tbl, key_t, val_t, hash1, hash2, eq) \
 void YU_NAME(tbl, init)(tbl *t, u64 init_capacity) { \
     YU_ERR_DEFVAR \
-    u32 k = yu_ceil_log2(init_capacity); \
+    /* since we store 2 keys/bucket and have 2 bucket lists, \
+       do a ceiling integer division to get a more expected value */ \
+    u32 k = yu_ceil_log2(1 + (init_capacity - 1) / 4); \
     init_capacity = 1 << k; \
     YU_CHECK_ALLOC(t->left = calloc(init_capacity, sizeof(struct YU_NAME(tbl, bucket)))); \
     YU_CHECK_ALLOC(t->right = calloc(init_capacity, sizeof(struct YU_NAME(tbl, bucket)))); \
@@ -84,8 +86,8 @@ u8 YU_NAME(tbl, _findbucket_)(tbl *t, key_t k, struct YU_NAME(tbl, bucket) **b_o
     struct YU_NAME(tbl, bucket) *b1, *b2; \
 \
     cap = 1 << t->capacity; \
-    idx1 = hash1(k) % cap; \
-    idx2 = hash2(k) % cap; \
+    idx1 = hash1(k) & cap - 1; \
+    idx2 = hash2(k) & cap - 1; \
     b1 = t->left + idx1; \
     b2 = t->right + idx2; \
     if ((b1->is_set & 1) && eq(k, b1->key1)) { \
@@ -116,7 +118,7 @@ bool YU_NAME(tbl, get)(tbl *t, key_t k, val_t *v_out) { \
     struct YU_NAME(tbl, bucket) *b; \
     u8 b_idx = YU_NAME(tbl, _findbucket_)(t, k, &b); \
     if (b_idx) { \
-        *v_out = b_idx == 1 ? b->val1 : b->val2; \
+        if (v_out) *v_out = b_idx == 1 ? b->val1 : b->val2; \
         return true; \
     } \
     return false; \
@@ -135,11 +137,13 @@ void YU_NAME(tbl, _rehash_)(tbl *t, struct YU_NAME(tbl, bucket) *left, struct YU
     struct YU_NAME(tbl, bucket) *b; \
     for (u64 i = 0; i < cap; i++) { \
         b = left + i; \
+        /* No need to unset the buckets; they are old and get freed after the rehash anyway. */ \
         if (b->is_set & 1) \
             YU_NAME(tbl, _insert_)(t, true, b->key1, b->val1, NULL, 0); \
         if (b->is_set & 2) \
             YU_NAME(tbl, _insert_)(t, true, b->key2, b->val2, NULL, 0); \
         b = right + i; \
+        /* Also, insert both old buckets into the left new bucket and let insert resolve collisions. */ \
         if (b->is_set & 1) \
             YU_NAME(tbl, _insert_)(t, true, b->key1, b->val1, NULL, 0); \
         if (b->is_set & 2) \
@@ -150,13 +154,11 @@ void YU_NAME(tbl, _rehash_)(tbl *t, struct YU_NAME(tbl, bucket) *left, struct YU
 bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v_out, u8 iter_count) { \
     YU_ERR_DEFVAR \
     u64 cap = 1 << t->capacity, new_cap; \
-    u64 idx = (left_insert ? hash1(k) : hash2(k)) % cap; \
+    u64 idx = (left_insert ? hash1(k) : hash2(k)) & cap - 1; \
     struct YU_NAME(tbl, bucket) *left = t->left, *right = t->right, \
       *b = left_insert ? left + idx : right + idx; \
     key_t move_k; \
-    val_t move_v, null_out; \
-    if (v_out == NULL) \
-        v_out = &null_out; \
+    val_t move_v; \
 \
     if (b->is_set == 0) { \
         b->key1 = k; \
@@ -166,7 +168,7 @@ bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v
     } \
     else if (b->is_set == 1) { \
         if (eq(k, b->key1)) { \
-            *v_out = b->val1; \
+            if (v_out) *v_out = b->val1; \
             b->val1 = v; \
             return true; \
         } \
@@ -179,7 +181,7 @@ bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v
     } \
     else if (b->is_set == 2) { \
         if (eq(k, b->key2)) { \
-            *v_out = b->val2; \
+            if (v_out) *v_out = b->val2; \
             b->val2 = v; \
             return true; \
         } \
@@ -192,23 +194,25 @@ bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v
     } \
     else {  /* both slots are occupied in this bucket */ \
         if (eq(k, b->key1)) { \
-            *v_out = b->val1; \
+            if (v_out) *v_out = b->val1; \
             b->val1 = v; \
             return true; \
         } \
         else if (eq(k, b->key2)) { \
-            *v_out = b->val2; \
+            if (v_out) *v_out = b->val2; \
             b->val2 = v; \
             return true; \
         } \
         else { \
             /* If we've been shuffling for a while assume the table is pretty full */ \
-            if (iter_count == 255) { \
+            if (iter_count == 4) { \
                 new_cap = 1 << ++t->capacity; \
                 YU_CHECK_ALLOC(t->left = calloc(new_cap, sizeof(struct YU_NAME(tbl, bucket)))); \
                 YU_CHECK_ALLOC(t->right = calloc(new_cap, sizeof(struct YU_NAME(tbl, bucket)))); \
                 YU_NAME(tbl, _rehash_)(t, left, right, cap); \
-                return false; \
+                free(left); \
+                free(right); \
+                return YU_NAME(tbl, _insert_)(t, true, k, v, v_out, 0); \
             } \
             else { \
                 move_k = b->key1; \
@@ -233,7 +237,7 @@ bool YU_NAME(tbl, remove)(tbl *t, key_t k, val_t *v_out) { \
     struct YU_NAME(tbl, bucket) *b; \
     u8 b_idx = YU_NAME(tbl, _findbucket_)(t, k, &b); \
     if (b_idx) { \
-        *v_out = b_idx == 1 ? b->val1 : b->val2; \
+        if (v_out) *v_out = b_idx == 1 ? b->val1 : b->val2; \
         b->is_set &= ~b_idx; \
         --t->size; \
         return true; \
