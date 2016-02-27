@@ -1,15 +1,42 @@
+/**
+ * Copyright (c) 2016 Peter Cannici
+ * Licensed under the MIT (X11) license. See LICENSE.
+ */
+
 #ifndef YU_INTERNAL_INCLUDES
 #error "Don't include yu_hashtable.h directly! Include yu_common.h instead."
 #endif
+
+/**
+ * Relatively simple cuckoo hash implementation. The only significant difference
+ * from a textbook cuckoo hash table is that we store 2 key/value pairs per
+ * bucket here. This improves maximum load factor dramatically (up to 80% in
+ * some cases) at the cost a few more `eq` comparisons.
+ * TODO should probably profile that.
+ *
+ * If you're looking to contribute, this code gets quite repetitive checking
+ * left/right buckets and key1/key2. It's also most likely not as performant
+ * as it could be. Perhaps an optimization would be to store left and right
+ * buckets in the same array, with even indices being left and odd being right.
+ * Since they're frequently accessed together, this could improve locality of
+ * reference somewhat.
+ *
+ * Another possible optimization could be moving is_set information
+ * out of the buckets and into an auxillary array indexed by bucket number.
+ * This would fit more buckets into cache (potentially many more), though
+ * locality with is_set bits would be lost. I'm sure something could be worked out.
+ *
+ * keywords: cuckoo hash, hash table
+ */
 
 #define YU_HASHTABLE(tbl, key_t, val_t, hash1, hash2, eq) \
 typedef u32 (* YU_NAME(tbl, iter_cb))(key_t, val_t, void *); \
 \
 struct YU_NAME(tbl, bucket) { \
-    key_t key1; \
     val_t val1; \
-    key_t key2; \
     val_t val2; \
+    key_t key1; \
+    key_t key2; \
     u8 is_set; \
 }; \
 \
@@ -17,7 +44,7 @@ typedef struct { \
     struct YU_NAME(tbl, bucket) *left; \
     struct YU_NAME(tbl, bucket) *right; \
     u64 size; \
-    u32 capacity;  /* size of left and right is 2^capacity */ \
+    u8 capacity;  /* size of left and right is 2^capacity */ \
 } tbl; \
 \
 void YU_NAME(tbl, init)(tbl *t, u64 init_capacity); \
@@ -33,9 +60,11 @@ bool YU_NAME(tbl, remove)(tbl *t, key_t k, val_t *v_out);
 #define YU_HASHTABLE_IMPL(tbl, key_t, val_t, hash1, hash2, eq) \
 void YU_NAME(tbl, init)(tbl *t, u64 init_capacity) { \
     YU_ERR_DEFVAR \
-    /* since we store 2 keys/bucket and have 2 bucket lists, \
-       do a ceiling integer division to get a more expected value */ \
-    u32 k = yu_ceil_log2(1 + (init_capacity - 1) / 4); \
+    /* Since we store 2 keys per bucket and have 2 bucket arrays, \
+       if we were to use init_capacity as-passed the actual number of \
+       storable key-value pairs would exceed the requested capacity \
+       by quite a bit. Do a ceiling division to fix that. */ \
+    u8 k = yu_ceil_log2(1 + (init_capacity - 1) / 4); \
     init_capacity = 1 << k; \
     YU_CHECK_ALLOC(t->left = calloc(init_capacity, sizeof(struct YU_NAME(tbl, bucket)))); \
     YU_CHECK_ALLOC(t->right = calloc(init_capacity, sizeof(struct YU_NAME(tbl, bucket)))); \
@@ -53,28 +82,28 @@ void YU_NAME(tbl, free)(tbl *t) { \
 u32 YU_NAME(tbl, iter)(tbl *t, YU_NAME(tbl, iter_cb) cb, void *data) { \
     u32 stop_code; \
     u64 cap = 1 << t->capacity, sz = t->size; \
-    struct YU_NAME(tbl, bucket) b; \
+    struct YU_NAME(tbl, bucket) *b; \
     for (u64 i = 0, j = 0; i < cap && j < sz; i++) { \
-        b = t->left[i]; \
-        if (b.is_set & 1) { \
+        b = t->left + i; \
+        if (b->is_set & 1) { \
             ++j; \
-            if ((stop_code = cb(b.key1, b.val1, data))) \
+            if ((stop_code = cb(b->key1, b->val1, data))) \
                 return stop_code; \
         } \
-        if (b.is_set & 2) { \
+        if (b->is_set & 2) { \
             ++j; \
-            if ((stop_code = cb(b.key2, b.val2, data))) \
+            if ((stop_code = cb(b->key2, b->val2, data))) \
                 return stop_code; \
         } \
-        b = t->right[i]; \
-        if (b.is_set & 1) { \
+        b = t->right + i; \
+        if (b->is_set & 1) { \
             ++j; \
-            if ((stop_code = cb(b.key1, b.val1, data))) \
+            if ((stop_code = cb(b->key1, b->val1, data))) \
                 return stop_code; \
         } \
-        if (b.is_set & 2) { \
+        if (b->is_set & 2) { \
             ++j; \
-            if ((stop_code = cb(b.key2, b.val2, data))) \
+            if ((stop_code = cb(b->key2, b->val2, data))) \
                 return stop_code; \
         } \
     } \
@@ -205,7 +234,7 @@ bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v
         } \
         else { \
             /* If we've been shuffling for a while assume the table is pretty full */ \
-            if (iter_count == 4) { \
+            if (iter_count == 32) { \
                 new_cap = 1 << ++t->capacity; \
                 YU_CHECK_ALLOC(t->left = calloc(new_cap, sizeof(struct YU_NAME(tbl, bucket)))); \
                 YU_CHECK_ALLOC(t->right = calloc(new_cap, sizeof(struct YU_NAME(tbl, bucket)))); \
