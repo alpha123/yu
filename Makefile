@@ -113,6 +113,22 @@ debug_templates: build_debug_test
 M4 ?= gm4
 
 new:
+	# Turn a target like `new subcommand:name` into a few variables.
+	# Prefix them with $@_ (new_) just to avoid any potential namespace
+	# collisions.
+	#
+	# General description of what's going on for a command such as
+	# `make new test:splaytree`:
+	#   1. MAKECMDGOALS is a magic variable that make sets to "new test:splaytree"
+	#   2. $@_FILE will be set to "test splaytree" by removing "new" and replacing
+	#      colons with spaces (so that we can use the built-in word function).
+	#      Note that "make new test splaytree" would try to invoke the ‘test’ target
+	#      above, which is why this command specifies subcommand with a colon.
+	#   3. $@_TYPE and $@_NAME get set to the subcommand and file name
+	#   4. Bash gets called with a big if statement that invokes the correct m4
+	#      command for each type of template file.
+	#      Use bash explicitly in case the user runs make from a non-POSIX shell
+	#      such as fish.
 	$(eval $@_FILE := $(subst :, ,$(filter-out $@,$(MAKECMDGOALS))))
 	$(eval $@_TYPE := $(word 1,$($@_FILE)))
 	$(eval $@_NAME := $(word 2,$($@_FILE)))
