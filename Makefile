@@ -118,18 +118,18 @@ new:
 	$(eval $@_NAME := $(word 2,$($@_FILE)))
 	@echo 'if [[ $($@_TYPE) == t* ]]; \
 	then \
-	    $(M4) $(M4FLAGS) -Dtest_name=$($@_NAME) m4/test.c.m4 > test/test_$($@_NAME).c; \
-	    echo "✓ test/test_$($@_NAME).c created successfully"; \
+	    $(M4) $(M4FLAGS) -Dtest_name=$($@_NAME) m4/test.c.m4 > test/test_$($@_NAME).c && \
+	    echo "✓ Created test/test_$($@_NAME).c"; \
 	elif [[ $($@_TYPE) == s* ]]; \
 	then \
-	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.c.m4 > src/$($@_NAME).c; \
-	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.h.m4 > src/$($@_NAME).h; \
-	    echo "✓ src/$($@_NAME).c created successfully"; \
-	    echo "✓ src/$($@_NAME).h created successfully"; \
+	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.c.m4 > src/$($@_NAME).c && \
+	    echo "✓ Created src/$($@_NAME).c"; \
+	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.h.m4 > src/$($@_NAME).h && \
+	    echo "✓ Created src/$($@_NAME).h"; \
 	elif [[ $($@_TYPE) == c* ]]; \
 	then \
-	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/common.h.m4 > src/yu_$($@_NAME).h; \
-	    echo "✓ src/yu_$($@_NAME).h created successfully"; \
+	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/common.h.m4 > src/yu_$($@_NAME).h && \
+	    echo "✓ Created src/yu_$($@_NAME).h" && \
 	    echo "Don'\''t forget to add it to yu_common.h"; \
 	else \
 	    echo "Don'\''t know how to generate ‘$($@_TYPE)’"; \
