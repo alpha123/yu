@@ -19,6 +19,13 @@ endif
 # TODO perhaps don't assume $FMT accepts a -i in-place flag.
 FMT ?= clang-format
 
+# If exctags does not exist, assume ‘ctags’ to be Exhuberant CTags.
+ifneq ($(shell which exctags),)
+    CTAGS ?= exctags
+else
+    CTAGS ?= ctags
+endif
+
 ifeq ($(DEBUG),yes)
 	# -Wparenthesis is annoying
 	CFLAGS += -gdwarf-4 -g3 -DDEBUG -Wall -Wextra -pedantic -Wno-parentheses
@@ -38,7 +45,7 @@ TEST_OUT := test/test
 TEST_SRCS := $(wildcard test/*.c) $(COMMON_SRCS)
 TEST_OBJS := $(TEST_SRCS:.c=.o)
 
-.PHONY: all clean test
+.PHONY: all clean test tags
 
 all:
 
@@ -54,8 +61,11 @@ test_driver: $(TEST_OBJS)
 test: test_driver
 	./$(TEST_OUT)
 
+tags:
+	$(CTAGS) -R src
+
 clean:
-	rm src/*.o test/*.o $(TEST_OUT)
+	rm src/*.o tags test/*.o $(TEST_OUT)
 
 
 ######################################################################
