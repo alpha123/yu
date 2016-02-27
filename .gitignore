@@ -6,3 +6,4 @@ err
 *.tar.gz
 *.i
 test/test
+src/preprocessed/*
