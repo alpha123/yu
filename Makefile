@@ -16,6 +16,7 @@ else
 	DB ?= gdb
 endif
 
+# TODO perhaps don't assume $FMT accepts a -i in-place flag.
 FMT ?= clang-format
 
 ifeq ($(DEBUG),yes)
@@ -110,6 +111,7 @@ debug_templates: build_debug_test
 #   new common:<name> — expands m4/common.h.m4 into src/yu_<name>.h  #
 ######################################################################
 
+# TODO does Linux alias m4 to gm4? (or vice-versa)
 M4 ?= gm4
 
 new:
