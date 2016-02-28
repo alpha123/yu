@@ -115,8 +115,8 @@ u8 YU_NAME(tbl, _findbucket_)(tbl *t, key_t k, struct YU_NAME(tbl, bucket) **b_o
     struct YU_NAME(tbl, bucket) *b1, *b2; \
 \
     cap = 1 << t->capacity; \
-    idx1 = hash1(k) & cap - 1; \
-    idx2 = hash2(k) & cap - 1; \
+    idx1 = hash1(k) & (cap - 1); \
+    idx2 = hash2(k) & (cap - 1); \
     b1 = t->left + idx1; \
     b2 = t->right + idx2; \
     if ((b1->is_set & 1) && eq(k, b1->key1)) { \
@@ -183,7 +183,7 @@ void YU_NAME(tbl, _rehash_)(tbl *t, struct YU_NAME(tbl, bucket) *left, struct YU
 bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v_out, u8 iter_count) { \
     YU_ERR_DEFVAR \
     u64 cap = 1 << t->capacity, new_cap; \
-    u64 idx = (left_insert ? hash1(k) : hash2(k)) & cap - 1; \
+    u64 idx = (left_insert ? hash1(k) : hash2(k)) & (cap - 1); \
     struct YU_NAME(tbl, bucket) *left = t->left, *right = t->right, \
       *b = left_insert ? left + idx : right + idx; \
     key_t move_k; \

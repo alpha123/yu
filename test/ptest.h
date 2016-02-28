@@ -20,21 +20,35 @@ const char *: "s", const unsigned char *: "s", \
       void *: "p"))
 
 #define PT_ASSERT(expr) pt_assert_run((int)(expr), #expr, __func__, __FILE__, __LINE__)
-#define PT_ASSERT_EQUAL(expr, expect, eql) do{ \
+#define PT_ASSERT_EQUAL(expr, expect, eql, eql_sym) do{ \
     __typeof__(expr) _actual = (expr); \
     __typeof__(expect) _hope = (expect); \
     char *_fmt, *_msg; \
-    asprintf(&_fmt, "%s == %s: Expected '%%%s', got '%%%s'.", \
+    asprintf(&_fmt, "%s " eql_sym " %s: Expected '%%%s', got '%%%s'.", \
              #expr, #expect, PT_PRINTF_FORMAT(_hope), PT_PRINTF_FORMAT(_actual)), \
     asprintf(&_msg, _fmt, _hope, _actual); \
     pt_assert_run(eql(_actual,_hope), _msg, __func__, __FILE__, __LINE__); \
     free(_fmt); \
     free(_msg); \
 }while(0)
+
 #define PT_RAWEQ(a, b) ((a) == (b))
+#define PT_ASSERT_EQ(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWEQ, "==")
+
+#define PT_RAWGT(a, b) ((a) > (b))
+#define PT_ASSERT_GT(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWGT, ">")
+
+#define PT_RAWLT(a, b) ((a) < (b))
+#define PT_ASSERT_LT(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWLT, "<")
+
+#define PT_RAWGTE(a, b) ((a) >= (b))
+#define PT_ASSERT_GTE(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWGTE, "≥")
+
+#define PT_RAWLTE(a, b) ((a) <= (b))
+#define PT_ASSERT_LTE(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWLTE, "≤")
+
 #define PT_STREQ(a, b) (strcmp((a),(b)) == 0)
-#define PT_ASSERT_EQ(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWEQ)
-#define PT_ASSERT_STR_EQ(expr, expect) PT_ASSERT_EQUAL((char *)(expr), (char *)(expect), PT_STREQ)
+#define PT_ASSERT_STR_EQ(expr, expect) PT_ASSERT_EQUAL((char *)(expr), (char *)(expect), PT_STREQ, "streq")
 
 void pt_assert_run(int result, const char* expr, const char* func, const char* file, int line);
 

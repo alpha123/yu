@@ -66,7 +66,7 @@ char *as_words[] = {
 TEST(grow)
     for (u32 i = 0; i < 30; i++)
         PT_ASSERT(!ht_put(&tbl, i, as_words[i], NULL));
-    PT_ASSERT_EQ(tbl.size, 30);
+    PT_ASSERT_EQ(tbl.size, 30u);
     for (u32 i = 0; i < 30; i++) {
         char *s = ht_try_get(&tbl, i, "missing value");
         PT_ASSERT_STR_EQ(s, as_words[i]);
@@ -77,20 +77,31 @@ TEST(collide)
     // Note that a tbl.capacity of N means
     //   N * 2 (left+right buckets) * 2 (k/v pairs per bucket)
     // = 4N k/v pairs can be stored.
+
+    u8 old_cap = tbl.capacity;
+    bool collided = false;
+
+    for (u32 i = 0; i < (u32)5e7; i++) {
+	if ((collided = ht_put(&tbl, i, as_words[i % (sizeof(as_words) / sizeof(char *))], NULL)))
+	    break;
+    }
+    PT_ASSERT(!collided);
+    PT_ASSERT_GT(tbl.capacity, old_cap);
+    PT_ASSERT_EQ(tbl.size, (u64)5e7);
 END(collide)
 
 TEST(remove)
     for (u32 i = 0; i < 10; i++)
         ht_put(&tbl, i, as_words[i], NULL);
     PT_ASSERT(!ht_remove(&tbl, 20, NULL));
-    PT_ASSERT_EQ(tbl.size, 10);
+    PT_ASSERT_EQ(tbl.size, 10u);
     for (u32 i = 0; i < 10; i++) {
         char *s;
         PT_ASSERT(ht_remove(&tbl, i, &s));
         PT_ASSERT_STR_EQ(s, as_words[i]);
         PT_ASSERT_EQ(tbl.size, 10 - i - 1);
     }
-    PT_ASSERT_EQ(tbl.size, 0);
+    PT_ASSERT_EQ(tbl.size, 0u);
 END(remove)
 
 u32 iterator(u32 key, char *val, void *count) {
@@ -103,8 +114,8 @@ TEST(iter)
     u32 n = 0;
     for (u32 i = 0; i < 10; i++)
         ht_put(&tbl, i, as_words[i], NULL);
-    PT_ASSERT_EQ(ht_iter(&tbl, iterator, &n), 0);
-    PT_ASSERT_EQ(n, 10);
+    PT_ASSERT_EQ(ht_iter(&tbl, iterator, &n), 0u);
+    PT_ASSERT_EQ(n, 10u);
 END(iter)
 
 u32 stop_iterator(u32 key, char * YU_UNUSED(val), void * YU_UNUSED(data)) {
@@ -114,7 +125,7 @@ u32 stop_iterator(u32 key, char * YU_UNUSED(val), void * YU_UNUSED(data)) {
 TEST(stopiter)
     for (u32 i = 0; i < 10; i++)
         ht_put(&tbl, i, as_words[i], NULL);
-    PT_ASSERT_EQ(ht_iter(&tbl, stop_iterator, NULL), 3);
+    PT_ASSERT_EQ(ht_iter(&tbl, stop_iterator, NULL), 3u);
 END(stopiter)
 
 SUITE(hashtable, LIST_HASHTABLE_TESTS)

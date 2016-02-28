@@ -42,7 +42,7 @@ TEST(cat)
     a = new_buf("the quick brown fox", false);
     b = new_buf(" jumps over the lazy dog", false);
     c = yu_buf_cat(a, b, false);
-    PT_ASSERT_EQ(yu_buf_len(c), 43);
+    PT_ASSERT_EQ(yu_buf_len(c), 43u);
     PT_ASSERT_EQ(memcmp(c, "the quick brown fox jumps over the lazy dog", 43), 0);
 END(cat)
 

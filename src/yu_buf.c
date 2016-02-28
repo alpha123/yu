@@ -164,7 +164,7 @@ yu_buf yu_buf_alloc(yu_buf_ctx *ctx, u64 size) {
     void *base = malloc(sizeof(struct yu_buf_dat) + (1 << k) + 15);
     if (base == NULL)
         return NULL;
-    struct yu_buf_dat *d = (struct yu_buf_dat *)((uintptr_t)base + 15 & ~(uintptr_t)0x0f);
+    struct yu_buf_dat *d = (struct yu_buf_dat *)(((uintptr_t)base + 15) & ~(uintptr_t)0x0f);
     d->ctx = ctx;
     d->capacity = k;
     d->len = 0;

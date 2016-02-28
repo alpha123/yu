@@ -135,10 +135,12 @@ YU_ERR_RET yu_str_new_c(yu_str_ctx *ctx, const char *cstr, yu_str *out) {
 YU_ERR_RET yu_str_at(yu_str s, s64 idx, yu_str *char_out) {
     YU_ERR_DEFVAR
 
+    // `abs` still returns a signed integer, so cast to unsigned
+    // to get GCC to shut up.
     struct yu_str_dat *d = YU_STR_DAT(s);
-    YU_THROWIF(idx >= 0 ? idx >= d->egc_count : labs(idx) > d->egc_count, YU_ERR_STRING_INDEX_OUT_OF_BOUNDS);
-    u64 actual_idx = idx < 0 ? d->egc_count + idx : idx, start, len,
-        buflen = YU_BUF_DAT(s)->len, substrstart = 0, substrlen = 0;
+    YU_THROWIF(idx >= 0 ? (u64)idx >= d->egc_count : (u64)llabs(idx) > d->egc_count, YU_ERR_STRING_INDEX_OUT_OF_BOUNDS);
+    u64 actual_idx = idx < 0 ? d->egc_count - (u64)llabs(idx) : (u64)idx, start, len,
+        buflen = YU_BUF_DAT(s)->len;
 
     if (YU_STR_DAT(s)->egc_idx != NULL) {
         start = d->egc_idx[actual_idx];
