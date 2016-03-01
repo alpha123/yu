@@ -18,6 +18,10 @@ else
 	DB ?= gdb
 endif
 
+# TODO does Linux alias m4 to gm4? (or vice-versa)
+# On *BSD we always want to use GNU M4.
+M4 ?= gm4
+
 # TODO perhaps don't assume $FMT accepts a -i in-place flag.
 FMT ?= clang-format
 
@@ -102,23 +106,20 @@ TMPL_OBJS = $(TMPL_SRCS:.c=.o)
 
 copy_templates:
 	cp $(filter-out test/ptest.c,$(TEST_SRCS)) src/preprocessed
+	$(M4) $(M4FLAGS) include/build_debug_templates.h.m4 > include/build_debug_templates.h
 
 src/preprocessed/%.i: src/preprocessed/%.c
-	$(CC) -nostdinc -Iinclude/dummy $(CFLAGS) -E -P -c $< -o $@
+	$(CC) $(CFLAGS) -nostdinc -Iinclude/dummy $(INCLUDE_DIRS) -E -P -c $< -o $@
 	$(FMT) $(FMTFLAGS) -i $@
 
-# TODO figure out how to get this to work without including every
-# file on the command line.
 src/preprocessed/%.o: src/preprocessed/%.i
 	$(CC) $(subst std=c99,std=c11,$(CFLAGS)) $(INCLUDE_DIRS) \
-            -include stdbool.h -include stddef.h -include stdint.h \
-            -include stdlib.h -include inttypes.h -include math.h \
-            -include utf8proc/utf8proc.h -include SFMT/SFMT.h \
+	    -include include/build_debug_templates.h \
             -x c -c $< -o $@
 
 $(TMPL_OBJS): $(TMPL_SRCS:.c=.i)
 
-build_debug_test: copy_templates $(TMPL_OBJS) test/ptest.o
+build_debug_test: copy_templates deps $(TMPL_OBJS) test/ptest.o
 	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) -o src/preprocessed/test $(LIBS)
 
 debug_templates: build_debug_test
@@ -141,9 +142,6 @@ debug_templates: build_debug_test
 #   new src:<name> — expands m4/src.{c,h}.m4 src/<name>.{c,h}        #
 #   new common:<name> — expands m4/common.h.m4 into src/yu_<name>.h  #
 ######################################################################
-
-# TODO does Linux alias m4 to gm4? (or vice-versa)
-M4 ?= gm4
 
 new:
 # Turn a target like `new subcommand:name` into a few variables.
