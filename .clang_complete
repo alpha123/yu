@@ -1,0 +1,6 @@
+-DDEBUG
+-I/usr/local/include
+-I/usr/local/include/blas
+-Itest
+-Isrc
+-I.
