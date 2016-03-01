@@ -60,17 +60,18 @@ test/%.o: test/%.c
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
-test_driver: $(TEST_OBJS)
+test_driver: $(TEST_OBJS) deps
 	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) -o $(TEST_OUT) $(LIBS)
 
-test: test_driver
+test: test_driver  ## Build and run the test suite
 	./$(TEST_OUT)
 
-tags:
+tags:  ## Create a ctags file for the source tree
 	$(CTAGS) -R src
 
-clean:
-	rm -f tags SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a src/*.o test/*.o $(TEST_OUT)
+clean:  ## Remove all build output
+	rm -f tags SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a \
+	    src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
 
 
 ######################################################################
@@ -89,7 +90,7 @@ libutf8proc:
 	$(CC) $(CFLAGS) -include utf8proc/utf8proc.h -c utf8proc/utf8proc_data.c -o utf8proc/utf8proc_data.o
 	$(AR) rcs utf8proc/$@.a utf8proc/utf8proc.o utf8proc/utf8proc_data.o
 
-deps: libsfmt libutf8proc
+deps: libsfmt libutf8proc  ## Build static libraries of bundled dependencies
 
 
 
@@ -122,8 +123,34 @@ $(TMPL_OBJS): $(TMPL_SRCS:.c=.i)
 build_debug_test: copy_templates deps $(TMPL_OBJS) test/ptest.o
 	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) -o src/preprocessed/test $(LIBS)
 
-debug_templates: build_debug_test
+debug_templates: build_debug_test  ## Build a special preprocessed test executable for debugging large macro expansions
 	$(DB) $(DBFLAGS) src/preprocessed/test
+
+
+######################################################################
+# I wish more Makefiles provided a `make targets` command, so let's  #
+# do that here. See:                                                 #
+#  http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html #
+#  https://gist.github.com/prwhite/8168133                           #
+#  https://gist.github.com/depressiveRobot/46002002beabe2e7b4fd      #
+######################################################################
+
+.PHONY: help targets
+
+targets:  ## Print a list of available targets with short descriptions.
+# Only include alphanumeric targets, i.e. exclude stuff like %.o
+# Double xargs sh -c: the first one handles escape characters (e.g. colors).
+# The second is an extra level of indirection to handle setting variables
+# that target descriptions can use, as well as formatting columns.
+# Yes, we actually do need that many backslashes.
+	@grep -E '^[a-zA-Z_\-]+:.*?##.+' $(MAKEFILE_LIST) | sort | \
+	    awk 'BEGIN{FS=":.*?##\s*"};{printf "\033[36m%s\033[0m\\\\\\\\\\\\\\\\\\\\\\\t%s\n",$$1,$$2}' | \
+	    xargs -I'{}' sh -c "echo -e '{}'" | \
+	    xargs -I'{}' sh -c "MAKECMD=$(MAKE) sh -c 'echo {}' | expand -t 30"
+
+help:  ## Print a synopsis of useful Makefile targets
+	@sh -c "echo -e '\033[37m$(MAKE)\033[0m — Build the Yu REPL'"
+	@sh -c "echo -e '\033[37m$(MAKE) targets\033[0m — List available targets'"
 
 
 ######################################################################
@@ -143,7 +170,7 @@ debug_templates: build_debug_test
 #   new common:<name> — expands m4/common.h.m4 into src/yu_<name>.h  #
 ######################################################################
 
-new:
+new:  ## Create a new skeleton source file — see \\033[37m$MAKECMD new\\033[0m for details
 # Turn a target like `new subcommand:name` into a few variables.
 # Prefix them with $@_ (new_) just to avoid any potential namespace
 # collisions.
@@ -163,27 +190,33 @@ new:
 	$(eval $@_FILE := $(subst :, ,$(filter-out $@,$(MAKECMDGOALS))))
 	$(eval $@_TYPE := $(word 1,$($@_FILE)))
 	$(eval $@_NAME := $(word 2,$($@_FILE)))
-	@echo 'if [[ $($@_TYPE) == t* ]]; \
+	@echo 'if [[ "$($@_TYPE)" == t* ]]; \
 	then \
 	    $(M4) $(M4FLAGS) -Dtest_name=$($@_NAME) m4/test.c.m4 > test/test_$($@_NAME).c && \
 	    echo "✓ Created test/test_$($@_NAME).c"; \
-	elif [[ $($@_TYPE) == s* ]]; \
+	elif [[ "$($@_TYPE)" == s* ]]; \
 	then \
 	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.c.m4 > src/$($@_NAME).c && \
 	    echo "✓ Created src/$($@_NAME).c"; \
 	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/src.h.m4 > src/$($@_NAME).h && \
 	    echo "✓ Created src/$($@_NAME).h"; \
-	elif [[ $($@_TYPE) == c* ]]; \
+	elif [[ "$($@_TYPE)" == c* ]]; \
 	then \
 	    $(M4) $(M4FLAGS) -Dsrc_name=$($@_NAME) m4/common.h.m4 > src/yu_$($@_NAME).h && \
 	    echo "✓ Created src/yu_$($@_NAME).h" && \
 	    echo "Don'\''t forget to add it to yu_common.h"; \
-	else \
+	elif [[ "$($@_TYPE)" ]]; \
+	then \
 	    echo "Don'\''t know how to generate ‘$($@_TYPE)’"; \
 	    echo "Valid templates:"; \
-	    echo "  • new test:$($@_NAME)	Create a test suite" | expand -t 30; \
-	    echo "  • new src:$($@_NAME)	Create a new source/header pair in the src/ directory" | expand -t 30; \
-	    echo "  • new common:$($@_NAME)	Create a new Yu internal header file" | expand -t 30; \
+	    echo -e "  • \033[37mnew test:$($@_NAME)\033[0m	Create a test suite" | expand -t 30; \
+	    echo -e "  • \033[37mnew src:$($@_NAME)\033[0m	Create a new source/header pair in the src/ directory" | expand -t 30; \
+	    echo -e "  • \033[37mnew common:$($@_NAME)\033[0m	Create a new Yu internal header file" | expand -t 30; \
+	else \
+	    echo "Valid templates:"; \
+	    echo -e "  • \033[37mnew test:<name>\033[0m	Create a test suite" | expand -t 30; \
+	    echo -e "  • \033[37mnew src:<name>\033[0m	Create a new source/header pair in the src/ directory" | expand -t 30; \
+	    echo -e "  • \033[37mnew common:<name>\033[0m	Create a new Yu internal header file" | expand -t 30; \
 	fi' | bash
 
 %:         # Catch all.
