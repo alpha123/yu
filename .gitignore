@@ -1,4 +1,5 @@
 *.o
+*.a
 a.out
 *.core
 _*
@@ -8,3 +9,4 @@ err
 tags
 test/test
 src/preprocessed/*
+SFMT/test-*
