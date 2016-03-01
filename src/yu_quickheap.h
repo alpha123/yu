@@ -72,41 +72,35 @@ void YU_NAME(qh, setelem)(qh *heap, u64 i, data_t val) { \
     YU_ERR_DEFAULT_HANDLER(NOTHING()) \
 } \
 \
-u64 YU_NAME(qh, paritition)(data_t *elems, data_t pivot, u64 lo, u64 hi) { \
-    u64 swap_idx = lo; \
-    data_t swap; \
-\
-    while (lo <= hi) { \
-        while (YU_NAME(qh, cmp)(pivot, elems[lo]) > 0) \
-            ++lo; \
-        while (YU_NAME(qh, cmp)(pivot, elems[hi]) < 0) \
-            --hi; \
-        if (lo < hi) { \
-            swap = elems[lo]; \
-            elems[lo] = elems[hi]; \
-            elems[hi] = swap; \
-            ++lo; \
-            --hi; \
-        } \
-        else if (lo == hi) \
-            break; \
+u64 YU_NAME(qh, partition)(data_t *elems, u64 lo, u64 hi) { \
+    data_t pivot = elems[hi], swap; \
+    u64 i = lo; \
+    for (u64 j = lo; j < hi; j++) { \
+	if ((is_maxheap ? cmp(pivot, elems[j]) : cmp(elems[j], pivot)) <= 0) { \
+	    swap = elems[j]; \
+	    elems[j] = elems[i]; \
+	    elems[i] = swap; \
+	    ++i; \
+	} \
     } \
-\
-    return lo; \
+    swap = elems[i]; \
+    elems[i] = elems[hi]; \
+    elems[hi] = swap; \
+    return i; \
 } \
 \
 void YU_NAME(qh, _iqs_)(data_t *elems, u64 idx, u64 **ps, u64 *ps_sz, u8 *ps_cap) { \
     YU_ERR_DEFVAR \
-    u64 *s = *ps, z = *ps_sz - 1, pidx, qidx, *safety_first; \
+    u64 *s = *ps, z = *ps_sz - 1, pidx, *safety_first; \
     while (idx != s[z]) { \
-        pidx = idx + (s[z]-1 - idx) / 2; \
-        qidx = YU_NAME(qh, paritition)(elems, elems[pidx], idx, s[z]-1); \
+        pidx = YU_NAME(qh, partition)(elems, idx, s[z]-1); \
         if (*ps_sz == 1 << *ps_cap) { \
             safety_first = *ps; \
-            YU_CHECK_ALLOC(*ps = realloc(*ps, 1 << ++(*ps_cap))); \
+            YU_CHECK_ALLOC(*ps = realloc(*ps, sizeof(u64) * (1 << ++(*ps_cap)))); \
             s = *ps; \
+	    memset(s + (1 << (*ps_cap - 1)), 0, sizeof(u64) * ((1 << *ps_cap) - (1 << (*ps_cap - 1)))); \
         } \
-        s[(*ps_sz)++] = qidx; \
+        s[(*ps_sz)++] = pidx; \
         ++z; \
     } \
     /* If the size is 2, avoid decrementing the pivot stack twice (it gets decremented on pop) \
