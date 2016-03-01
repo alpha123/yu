@@ -32,7 +32,7 @@ bool YU_NAME(spl, remove)(spl *tree, data_t val, data_t *out); \
 \
 bool YU_NAME(spl, min)(spl *tree, data_t *out); \
 bool YU_NAME(spl, max)(spl *tree, data_t *out); \
-bool YU_NAME(spl, closest)(spl *tree, data_t target, data_t *out);
+bool YU_NAME(spl, closest)(spl *tree, data_t target, data_t *out_smaller, data_t *out_larger);
 
 #define YU_SPLAYTREE_IMPL(spl, data_t, cmp, splay_on_find) \
 void YU_NAME(spl, init)(spl *tree) { \
@@ -228,25 +228,30 @@ bool YU_NAME(spl, max)(spl *tree, data_t *out) { \
     return true; \
 } \
 \
-bool YU_NAME(spl, closest)(spl *tree, data_t target, data_t *out) { \
-    assert(out != NULL); \
-    struct YU_NAME(spl, node) *n = tree->root, *last; \
+bool YU_NAME(spl, closest)(spl *tree, data_t target, data_t *out_smaller, data_t *out_larger) { \
+    assert(out_smaller != NULL); \
+    assert(out_larger != NULL); \
+    struct YU_NAME(spl, node) *n = tree->root, *last_left = NULL, *last_right = NULL; \
     int cmp_res; \
     if (n == NULL) \
         return false; \
     while (n) { \
-        last = n; \
         cmp_res = cmp(target, n->dat); \
-        if (cmp_res < 0) \
+        if (cmp_res < 0) { \
+            last_left = n; \
             n = n->left; \
-        else if (cmp_res > 0) \
+        } \
+        else if (cmp_res > 0) { \
+            last_right = n; \
             n = n->right; \
+        } \
         else { \
-            last = n; \
+            last_left = last_right = n; \
             break; \
         } \
     } \
-    *out = last->dat; \
-    if (splay_on_find) tree->root = YU_NAME(spl, _splay_)(tree->root, *out); \
+    *out_smaller = last_right ? last_right->dat : last_left->dat; \
+    *out_larger = last_left ? last_left->dat : last_right->dat; \
+    if (splay_on_find) tree->root = YU_NAME(spl, _splay_)(tree->root, *out_smaller); \
     return true; \
 }
