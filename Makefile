@@ -1,12 +1,14 @@
 DEBUG ?= yes
 
 INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -I.
-LIB_DIRS := -L/usr/local/lib -Lutf8proc 
-LIBS := -lmpfr -lgmp -lm -l:libutf8proc.a
+LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
+LIBS := -lmpfr -lgmp -lm -l:libsfmt.a -l:libutf8proc.a
 ASAN_FLAGS := -fsanitize=address -O1 -fno-omit-frame-pointer
 
+CFLAGS ?= -std=c99
+
 SFMT_MEXP ?= 19937
-CFLAGS ?= -std=c99 $(INCLUDE_DIRS) -DSFMT_MEXP=$(SFMT_MEXP)
+CFLAGS += -DSFMT_MEXP=$(SFMT_MEXP)
 
 # cgdb <http://cgdb.github.io/> is a more convenient ncurses frontend
 # for gdb. Unlike gdb -tui it does syntax coloring and stuff.
@@ -64,7 +66,27 @@ tags:
 	$(CTAGS) -R src
 
 clean:
-	rm -f src/*.o tags test/*.o $(TEST_OUT)
+	rm -f tags SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a src/*.o test/*.o $(TEST_OUT)
+
+
+######################################################################
+# Build bundled dependencies. These get statically linked with       #
+# explicit -l:libXYZ.a flags above. See $LIBS.                       #
+######################################################################
+
+.PHONY: deps libsfmt libutf8proc
+
+libsfmt:
+	$(CC) $(CFLAGS) -c SFMT/SFMT.c -o SFMT/SFMT.o
+	$(AR) rcs SFMT/$@.a SFMT/SFMT.o
+
+libutf8proc:
+	$(CC) $(CFLAGS) -include utf8proc/utf8proc.h -c utf8proc/utf8proc.c -o utf8proc/utf8proc.o
+	$(CC) $(CFLAGS) -include utf8proc/utf8proc.h -c utf8proc/utf8proc_data.c -o utf8proc/utf8proc_data.o
+	$(AR) rcs utf8proc/$@.a utf8proc/utf8proc.o utf8proc/utf8proc_data.o
+
+deps: libsfmt libutf8proc
+
 
 
 ######################################################################
