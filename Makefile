@@ -185,8 +185,8 @@ new:  ## Create a new skeleton source file — see \\033[37m$MAKECMD new\\033[0m
 #   3. $@_TYPE and $@_NAME get set to the subcommand and file name
 #   4. Bash gets called with a big if statement that invokes the correct m4
 #      command for each type of template file.
-#      Use bash explicitly in case the user runs make from a non-POSIX shell
-#      such as fish.
+#      Use bash explicitly because we can't be sure /bin/sh is bash and the if
+#      statement uses bash syntax.
 	$(eval $@_FILE := $(subst :, ,$(filter-out $@,$(MAKECMDGOALS))))
 	$(eval $@_TYPE := $(word 1,$($@_FILE)))
 	$(eval $@_NAME := $(word 2,$($@_FILE)))
