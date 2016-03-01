@@ -35,7 +35,7 @@ endif
 ifeq ($(DEBUG),yes)
 	CFLAGS += -gdwarf-4 -g3 -DDEBUG -Wall -Wextra -pedantic
 	# GCC doesn't seem to build with ASAN on my machine
-	ifneq ($(findstring "clang",$(CC)),)
+	ifneq ($(findstring clang,$(CC)),)
 		CFLAGS += $(ASAN_FLAGS)
 	endif
 else
@@ -78,8 +78,6 @@ clean:  ## Remove all build output
 # Build bundled dependencies. These get statically linked with       #
 # explicit -l:libXYZ.a flags above. See $LIBS.                       #
 ######################################################################
-
-.PHONY: deps libsfmt libutf8proc
 
 libsfmt:
 	$(CC) $(CFLAGS) -c SFMT/SFMT.c -o SFMT/SFMT.o
