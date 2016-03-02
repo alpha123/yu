@@ -17,7 +17,7 @@
        float: "g",	       double: "g", \
       char *: "s",    unsigned char *: "s", \
 const char *: "s", const unsigned char *: "s", \
-      void *: "p"))
+      void *: "p",               bool: "d"))
 
 #define PT_ASSERT(expr) pt_assert_run((int)(expr), #expr, __func__, __FILE__, __LINE__)
 #define PT_ASSERT_EQUAL(expr, expect, eql, eql_sym) do{ \
