@@ -69,9 +69,17 @@ test: test_driver  ## Build and run the test suite
 tags:  ## Create a ctags file for the source tree
 	$(CTAGS) -R src
 
-clean:  ## Remove all build output
-	rm -f tags SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a \
-	    src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
+clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\033[0m to keep dependencies
+# This is kind of cute, but something of a hack:
+# don't clean bundled dependencies if clean is invoked with --keep.
+# GNU Make treats this as --keep-going (which is harmless), and puts
+# "k" in $MAKEFLAGS.
+	rm -f tags src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
+	@echo 'if [[ "$(MAKEFLAGS)" != *k* ]]; \
+	then \
+	  echo 'rm -f SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a'; \
+	  rm -f SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a; \
+	fi' | bash
 
 
 ######################################################################
