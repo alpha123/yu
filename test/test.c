@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2016 Peter Cannici
+ * Licensed under the MIT (X11) license. See LICENSE.
+ */
+
 #include "test.h"
 
 int main(int argc __attribute__((unused)), char **argv __attribute__((unused))) {
