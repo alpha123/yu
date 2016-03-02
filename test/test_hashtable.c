@@ -81,13 +81,22 @@ TEST(collide)
     u8 old_cap = tbl.capacity;
     bool collided = false;
 
-    for (u32 i = 0; i < (u32)5e7; i++) {
+#ifdef TEST_FAST
+    for (u32 i = 0; i < (u32)2000; i++)
+#else
+    for (u32 i = 0; i < (u32)5e7; i++)
+#endif
+    {
 	if ((collided = ht_put(&tbl, i, as_words[i % (sizeof(as_words) / sizeof(char *))], NULL)))
 	    break;
     }
     PT_ASSERT(!collided);
     PT_ASSERT_GT(tbl.capacity, old_cap);
+#ifdef TEST_FAST
+    PT_ASSERT_EQ(tbl.size, 2000);
+#else
     PT_ASSERT_EQ(tbl.size, (u64)5e7);
+#endif
 END(collide)
 
 TEST(remove)

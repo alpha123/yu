@@ -51,19 +51,34 @@ TEST(find)
     PT_ASSERT(st_find(&tree, c, &out));
     PT_ASSERT_EQ(out.y, 20);
 
-    for (u32 i = 0; i < (u32)3e6; i++) {
+#ifdef TEST_FAST
+    for (u32 i = 0; i < 40; i++)
+#else
+    for (u32 i = 0; i < (u32)3e6; i++)
+#endif
+    {
         a.x = i;
         a.y = i*2;
         st_insert(&tree, a, NULL);
     }
-    for (u32 i = 0; i < (u32)3e6; i++) {
+
+#ifdef TEST_FAST
+    for (u32 i = 0; i < 40; i++)
+#else
+    for (u32 i = 0; i < (u32)3e6; i++)
+#endif
+    {
         a.x = i;
         if (!st_find(&tree, a, &b)) {
             PT_ASSERT(false);
             break;
         }
     }
+#ifdef TEST_FAST
+    PT_ASSERT_EQ(tree.root->dat.x, 39);
+#else
     PT_ASSERT_EQ(tree.root->dat.x, 3e6-1);
+#endif
 END(find)
 
 TEST(find_set_root)

@@ -49,12 +49,23 @@ TEST(minheap)
     }
     PT_ASSERT_EQ(h.size, 0);
 
+#ifdef TEST_FAST
+    for (int i = 0; i < 100; i++)
+#else
     for (int i = 0; i < (int)2e6; i++)
+#endif
+    {
 	minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+    }
 
     bool all_gte = true;
     last = -10001;
-    for (int i = 0; i < 5e4; i++) {
+#ifdef TEST_FAST
+    for (int i = 0; i < 30; i++)
+#else
+    for (int i = 0; i < 5e4; i++)
+#endif
+    {
 	int n = minh_pop(&h, INT_MIN);
 	if (n < last) {
 	    all_gte = false;
@@ -64,12 +75,23 @@ TEST(minheap)
     }
     PT_ASSERT(all_gte);
 
+#ifdef TEST_FAST
+    for (int i = 0; i < 500; i++)
+#else
     for (int i = 0; i < (int)3e5; i++)
+#endif
+    {
 	minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+    }
 
     all_gte = true;
     last = -10001;
-    for (int i = 0; i < 3e3; i++) {
+#ifdef TEST_FAST
+    for (int i = 0; i < 200; i++)
+#else
+    for (int i = 0; i < 3e3; i++)
+#endif
+    {
 	int n = minh_pop(&h, INT_MIN);
 	if (n < last) {
 	    all_gte = false;
@@ -79,8 +101,14 @@ TEST(minheap)
     }
     PT_ASSERT(all_gte);
 
+#ifdef TEST_FAST
+    for (int i = 0; i < 400; i++)
+#else
     for (int i = 0; i < (int)2e4; i++)
+#endif
+    {
 	minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+    }
 
     all_gte = true;
     last = -10001;
@@ -120,12 +148,23 @@ TEST(maxheap)
     }
     PT_ASSERT_EQ(h.size, 0);
 
+#ifdef TEST_FAST
+    for (int i = 0; i < 100; i++)
+#else
     for (int i = 0; i < (int)2e6; i++)
+#endif
+    {
 	maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+    }
 
     bool all_lte = true;
     last = 10001;
-    for (int i = 0; i < 5e4; i++) {
+#ifdef TEST_FAST
+    for (int i = 0; i < 30; i++)
+#else
+    for (int i = 0; i < 5e4; i++)
+#endif
+    {
 	int n = maxh_pop(&h, INT_MAX);
 	if (n > last) {
 	    all_lte = false;
@@ -135,12 +174,23 @@ TEST(maxheap)
     }
     PT_ASSERT(all_lte);
 
+#ifdef TEST_FAST
+    for (int i = 0; i < 500; i++)
+#else
     for (int i = 0; i < (int)3e5; i++)
+#endif
+    {
 	maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+    }
 
     all_lte = true;
     last = 10001;
-    for (int i = 0; i < 3e3; i++) {
+#ifdef TEST_FAST
+    for (int i = 0; i < 200; i++)
+#else
+    for (int i = 0; i < 3e3; i++)
+#endif
+    {
 	int n = maxh_pop(&h, INT_MAX);
 	if (n > last) {
 	    all_lte = false;
@@ -150,8 +200,14 @@ TEST(maxheap)
     }
     PT_ASSERT(all_lte);
 
+#ifdef TEST_FAST
+    for (int i = 0; i < 400; i++)
+#else
     for (int i = 0; i < (int)2e4; i++)
+#endif
+    {
 	maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+    }
 
     all_lte = true;
     last = 10001;
