@@ -42,12 +42,11 @@ else
 	CFLAGS += -DNDEBUG -O3
 endif
 
-COMMON_HEADERS := $(wildcard src/yu_*.h)
-COMMON_SRCS := $(wildcard src/yu_*.c)
+COMMON_SRCS := $(wildcard src/*.c)
 COMMON_OBJS := $(COMMON_SRCS:.c=.o)
 
 TEST_OUT := test/test
-TEST_SRCS := $(wildcard test/*.c) $(COMMON_SRCS)
+TEST_SRCS := $(wildcard test/*.c)
 TEST_OBJS := $(TEST_SRCS:.c=.o)
 
 .PHONY: all clean test tags
@@ -60,8 +59,8 @@ test/%.o: test/%.c
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
-test_driver: $(TEST_OBJS) deps
-	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) -o $(TEST_OUT) $(LIBS)
+test_driver: $(TEST_OBJS) $(COMMON_OBJS) deps
+	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) $(COMMON_OBJS) -o $(TEST_OUT) $(LIBS)
 
 test: test_driver  ## Build and run the test suite
 	./$(TEST_OUT)

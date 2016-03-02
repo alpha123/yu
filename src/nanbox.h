@@ -161,7 +161,7 @@ union value_u {
 };
 
 #undef NANBOX_T
-#define value_t value_t
+#define NANBOX_T value_t
 typedef union value_u NANBOX_T;
 
 #if defined(NANBOX_64)

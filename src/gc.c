@@ -1,3 +1,5 @@
+#if 0
+
 #include "gc.h"
 
 YU_INLINE
@@ -40,3 +42,5 @@ void gc_root(struct boxed_value *v) {
 void gc_unroot(struct boxed_value *v) {
     root_list_remove(&gc->roots, v, NULL);
 }
+
+#endif

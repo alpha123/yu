@@ -20,6 +20,8 @@
  * buckets in the same array, with even indices being left and odd being right.
  * Since they're frequently accessed together, this could improve locality of
  * reference somewhat.
+ * Also, buckets would most likely be better represented as a struct of arrays
+ * instead of an array of structs.
  *
  * Another possible optimization could be moving is_set information
  * out of the buckets and into an auxillary array indexed by bucket number.

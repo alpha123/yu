@@ -69,8 +69,6 @@ typedef uint64_t u64;
 
 u32 yu_ceil_log2(u64 n);
 
-/* Memory */
-
 // *BSD puts alloca in stdlib.h (and doesn't have alloca.h)
 // while other *nixes don't (OS X has it in both).
 // Windows puts it in malloc.h and calls it _alloca.
@@ -141,9 +139,6 @@ u32 yu_ceil_log2(u64 n);
  */
 #include "yu_err.h"
 
-/* Math with a variety of types */
-//#include "yu_numeric.h"
-
 /**
  * DATA STRUCTURES
  *
@@ -167,6 +162,15 @@ u32 yu_ceil_log2(u64 n);
 #include "yu_hashtable.h"
 #include "yu_splaytree.h"
 #include "yu_quickheap.h"
+
+
+/**
+ * MEMORY MANAGEMENT
+ *
+ * Generic allocator API — see file for details.
+ * Uses a wrapper for malloc/free by default.
+ */
+#include "yu_alloc.h"
 
 
 /**

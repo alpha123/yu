@@ -1,3 +1,5 @@
+#if 0
+
 #include "lexer.h"
 
 #include "lex.i"
@@ -53,3 +55,5 @@ const char *get_type_desc(token_type type) {
 void print_token(struct token *t, FILE *out) {
     fprintf(out, "TOKEN (%" PRIu64 ") %.*s %s ;", t->len, (s32)t->len, t->s, get_type_desc(t->what));
 }
+
+#endif
