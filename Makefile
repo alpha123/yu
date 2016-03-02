@@ -71,9 +71,10 @@ tags:  ## Create a ctags file for the source tree
 
 clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\033[0m to keep dependencies
 # This is kind of cute, but something of a hack:
-# don't clean bundled dependencies if clean is invoked with --keep.
+# Don't clean bundled dependencies if clean is invoked with --keep.
 # GNU Make treats this as --keep-going (which is harmless), and puts
 # "k" in $MAKEFLAGS.
+# Use bash instead of sh for the [[ ]] syntax for testing $MAKEFLAGS.
 	rm -f tags src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
 	@echo 'if [[ "$(MAKEFLAGS)" != *k* ]]; \
 	then \
@@ -108,6 +109,8 @@ deps: libsfmt libutf8proc  ## Build static libraries of bundled dependencies
 
 .PHONY: copy_templates build_debug_test debug_templates
 
+# Assign with = instead of := because there won't be any files in src/preprocessed/
+# until copy_templates runs.
 TMPL_SRCS = $(wildcard src/preprocessed/*.c)
 TMPL_OBJS = $(TMPL_SRCS:.c=.o)
 
