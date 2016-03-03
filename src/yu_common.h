@@ -168,7 +168,6 @@ u32 yu_ceil_log2(u64 n);
  * MEMORY MANAGEMENT
  *
  * Generic allocator API — see file for details.
- * Uses a wrapper for malloc/free by default.
  */
 #include "yu_alloc.h"
 
@@ -182,14 +181,11 @@ u32 yu_ceil_log2(u64 n);
  * for things like length, buffer capacity, etc. The memory layout looks
  * like so:
  *
- *     +-----------------------------------------------+
- *     | ... | struct yu_buf_dat | buffer contents ... |
- *     +-----------------------------------------------+
- *                               ^^^^^^^^^^^^^^^^^^^^^^^
- *                               returned yu_buf pointer
- *
- * Where the first section is some garbage data in case the pointer we
- * got from malloc isn't 16-byte aligned.
+ *     +-----------------------------------------+
+ *     | struct yu_buf_dat | buffer contents ... |
+ *     +-----------------------------------------+
+ *                         ^^^^^^^^^^^^^^^^^^^^^^^
+ *                         returned yu_buf pointer
  *
  * yu_str is slightly more interesting, in that it's fully Unicode-aware,
  * including the Extended Grapheme Cluster.
