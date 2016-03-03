@@ -157,7 +157,9 @@ targets:  ## Print a list of available targets with short descriptions.
 	    xargs -I'{}' sh -c "MAKECMD=$(MAKE) sh -c 'echo {}' | expand -t 30"
 
 help:  ## Print a synopsis of useful Makefile targets
+	@sh -c "echo -e 'Common targets:'"
 	@sh -c "echo -e '\033[37m$(MAKE)\033[0m — Build the Yu REPL'"
+	@sh -c "echo -e '\033[37m$(MAKE) test\033[0m — Build and run the test suite'"
 	@sh -c "echo -e '\033[37m$(MAKE) targets\033[0m — List available targets'"
 
 

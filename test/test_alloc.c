@@ -15,7 +15,9 @@
 #define LIST_ALLOC_TESTS(X) \
     X(alloc, "alloc() should allocate usable space of the requested size") \
     X(alloc_zero, "alloc() should initialize the requested space to 0") \
-    X(alloc_free, "free() should free the allocated space")
+    X(alloc_free, "free() should free the allocated space") \
+    X(free_all, "All memory allocated within a context should be freed upon freeing the context") \
+    X(alloc_aligned, "Allocated pointers should obey the specified alignment")
 
 struct foo {
     u64 ll;
@@ -40,7 +42,8 @@ TEST(alloc_zero)
     PT_ASSERT_EQ(f->b, false);
     PT_ASSERT_EQ(f->s, NULL);
 
-    int *ns = yu_xalloc(&ctx, 50, sizeof(int));
+    int *ns;
+    assert(yu_alloc(&ctx, &ns, 50, sizeof(int), 64) == YU_OK);
     bool all_z = true;
     for (int i = 0; i < 50; i++) {
         if (ns[i] != 0) {
@@ -57,5 +60,41 @@ TEST(alloc_free)
     PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, f, NULL));
 END(alloc_free)
 
+TEST(free_all)
+    struct foo *f = yu_xalloc(&ctx, 1, sizeof(struct foo)),
+               *fs = yu_xalloc(&ctx, 3, sizeof(struct foo));
+    char *s = yu_xalloc(&ctx, 20, 1);
+    yu_alloc_ctx_free(&ctx);
+    // We can't actually test if the table contains
+    // f/fs/s like above, since it's been freed.
+    // Instead re-create it and make sure it got rid
+    // of all the other junk.
+    // TODO figure out how to test if f/fs/n are actually
+    // free. Until then, Valgrind.
+    yu_alloc_ctx_init(&ctx);
+    PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, f, NULL));
+    PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, fs, NULL));
+    PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, s, NULL));
+END(free_all)
+
+TEST(alloc_aligned)
+    int *n;
+    // Remember kids, always check your error return values.
+    // Unless, of course, you're in a test suite. Then you
+    // can be a dirty rebel.
+    // Put in the assert() just to shut $CC up, it won't
+    // affect the test suite.
+    assert(yu_alloc(&ctx, &n, 1, sizeof(int), 2) == YU_OK);
+    PT_ASSERT_EQ((uintptr_t)n % 2, 0);
+    yu_free(&ctx, n);
+
+    assert(yu_alloc(&ctx, &n, 128, sizeof(int), 64) == YU_OK);
+    PT_ASSERT_EQ((uintptr_t)n % 64, 0);
+    yu_free(&ctx, n);
+
+    assert(yu_alloc(&ctx, &n, 6000, sizeof(int), 4096) == YU_OK);
+    PT_ASSERT_EQ((uintptr_t)n % 4096, 0);
+    yu_free(&ctx, n);
+END(alloc_aligned)
 
 SUITE(alloc, LIST_ALLOC_TESTS)
