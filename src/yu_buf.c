@@ -117,7 +117,7 @@ static void yu_buf_ctx_clean_free_list(yu_buf_ctx *ctx) {
                         ctx->free = curr->next;
                     if (curr->udata != NULL)
                         ctx->udata_free(curr->udata);
-                    free(curr->base);
+                    yu_free(ctx->memctx, curr);
                     --ctx->num_free;
                     if (++purged == free_cnt)
                         break;
@@ -133,7 +133,7 @@ static void yu_buf_ctx_clean_free_list(yu_buf_ctx *ctx) {
                 ctx->free = big->next;
             if (big->udata != NULL)
                 ctx->udata_free(big->udata);
-            free(big->base);
+            yu_free(ctx->memctx, big);
             --ctx->num_free;
         }
     }
@@ -141,8 +141,9 @@ static void yu_buf_ctx_clean_free_list(yu_buf_ctx *ctx) {
 
 static void null_free(void * YU_UNUSED(_)) { }
 
-void yu_buf_ctx_init(yu_buf_ctx *ctx) {
+void yu_buf_ctx_init(yu_buf_ctx *ctx, yu_memctx_t *memctx) {
     yu_buf_table_init(&ctx->frozen_bufs, 10);
+    ctx->memctx = memctx;
     ctx->free = NULL;
     ctx->num_free = 0;
     ctx->udata_free = null_free;
@@ -152,7 +153,7 @@ void yu_buf_ctx_free(yu_buf_ctx *ctx) {
     struct yu_buf_dat *curr = ctx->free, *next;
     while (curr) {
         next = curr->next;
-        free(curr->base);
+        yu_free(ctx->memctx, curr);
         curr = next;
     }
     yu_buf_table_free(&ctx->frozen_bufs);
@@ -161,14 +162,13 @@ void yu_buf_ctx_free(yu_buf_ctx *ctx) {
 
 yu_buf yu_buf_alloc(yu_buf_ctx *ctx, u64 size) {
     u32 k = yu_ceil_log2(size);
-    void *base = malloc(sizeof(struct yu_buf_dat) + (1 << k) + 15);
-    if (base == NULL)
+    void *base;
+    if (yu_alloc(ctx->memctx, &base, 1, sizeof(struct yu_buf_dat) + (1 << k), 16) != YU_OK)
         return NULL;
-    struct yu_buf_dat *d = (struct yu_buf_dat *)(((uintptr_t)base + 15) & ~(uintptr_t)0x0f);
+    struct yu_buf_dat *d = (struct yu_buf_dat *)base;
     d->ctx = ctx;
     d->capacity = k;
     d->len = 0;
-    d->base = base;
     d->udata = NULL;
     d->refs = 1;
     d->next = NULL;
@@ -206,16 +206,17 @@ yu_buf yu_buf_new(yu_buf_ctx *ctx, const u8 *contents, u64 size, bool frozen) {
 void yu_buf_free(yu_buf buf) {
     struct yu_buf_dat *d = YU_BUF_DAT(buf);
     if (--d->refs == 0) {
-        if (d->udata != NULL)
-            d->ctx->udata_free(d->udata);
         if (d->is_frozen) {
             d->next = d->ctx->free;
             d->ctx->free = d;
             ++d->ctx->num_free;
             yu_buf_ctx_clean_free_list(d->ctx);
         }
-        else
-            free(d->base);
+        else {
+            if (d->udata != NULL)
+                d->ctx->udata_free(d->udata);
+            yu_free(d->ctx->memctx, d);
+        }
     }
 }
 

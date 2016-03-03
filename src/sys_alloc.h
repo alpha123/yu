@@ -11,8 +11,8 @@
 #define addrhash_2 ahash2
 #define addr_eq(x,y) ((x)==(y))
 YU_HASHTABLE(sysmem_tbl, void *, size_t, addrhash_1, addrhash_2, addr_eq)
-#undef addr_hash1
-#undef addr_hash2
+#undef addrhash_1
+#undef addrhash_2
 #undef addr_eq
 
 yu_err sys_alloc_ctx_init(yu_memctx_t *ctx);

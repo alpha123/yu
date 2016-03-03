@@ -12,22 +12,12 @@
 // since the addresses will be 8/16-byte aligned on x86(_64).
 // Both of these functions are basically just FNV-1a hashes.
 
-static
-u64 addrhash_1(void *x) {
-    u64 h = (u64)(uintptr_t)x >> (sizeof(void *)*2);
-    h ^=  h        & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (h >>  8) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (h >> 16) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (h >> 24) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (h >> 32) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (h >> 40) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (h >> 48)       ; h *= UINT64_C(0x100000001b3);
-    return h;
-}
+#define addrhash_1(x) ((uintptr_t)(x))
+
 static
 u64 addrhash_2(void *x) {
     u64 h = UINT64_C(0x1ffffffffffffe2f),
-        n = (u64)(uintptr_t)x >> (sizeof(void *)*2);
+        n = (uintptr_t)x >> (sizeof(void *)*2);
     h ^= (n >> 48)       ; h *= UINT64_C(0x100000001b3);
     h ^= (n >> 40) & 0xff; h *= UINT64_C(0x100000001b3);
     h ^= (n >> 32) & 0xff; h *= UINT64_C(0x100000001b3);
@@ -40,6 +30,9 @@ u64 addrhash_2(void *x) {
 #define addr_eq(x,y) ((x)==(y))
 
 YU_HASHTABLE_IMPL(sysmem_tbl, void *, size_t, addrhash_1, addrhash_2, addr_eq)
+
+#undef addr_eq
+#undef addrhash_1
 
 yu_err sys_alloc_ctx_init(yu_memctx_t *ctx) {
     yu_default_ctx_init(ctx);
@@ -122,7 +115,6 @@ yu_err sys_realloc(yu_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, s
     if (alignment == 0) {
 	if ((safety_first = realloc(*ptr, alloc_sz)) == NULL)
 	    return YU_ERR_ALLOC_FAIL;
-	sysmem_tbl_put((sysmem_tbl *)ctx->adata, safety_first, alloc_sz, NULL);
 	goto ok;
     }
 
@@ -137,12 +129,12 @@ yu_err sys_realloc(yu_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, s
 
     memcpy(safety_first, *ptr, old_sz);
     free(*ptr);
-    sysmem_tbl_put((sysmem_tbl *)ctx->adata, safety_first, alloc_sz, NULL);
 
     ok:
     // 0 out the newly allocated portion
     memset((u8 *)safety_first + old_sz, 0, alloc_sz - old_sz);
     *ptr = safety_first;
+    sysmem_tbl_put((sysmem_tbl *)ctx->adata, *ptr, alloc_sz, NULL);
     return YU_OK;
 }
 

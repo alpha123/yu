@@ -1,11 +1,16 @@
 #include "test.h"
 
+#include "sys_alloc.h"
+
 #define SETUP \
+    yu_memctx_t mctx; \
     yu_buf_ctx ctx; \
-    yu_buf_ctx_init(&ctx);
+    sys_alloc_ctx_init(&mctx); \
+    yu_buf_ctx_init(&ctx, &mctx);
 
 #define TEARDOWN \
-    yu_buf_ctx_free(&ctx);
+    yu_buf_ctx_free(&ctx); \
+    yu_alloc_ctx_free(&mctx);
 
 #define LIST_BUF_TESTS(X) \
     X(intern, "Frozen buffers should be interned") \

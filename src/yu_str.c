@@ -60,10 +60,10 @@ static yu_err find_grapheme_clusters(yu_str s) {
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
 }
 
-void yu_str_ctx_init(yu_str_ctx *ctx) {
+void yu_str_ctx_init(yu_str_ctx *ctx, yu_memctx_t *mctx) {
     YU_ERR_DEFVAR
 
-    yu_buf_ctx_init(&ctx->bufctx);
+    yu_buf_ctx_init(&ctx->bufctx, mctx);
     ctx->strdatpool_len = 2000;
     YU_CHECK_ALLOC(ctx->strdatpool = calloc(ctx->strdatpool_len, sizeof(struct yu_str_dat)));
     return;

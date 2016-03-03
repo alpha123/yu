@@ -35,9 +35,10 @@ typedef void (* yu_buf_udata_cleanup_func)(void *);
 
 typedef struct {
     yu_buf_table frozen_bufs;
+    yu_buf_udata_cleanup_func udata_free;
+    yu_memctx_t *memctx;
     struct yu_buf_dat *free;
     u64 num_free;
-    yu_buf_udata_cleanup_func udata_free;
 } yu_buf_ctx;
 
 struct yu_buf_dat {
@@ -45,8 +46,6 @@ struct yu_buf_dat {
     u32 capacity;  // 2^capacity is the number of bytes this buffer can hold
 
     yu_buf_ctx *ctx;
-
-    void *base;  // the 'real' pointer that malloc() gave us; not necessarily aligned
 
     void *udata;
 
@@ -58,12 +57,9 @@ struct yu_buf_dat {
     struct yu_buf_dat *next;
 };
 
-void yu_buf_ctx_init(yu_buf_ctx *ctx);
+void yu_buf_ctx_init(yu_buf_ctx *ctx, yu_memctx_t *memctx);
 void yu_buf_ctx_free(yu_buf_ctx *ctx);
 
-/* Returns a new buffer of capacity 2^ceil(log2(size)) aligned to a 16-byte boundary.
-   Returns NULL if the allocation failed. Generally use yu_buf_new instead. */
-YU_MALLOC_LIKE YU_RETURN_ALIGNED(16)
 yu_buf yu_buf_alloc(yu_buf_ctx *ctx, u64 size);
 
 yu_buf yu_buf_new(yu_buf_ctx *ctx, const u8 *contents, u64 size, bool frozen);
