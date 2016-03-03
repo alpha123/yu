@@ -16,10 +16,11 @@ struct YU_NAME(spl, nodelist) { \
 typedef struct { \
     struct YU_NAME(spl, node) *root; \
     struct YU_NAME(spl, nodelist) *nodes; \
+    yu_memctx_t *memctx; \
     u64 size; \
 } spl; \
 \
-void YU_NAME(spl, init)(spl *tree); \
+void YU_NAME(spl, init)(spl *tree, yu_memctx_t *mctx); \
 void YU_NAME(spl, free)(spl *tree); \
 \
 void YU_NAME(spl, _left_rotate_)(spl *tree, struct YU_NAME(spl, node) *n); \
@@ -35,10 +36,11 @@ bool YU_NAME(spl, max)(spl *tree, data_t *out); \
 bool YU_NAME(spl, closest)(spl *tree, data_t target, data_t *out_smaller, data_t *out_larger);
 
 #define YU_SPLAYTREE_IMPL(spl, data_t, cmp, splay_on_find) \
-void YU_NAME(spl, init)(spl *tree) { \
+void YU_NAME(spl, init)(spl *tree, yu_memctx_t *mctx) { \
     tree->size = 0; \
     tree->nodes = NULL; \
     tree->root = NULL; \
+    tree->memctx = mctx; \
 } \
 \
 void YU_NAME(spl, free)(spl *tree) { \
@@ -46,8 +48,8 @@ void YU_NAME(spl, free)(spl *tree) { \
 \
     while (list) { \
         next = list->next; \
-        free(list->n); \
-        free(list); \
+        yu_free(tree->memctx, list->n); \
+        yu_free(tree->memctx, list); \
         list = next; \
     } \
 } \
@@ -60,8 +62,8 @@ void YU_NAME(spl, _nodefree_)(spl *tree, struct YU_NAME(spl, node) *n) { \
         if (list->n == n) { \
             if (prev) prev->next = next; \
             else tree->nodes = next; \
-            free(n); \
-            free(list); \
+            yu_free(tree->memctx, n); \
+            yu_free(tree->memctx, list); \
             list = next; \
         } \
         prev = list; \
@@ -151,8 +153,8 @@ bool YU_NAME(spl, insert)(spl *tree, data_t val, data_t *out) { \
 \
     if (n == NULL) { \
         ++tree->size; \
-        nn = calloc(1, sizeof(struct YU_NAME(spl, node))); \
-        nln = calloc(1, sizeof(struct YU_NAME(spl, nodelist))); \
+        nn = yu_xalloc(tree->memctx, 1, sizeof(struct YU_NAME(spl, node))); \
+        nln = yu_xalloc(tree->memctx, 1, sizeof(struct YU_NAME(spl, nodelist))); \
         nln->n = nn; \
         nln->next = tree->nodes; \
         tree->nodes = nln; \
@@ -170,8 +172,8 @@ bool YU_NAME(spl, insert)(spl *tree, data_t val, data_t *out) { \
         return true; \
     } \
     ++tree->size; \
-    nn = calloc(1, sizeof(struct YU_NAME(spl, node))); \
-    nln = calloc(1, sizeof(struct YU_NAME(spl, nodelist))); \
+    nn = yu_xalloc(tree->memctx, 1, sizeof(struct YU_NAME(spl, node))); \
+    nln = yu_xalloc(tree->memctx, 1, sizeof(struct YU_NAME(spl, nodelist))); \
     nln->n = nn; \
     nln->next = tree->nodes; \
     tree->nodes = nln; \

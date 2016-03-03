@@ -5,6 +5,8 @@
 
 #include "test.h"
 
+#include "sys_alloc.h"
+
 struct intpair {
     int x, y;
 };
@@ -17,11 +19,14 @@ YU_SPLAYTREE(st, struct intpair, intpair_cmp, true)
 YU_SPLAYTREE_IMPL(st, struct intpair, intpair_cmp, true)
 
 #define SETUP \
+    yu_memctx_t mctx; \
     st tree; \
-    st_init(&tree);
+    sys_alloc_ctx_init(&mctx); \
+    st_init(&tree, &mctx);
 
 #define TEARDOWN \
-    st_free(&tree);
+    st_free(&tree); \
+    yu_alloc_ctx_free(&mctx);
 
 #define LIST_SPLAYTREE_TESTS(X) \
     X(insert, "Inserting a value should set it to the root") \

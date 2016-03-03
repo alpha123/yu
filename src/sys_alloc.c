@@ -16,8 +16,8 @@
 
 static
 u64 addrhash_2(void *x) {
-    u64 h = UINT64_C(0x1ffffffffffffe2f),
-        n = (uintptr_t)x >> (sizeof(void *)*2);
+    u64 h = UINT64_C(0xcbf29ce484222325),
+        n = (uintptr_t)x;
     h ^= (n >> 48)       ; h *= UINT64_C(0x100000001b3);
     h ^= (n >> 40) & 0xff; h *= UINT64_C(0x100000001b3);
     h ^= (n >> 32) & 0xff; h *= UINT64_C(0x100000001b3);
