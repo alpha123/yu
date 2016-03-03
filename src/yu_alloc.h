@@ -44,77 +44,72 @@
  *   • size_t array_len(yu_memctx_t *ctx, void *ptr);
  *
  *
- * An "allocator" should be a macro that accepts a function name and varargs. 
- * ALLOCATOR(alloc, ...) _must_ expand to alloc(...)
- * ALLOCATOR(free, ...) _must_ expand to free(...)
- * and so on.
+ * An allocator should provide a function to initialize a yu_memctx_t struct with its
+ * implementations of the above functions, or yu_default_*_impl functions (where applicable).
+ * Additionally, it should _must_ a free_ctx function to deallocate everything allocated
+ * within that context.
  */
 
-#include "sys_alloc.h"
-#define yu_memctx_t sys_memctx_t
-#define YU_DEFAULT_ALLOCATOR SYSTEM_ALLOCATOR
+struct yu_memctx;
 
-#define yu_alloc_ctx_init(...) YU_DEFAULT_ALLOCATOR(alloc_ctx_init, __VA_ARGS__)
-#define yu_alloc_ctx_free(...) YU_DEFAULT_ALLOCATOR(alloc_ctx_free, __VA_ARGS__)
-#define yu_alloc(...) YU_DEFAULT_ALLOCATOR(alloc, __VA_ARGS__)
-#define yu_realloc(...) YU_DEFAULT_ALLOCATOR(realloc, __VA_ARGS__)
-#define yu_free(...) YU_DEFAULT_ALLOCATOR(free, __VA_ARGS__)
-#define yu_array_alloc(...) YU_DEFAULT_ALLOCATOR(array_alloc, __VA_ARGS__)
-#define yu_array_realloc(...) YU_DEFAULT_ALLOCATOR(array_realloc, __VA_ARGS__)
-#define yu_array_free(...) YU_DEFAULT_ALLOCATOR(array_free, __VA_ARGS__)
+typedef yu_err (* yu_alloc_fn)(struct yu_memctx *ctx, void **out, size_t num, size_t elem_size, size_t alignment);
+typedef yu_err (* yu_realloc_fn)(struct yu_memctx *ctx, void **ptr, size_t num, size_t elem_size, size_t alignment);
+typedef void (* yu_free_fn)(struct yu_memctx *ctx, void *ptr);
 
-#define YU_DEFAULT_ARRAY_ALLOC_IMPL(fn_name, alloc) \
-    yu_err fn_name(yu_memctx_t *ctx, void **out, size_t elem_count, size_t elem_size, size_t alignment) { \
-	YU_ERR_DEFVAR \
-	void *base, *ptr; \
-	YU_CHECK(alloc(ctx, &base, elem_count*elem_size + sizeof(size_t) + sizeof(void *) + alignment-1, 1, 16)); \
-	ptr = (void *)(((uintptr_t)base + (alignment-1)) & ~(uintptr_t)(alignment-1)); \
-	*((void **)ptr) = base; \
-	*((size_t *)((void **)ptr+1)) = elem_count; \
-	*out = (void *)((size_t *)((void **)ptr+1)+1); \
-	return YU_OK; \
-	yu_err_handler: \
-	*out = NULL; \
-	return yu_local_err; \
-    }
+typedef yu_err (* yu_array_alloc_fn)(struct yu_memctx *ctx, void **out, size_t elem_count, size_t elem_size, size_t alignment);
+typedef yu_err (* yu_array_realloc_fn)(struct yu_memctx *ctx, void **ptr, size_t elem_count, size_t elem_size, size_t alignment);
+typedef void (* yu_array_free_fn)(struct yu_memctx *ctx, void *ptr);
+typedef size_t (* yu_array_len_fn)(struct yu_memctx *ctx, void *ptr);
 
-#define YU_DEFAULT_ARRAY_LEN_IMPL(fn_name) \
-    YU_INLINE \
-    size_t fn_name(void *ptr) { \
-	return *((size_t *)ptr-1); \
-    }
+typedef void (* yu_free_ctx_fn)(struct yu_memctx *ctx);
 
-#define YU_DEFAULT_ARRAY_FREE_IMPL(fn_name, free) \
-    void fn_name(yu_memctx_t *ctx, void *ptr) { \
-	free(ctx, (void *)((void **)((size_t *)ptr-1)-1)); \
-    }
+typedef struct yu_memctx {
+    void *adata;  // pointer to the allocator's custom data structure
 
-#define YU_DEFAULT_ARRAY_REALLOC_IMPL(fn_name, realloc, array_alloc, array_free) \
-    yu_err fn_name(yu_memctx_t *ctx, void **ptr, size_t elem_count, size_t elem_size, size_t alignment) { \
-	YU_ERR_DEFVAR \
-	if (*ptr == NULL) return array_alloc(ctx, ptr, elem_count, elem_size, alignment); \
-	if (elem_count == 0) { \
-	    array_free(ctx, *ptr); \
-	    return YU_OK; \
-	} \
-	void *base = (void *)((void **)((size_t *)ptr-1)-1), *p; \
-	YU_CHECK(realloc(ctx, &base, elem_count*elem_size + sizeof(size_t) + sizeof(void *) + alignment-1, 1, 16)); \
-	p = (void *)(((uintptr_t)base + (alignment-1)) & ~(uintptr_t)(alignment-1)); \
-	*((void **)p) = base; \
-	*((size_t *)((void **)p+1)) = elem_count; \
-	*ptr = (void *)((size_t *)((void **)p+1)+1); \
-	return YU_OK; \
-	yu_err_handler: \
-	return yu_local_err; \
-    }
+    yu_alloc_fn alloc;
+    yu_realloc_fn realloc;
+    yu_free_fn free;
+
+    yu_array_alloc_fn array_alloc;
+    yu_array_realloc_fn array_realloc;
+    yu_array_free_fn array_free;
+    yu_array_len_fn array_len;
+
+    yu_free_ctx_fn free_ctx;
+} yu_memctx_t;
 
 YU_INLINE
-void *yu_xalloc(yu_memctx_t *ctx, size_t num, size_t elem_size) {
-    void *ptr;
-    yu_err err;
-    if ((err = yu_alloc(ctx, &ptr, num, elem_size, 0)) != YU_OK) {
-	yu_global_fatal_handler(err);
-	return NULL;
-    }
-    return ptr;
+yu_err yu_alloc(yu_memctx_t *ctx, void **out, size_t num, size_t elem_size, size_t alignment) {
+    return ctx->alloc(ctx, out, num, elem_size, alignment);
 }
+YU_INLINE
+yu_err yu_realloc(yu_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, size_t alignment) {
+    return ctx->realloc(ctx, ptr, num, elem_size, alignment);
+}
+YU_INLINE
+void yu_free(yu_memctx_t *ctx, void *ptr) { ctx->free(ctx, ptr); }
+
+YU_INLINE
+yu_err yu_array_alloc(yu_memctx_t *ctx, void **out, size_t elem_count, size_t elem_size, size_t alignment) {
+    return ctx->array_alloc(ctx, out, elem_count, elem_size, alignment);
+}
+YU_INLINE
+yu_err yu_array_realloc(yu_memctx_t *ctx, void **ptr, size_t elem_count, size_t elem_size, size_t alignment) {
+    return ctx->array_realloc(ctx, ptr, elem_count, elem_size, alignment);
+}
+YU_INLINE
+void yu_array_free(yu_memctx_t *ctx, void *ptr) { ctx->array_free(ctx, ptr); }
+YU_INLINE
+size_t yu_array_len(yu_memctx_t *ctx, void *ptr) { return ctx->array_len(ctx, ptr); }
+
+YU_INLINE
+void yu_alloc_ctx_free(yu_memctx_t *ctx) { ctx->free_ctx(ctx); }
+
+void yu_default_ctx_init(yu_memctx_t *ctx);
+
+yu_err yu_default_array_alloc_impl(yu_memctx_t *ctx, void **out, size_t elem_count, size_t elem_size, size_t alignment);
+yu_err yu_default_array_realloc_impl(yu_memctx_t *ctx, void **ptr, size_t elem_count, size_t elem_size, size_t alignment);
+void yu_default_array_free_impl(yu_memctx_t *ctx, void *ptr);
+size_t yu_default_array_len_impl(yu_memctx_t * YU_UNUSED(ctx), void *ptr);
+
+void *yu_xalloc(yu_memctx_t *ctx, size_t num, size_t elem_size);

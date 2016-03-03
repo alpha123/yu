@@ -4,6 +4,7 @@
  */
 
 #include "yu_common.h"
+#include "sys_alloc.h"
 
 // but more correct (to let the compiler know we're using the
 // address as an unsigned integer).
@@ -13,7 +14,7 @@
 
 static
 u64 addrhash_1(void *x) {
-    u64 h = (u64)(uintptr_t)x >> (sizeof(void *)*2); \
+    u64 h = (u64)(uintptr_t)x >> (sizeof(void *)*2);
     h ^=  h        & 0xff; h *= UINT64_C(0x100000001b3);
     h ^= (h >>  8) & 0xff; h *= UINT64_C(0x100000001b3);
     h ^= (h >> 16) & 0xff; h *= UINT64_C(0x100000001b3);
@@ -40,19 +41,33 @@ u64 addrhash_2(void *x) {
 
 YU_HASHTABLE_IMPL(sysmem_tbl, void *, size_t, addrhash_1, addrhash_2, addr_eq)
 
+yu_err sys_alloc_ctx_init(yu_memctx_t *ctx) {
+    yu_default_ctx_init(ctx);
+
+    if ((ctx->adata = calloc(1, sizeof(sysmem_tbl))) == NULL)
+	return YU_ERR_ALLOC_FAIL;
+    sysmem_tbl_init(ctx->adata, 2000);
+
+    ctx->alloc = sys_alloc;
+    ctx->free = sys_free;
+    ctx->realloc = sys_realloc;
+
+    ctx->free_ctx = sys_alloc_ctx_free;
+}
+
 static
 u32 free_ctx_all(void *address, size_t YU_UNUSED(sz), void * YU_UNUSED(data)) {
     free(address);
     return 0;
 }
 
-YU_INLINE
-void sys_alloc_ctx_free(sys_memctx_t *ctx) {
-    sysmem_tbl_iter(&ctx->allocd, free_ctx_all, NULL);
-    sysmem_tbl_free(&ctx->allocd);
+void sys_alloc_ctx_free(yu_memctx_t *ctx) {
+    sysmem_tbl_iter((sysmem_tbl *)ctx->adata, free_ctx_all, NULL);
+    sysmem_tbl_free((sysmem_tbl *)ctx->adata);
+    free(ctx->adata);
 }
 
-yu_err sys_alloc(sys_memctx_t *ctx, void **out, size_t num, size_t elem_size, size_t alignment) {
+yu_err sys_alloc(yu_memctx_t *ctx, void **out, size_t num, size_t elem_size, size_t alignment) {
     size_t alloc_sz = num * elem_size;
 
     // Default system alignment requested — we can return calloc directly.
@@ -78,11 +93,11 @@ yu_err sys_alloc(sys_memctx_t *ctx, void **out, size_t num, size_t elem_size, si
     // Now we have to store the original size so that we can reallocate properly.
     // Use a hash table keyed by address. This is also used to clean up a context.
     ok:
-    sysmem_tbl_put(&ctx->allocd, *out, alloc_sz, NULL);
+    sysmem_tbl_put((sysmem_tbl *)ctx->adata, *out, alloc_sz, NULL);
     return YU_OK;
 }
 
-yu_err sys_realloc(sys_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, size_t alignment) {
+yu_err sys_realloc(yu_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, size_t alignment) {
     // It's slightly unclear if pointers from aligned_alloc can safely be reallocated with
     // realloc. The POSIX standard doesn't mention it, but Linux manpages say it's okay.
     // Unsure about the ISO C11 standard.
@@ -100,14 +115,14 @@ yu_err sys_realloc(sys_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, 
     }
 
     size_t old_sz, alloc_sz = num * elem_size;
-    bool we_own_this = sysmem_tbl_remove(&ctx->allocd, *ptr, &old_sz);
+    bool we_own_this = sysmem_tbl_remove((sysmem_tbl *)ctx->adata, *ptr, &old_sz);
     assert(we_own_this);
 
     void *safety_first;
     if (alignment == 0) {
 	if ((safety_first = realloc(*ptr, alloc_sz)) == NULL)
 	    return YU_ERR_ALLOC_FAIL;
-	sysmem_tbl_put(&ctx->allocd, safety_first, alloc_sz, NULL);
+	sysmem_tbl_put((sysmem_tbl *)ctx->adata, safety_first, alloc_sz, NULL);
 	goto ok;
     }
 
@@ -122,7 +137,7 @@ yu_err sys_realloc(sys_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, 
 
     memcpy(safety_first, *ptr, old_sz);
     free(*ptr);
-    sysmem_tbl_put(&ctx->allocd, safety_first, alloc_sz, NULL);
+    sysmem_tbl_put((sysmem_tbl *)ctx->adata, safety_first, alloc_sz, NULL);
 
     ok:
     // 0 out the newly allocated portion
@@ -131,11 +146,7 @@ yu_err sys_realloc(sys_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, 
     return YU_OK;
 }
 
-void sys_free(sys_memctx_t *ctx, void *ptr) {
-    sysmem_tbl_remove(&ctx->allocd, ptr, NULL);
+void sys_free(yu_memctx_t *ctx, void *ptr) {
+    sysmem_tbl_remove((sysmem_tbl *)ctx->adata, ptr, NULL);
     free(ptr);
 }
-
-YU_DEFAULT_ARRAY_ALLOC_IMPL(sys_array_alloc, sys_alloc)
-YU_DEFAULT_ARRAY_FREE_IMPL(sys_array_free, sys_free)
-YU_DEFAULT_ARRAY_REALLOC_IMPL(sys_array_realloc, sys_realloc, sys_array_alloc, sys_array_free)

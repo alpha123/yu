@@ -5,9 +5,11 @@
 
 #include "test.h"
 
+#include "sys_alloc.h"
+
 #define SETUP \
     yu_memctx_t ctx; \
-    yu_alloc_ctx_init(&ctx);
+    sys_alloc_ctx_init(&ctx);
 
 #define TEARDOWN \
     yu_alloc_ctx_free(&ctx);
@@ -28,11 +30,11 @@ struct foo {
 TEST(alloc)
     struct foo *f = yu_xalloc(&ctx, 1, sizeof(struct foo));
     size_t f_sz, ns_sz;
-    PT_ASSERT(sysmem_tbl_get(&ctx.allocd, f, &f_sz));
+    PT_ASSERT(sysmem_tbl_get((sysmem_tbl *)ctx.adata, f, &f_sz));
     PT_ASSERT_EQ(f_sz, sizeof(struct foo));
 
     int *ns = yu_xalloc(&ctx, 50, sizeof(int));
-    PT_ASSERT(sysmem_tbl_get(&ctx.allocd, ns, &ns_sz));
+    PT_ASSERT(sysmem_tbl_get((sysmem_tbl *)ctx.adata, ns, &ns_sz));
     PT_ASSERT_EQ(ns_sz, 50 * sizeof(int));
 END(alloc)
 
@@ -57,7 +59,7 @@ END(alloc_zero)
 TEST(alloc_free)
     struct foo *f = yu_xalloc(&ctx, 1, sizeof(struct foo));
     yu_free(&ctx, f);
-    PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, f, NULL));
+    PT_ASSERT(!sysmem_tbl_get((sysmem_tbl *)ctx.adata, f, NULL));
 END(alloc_free)
 
 TEST(free_all)
@@ -71,10 +73,10 @@ TEST(free_all)
     // of all the other junk.
     // TODO figure out how to test if f/fs/n are actually
     // free. Until then, Valgrind.
-    yu_alloc_ctx_init(&ctx);
-    PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, f, NULL));
-    PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, fs, NULL));
-    PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, s, NULL));
+    sys_alloc_ctx_init(&ctx);
+    PT_ASSERT(!sysmem_tbl_get((sysmem_tbl *)ctx.adata, f, NULL));
+    PT_ASSERT(!sysmem_tbl_get((sysmem_tbl *)ctx.adata, fs, NULL));
+    PT_ASSERT(!sysmem_tbl_get((sysmem_tbl *)ctx.adata, s, NULL));
 END(free_all)
 
 TEST(alloc_aligned)
