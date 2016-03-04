@@ -158,9 +158,9 @@ targets:  ## Print a list of available targets with short descriptions.
 
 help:  ## Print a synopsis of useful Makefile targets
 	@sh -c "echo -e 'Common targets:'"
-	@sh -c "echo -e '\033[37m$(MAKE)\033[0m — Build the Yu REPL'"
-	@sh -c "echo -e '\033[37m$(MAKE) test\033[0m — Build and run the test suite'"
-	@sh -c "echo -e '\033[37m$(MAKE) targets\033[0m — List available targets'"
+	@sh -c "echo -e '\033[36m$(MAKE)\033[0m\tBuild the Yu REPL' | expand -t 30"
+	@sh -c "echo -e '\033[36m$(MAKE) test\033[0m\tBuild and run the test suite' | expand -t 30"
+	@sh -c "echo -e '\033[36m$(MAKE) targets\033[0m\tList available targets' | expand -t 30"
 
 
 ######################################################################
