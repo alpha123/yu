@@ -5,7 +5,7 @@
 
 #include "test.h"
 
-#include "sys_alloc.h"
+#include "internal_alloc.h"
 
 #define INT_CMP(a,b) ((a)-(b))
 
@@ -40,7 +40,7 @@ TEST(minheap)
 	    min = n;
 	minh_push(&h, n);
     }
-    PT_ASSERT_EQ(h.size, 50);
+    PT_ASSERT_EQ(h.size, 50u);
 
     // `min` will always be positive (we're only generating positive ints),
     // so -1 as a default value is fine.
@@ -52,7 +52,7 @@ TEST(minheap)
 	PT_ASSERT_GTE(n, last);
 	last = n;
     }
-    PT_ASSERT_EQ(h.size, 0);
+    PT_ASSERT_EQ(h.size, 0u);
 
 #ifdef TEST_FAST
     for (int i = 0; i < 100; i++)
@@ -141,7 +141,7 @@ TEST(maxheap)
 	    max = n;
 	maxh_push(&h, n);
     }
-    PT_ASSERT_EQ(h.size, 50);
+    PT_ASSERT_EQ(h.size, 50u);
 
     PT_ASSERT_EQ(maxh_top(&h, -1), max);
 
@@ -151,7 +151,7 @@ TEST(maxheap)
 	PT_ASSERT_LTE(n, last);
 	last = n;
     }
-    PT_ASSERT_EQ(h.size, 0);
+    PT_ASSERT_EQ(h.size, 0u);
 
 #ifdef TEST_FAST
     for (int i = 0; i < 100; i++)

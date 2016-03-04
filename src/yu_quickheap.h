@@ -55,21 +55,13 @@ s32 YU_NAME(qh, cmp)(data_t a, data_t b) { \
 \
 YU_INLINE \
 data_t YU_NAME(qh, elem)(qh *heap, u64 i) { \
-    return heap->elems[i & (1 << heap->cap) - 1]; \
+    return heap->elems[i & ((1 << heap->cap) - 1)]; \
 } \
 \
 void YU_NAME(qh, setelem)(qh *heap, u64 i, data_t val) { \
-    YU_ERR_DEFVAR \
-    data_t *stay_safe; \
-    while (i >= 1 << heap->cap) { \
-        stay_safe = heap->elems; \
+    while (i >= UINT64_C(1) << heap->cap) \
         heap->elems = yu_xrealloc(heap->memctx, heap->elems, 1 << ++heap->cap, sizeof(data_t)); \
-    } \
     heap->elems[i] = val; \
-\
-    if (yu_local_err == YU_ERR_ALLOC_FAIL) \
-        heap->elems = stay_safe; \
-    YU_ERR_DEFAULT_HANDLER(NOTHING()) \
 } \
 \
 u64 YU_NAME(qh, partition)(data_t *elems, u64 lo, u64 hi) { \
@@ -90,12 +82,10 @@ u64 YU_NAME(qh, partition)(data_t *elems, u64 lo, u64 hi) { \
 } \
 \
 void YU_NAME(qh, _iqs_)(yu_memctx_t *mctx, data_t *elems, u64 idx, u64 **ps, u64 *ps_sz, u8 *ps_cap) { \
-    YU_ERR_DEFVAR \
-    u64 *s = *ps, z = *ps_sz - 1, pidx, *safety_first; \
+    u64 *s = *ps, z = *ps_sz - 1, pidx; \
     while (idx != s[z]) { \
         pidx = YU_NAME(qh, partition)(elems, idx, s[z]-1); \
-        if (*ps_sz == 1 << *ps_cap) { \
-            safety_first = *ps; \
+        if (*ps_sz == UINT64_C(1) << *ps_cap) { \
             *ps = yu_xrealloc(mctx, *ps, 1 << ++(*ps_cap), sizeof(u64)); \
             s = *ps; \
 	    memset(s + (1 << (*ps_cap - 1)), 0, sizeof(u64) * ((1 << *ps_cap) - (1 << (*ps_cap - 1)))); \
@@ -106,10 +96,6 @@ void YU_NAME(qh, _iqs_)(yu_memctx_t *mctx, data_t *elems, u64 idx, u64 **ps, u64
     /* If the size is 2, avoid decrementing the pivot stack twice (it gets decremented on pop) \
        Truth be told, I'm not totally sure why this works, but keep the faux pivot s[0] in place. */ \
     if (*ps_sz > 2) --(*ps_sz); \
-\
-    if (yu_local_err == YU_ERR_ALLOC_FAIL) \
-        *ps = safety_first; \
-    YU_ERR_DEFAULT_HANDLER(NOTHING()) \
 } \
 \
 YU_INLINE \

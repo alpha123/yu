@@ -23,6 +23,8 @@
 yu_err internal_alloc_ctx_init(yu_memctx_t *ctx);
 void internal_alloc_ctx_free(yu_memctx_t * YU_UNUSED(ctx));
 
-yu_err internal_alloc(yu_memctx_t * YU_UNUSED(ctx), void **out, size_t num, size_t elem_size, size_t alignment);
-yu_err internal_realloc(yu_memctx_t * YU_UNUSED(ctx), void **ptr, size_t num, size_t elem_size, size_t alignment);
+yu_err internal_alloc(yu_memctx_t * YU_UNUSED(ctx), void **out, size_t num,
+                        size_t elem_size, size_t YU_UNUSED(alignment));
+yu_err internal_realloc(yu_memctx_t * YU_UNUSED(ctx), void **ptr, size_t num,
+                        size_t elem_size, size_t YU_UNUSED(alignment));
 void internal_free(yu_memctx_t * YU_UNUSED(ctx), void *ptr);

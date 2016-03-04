@@ -46,6 +46,8 @@ yu_err sys_alloc_ctx_init(yu_memctx_t *ctx) {
     ctx->realloc = sys_realloc;
 
     ctx->free_ctx = sys_alloc_ctx_free;
+
+    return YU_OK;
 }
 
 static

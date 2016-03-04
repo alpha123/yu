@@ -45,7 +45,7 @@ TEST(alloc_zero)
     PT_ASSERT_EQ(f->s, NULL);
 
     int *ns;
-    assert(yu_alloc(&ctx, &ns, 50, sizeof(int), 64) == YU_OK);
+    assert(yu_alloc(&ctx, (void **)&ns, 50, sizeof(int), 64) == YU_OK);
     bool all_z = true;
     for (int i = 0; i < 50; i++) {
         if (ns[i] != 0) {
@@ -86,16 +86,16 @@ TEST(alloc_aligned)
     // can be a dirty rebel.
     // Put in the assert() just to shut $CC up, it won't
     // affect the test suite.
-    assert(yu_alloc(&ctx, &n, 1, sizeof(int), 2) == YU_OK);
-    PT_ASSERT_EQ((uintptr_t)n % 2, 0);
+    assert(yu_alloc(&ctx, (void **)&n, 1, sizeof(int), 2) == YU_OK);
+    PT_ASSERT_EQ((uintptr_t)n % 2, 0u);
     yu_free(&ctx, n);
 
-    assert(yu_alloc(&ctx, &n, 128, sizeof(int), 64) == YU_OK);
-    PT_ASSERT_EQ((uintptr_t)n % 64, 0);
+    assert(yu_alloc(&ctx, (void **)&n, 128, sizeof(int), 64) == YU_OK);
+    PT_ASSERT_EQ((uintptr_t)n % 64, 0u);
     yu_free(&ctx, n);
 
-    assert(yu_alloc(&ctx, &n, 6000, sizeof(int), 4096) == YU_OK);
-    PT_ASSERT_EQ((uintptr_t)n % 4096, 0);
+    assert(yu_alloc(&ctx, (void **)&n, 6000, sizeof(int), 4096) == YU_OK);
+    PT_ASSERT_EQ((uintptr_t)n % 4096, 0u);
     yu_free(&ctx, n);
 END(alloc_aligned)
 
