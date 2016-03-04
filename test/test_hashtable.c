@@ -5,6 +5,8 @@
 
 #include "test.h"
 
+#include "internal_alloc.h"
+
 #define inthash_1(x) ((u64)(x))
 #define inthash_2(x) ((u64)((x)*(x)))
 #define int_eq(a,b) ((a) == (b))
@@ -13,11 +15,14 @@ YU_HASHTABLE(ht, u32, char *, inthash_1, inthash_2, int_eq)
 YU_HASHTABLE_IMPL(ht, u32, char *, inthash_1, inthash_2, int_eq)
 
 #define SETUP \
+    yu_memctx_t mctx; \
     ht tbl; \
-    ht_init(&tbl,3);
+    internal_alloc_ctx_init(&mctx); \
+    ht_init(&tbl, 3, &mctx);
 
 #define TEARDOWN \
-    ht_free(&tbl);
+    ht_free(&tbl); \
+    yu_alloc_ctx_free(&mctx);
 
 #define LIST_HASHTABLE_TESTS(X) \
     X(getnull, "Retrieving a key that does not exists should return false") \

@@ -142,7 +142,7 @@ static void yu_buf_ctx_clean_free_list(yu_buf_ctx *ctx) {
 static void null_free(void * YU_UNUSED(_)) { }
 
 void yu_buf_ctx_init(yu_buf_ctx *ctx, yu_memctx_t *memctx) {
-    yu_buf_table_init(&ctx->frozen_bufs, 10);
+    yu_buf_table_init(&ctx->frozen_bufs, 10, memctx);
     ctx->memctx = memctx;
     ctx->free = NULL;
     ctx->num_free = 0;

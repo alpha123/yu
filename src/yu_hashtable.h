@@ -43,13 +43,14 @@ struct YU_NAME(tbl, bucket) { \
 }; \
 \
 typedef struct { \
+    yu_memctx_t *memctx; \
     struct YU_NAME(tbl, bucket) *left; \
     struct YU_NAME(tbl, bucket) *right; \
     u64 size; \
     u8 capacity;  /* size of left and right is 2^capacity */ \
 } tbl; \
 \
-void YU_NAME(tbl, init)(tbl *t, u64 init_capacity); \
+void YU_NAME(tbl, init)(tbl *t, u64 init_capacity, yu_memctx_t *mctx); \
 u32 YU_NAME(tbl, iter)(tbl *t, YU_NAME(tbl, iter_cb) cb, void *data); \
 u8 YU_NAME(tbl, _findbucket_)(tbl *t, key_t k, struct YU_NAME(tbl, bucket) **b_out); \
 bool YU_NAME(tbl, get)(tbl *t, key_t k, val_t *v_out); \
@@ -60,25 +61,22 @@ bool YU_NAME(tbl, put)(tbl *t, key_t k, val_t v, val_t *v_out); \
 bool YU_NAME(tbl, remove)(tbl *t, key_t k, val_t *v_out);
 
 #define YU_HASHTABLE_IMPL(tbl, key_t, val_t, hash1, hash2, eq) \
-void YU_NAME(tbl, init)(tbl *t, u64 init_capacity) { \
-    YU_ERR_DEFVAR \
+void YU_NAME(tbl, init)(tbl *t, u64 init_capacity, yu_memctx_t *mctx) { \
     /* Since we store 2 keys per bucket and have 2 bucket arrays, \
        if we were to use init_capacity as-passed the actual number of \
        storable key-value pairs would exceed the requested capacity \
        by quite a bit. Do a ceiling division to fix that. */ \
     u8 k = yu_ceil_log2(1 + (init_capacity - 1) / 4); \
     init_capacity = 1 << k; \
-    YU_CHECK_ALLOC(t->left = calloc(init_capacity, sizeof(struct YU_NAME(tbl, bucket)))); \
-    YU_CHECK_ALLOC(t->right = calloc(init_capacity, sizeof(struct YU_NAME(tbl, bucket)))); \
+    t->left = yu_xalloc(mctx, init_capacity, sizeof(struct YU_NAME(tbl, bucket))); \
+    t->right = yu_xalloc(mctx, init_capacity, sizeof(struct YU_NAME(tbl, bucket))); \
+    t->memctx = mctx; \
     t->size = 0; \
     t->capacity = k; \
-    return; \
-\
-    YU_ERR_DEFAULT_HANDLER(NOTHING()) \
 } \
 void YU_NAME(tbl, free)(tbl *t) { \
-    free(t->left); \
-    free(t->right); \
+    yu_free(t->memctx, t->left); \
+    yu_free(t->memctx, t->right); \
 }\
 \
 u32 YU_NAME(tbl, iter)(tbl *t, YU_NAME(tbl, iter_cb) cb, void *data) { \
@@ -183,7 +181,6 @@ void YU_NAME(tbl, _rehash_)(tbl *t, struct YU_NAME(tbl, bucket) *left, struct YU
 } \
 \
 bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v_out, u8 iter_count) { \
-    YU_ERR_DEFVAR \
     u64 cap = 1 << t->capacity, new_cap; \
     u64 idx = (left_insert ? hash1(k) : hash2(k)) & (cap - 1); \
     struct YU_NAME(tbl, bucket) *left = t->left, *right = t->right, \
@@ -238,11 +235,11 @@ bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v
             /* If we've been shuffling for a while assume the table is pretty full */ \
             if (iter_count == 32) { \
                 new_cap = 1 << ++t->capacity; \
-                YU_CHECK_ALLOC(t->left = calloc(new_cap, sizeof(struct YU_NAME(tbl, bucket)))); \
-                YU_CHECK_ALLOC(t->right = calloc(new_cap, sizeof(struct YU_NAME(tbl, bucket)))); \
+                t->left = yu_xalloc(t->memctx, new_cap, sizeof(struct YU_NAME(tbl, bucket))); \
+                t->right = yu_xalloc(t->memctx, new_cap, sizeof(struct YU_NAME(tbl, bucket))); \
                 YU_NAME(tbl, _rehash_)(t, left, right, cap); \
-                free(left); \
-                free(right); \
+                yu_free(t->memctx, left); \
+                yu_free(t->memctx, right); \
                 return YU_NAME(tbl, _insert_)(t, true, k, v, v_out, 0); \
             } \
             else { \
@@ -255,7 +252,6 @@ bool YU_NAME(tbl, _insert_)(tbl *t, bool left_insert, key_t k, val_t v, val_t *v
             } \
         } \
     } \
-    YU_ERR_DEFAULT_HANDLER(false) \
 } \
 \
 bool YU_NAME(tbl, put)(tbl *t, key_t k, val_t v, val_t *v_out) { \

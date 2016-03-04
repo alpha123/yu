@@ -4,6 +4,7 @@
  */
 
 #include "yu_common.h"
+#include "internal_alloc.h"
 #include "sys_alloc.h"
 
 // but more correct (to let the compiler know we're using the
@@ -36,10 +37,15 @@ YU_HASHTABLE_IMPL(sysmem_tbl, void *, size_t, addrhash_1, addrhash_2, addr_eq)
 
 yu_err sys_alloc_ctx_init(yu_memctx_t *ctx) {
     yu_default_alloc_ctx_init(ctx);
+    yu_memctx_t *tbl_mctx;
 
     if ((ctx->adata = calloc(1, sizeof(sysmem_tbl))) == NULL)
 	return YU_ERR_ALLOC_FAIL;
-    sysmem_tbl_init(ctx->adata, 2000);
+    if ((tbl_mctx = calloc(1, sizeof(yu_memctx_t))) == NULL ||
+	    internal_alloc_ctx_init(tbl_mctx) != YU_OK)
+	return YU_ERR_ALLOC_FAIL;
+
+    sysmem_tbl_init(ctx->adata, 2000, tbl_mctx);
 
     ctx->alloc = sys_alloc;
     ctx->free = sys_free;
@@ -59,6 +65,7 @@ u32 free_ctx_all(void *address, size_t YU_UNUSED(sz), void * YU_UNUSED(data)) {
 void sys_alloc_ctx_free(yu_memctx_t *ctx) {
     sysmem_tbl_iter((sysmem_tbl *)ctx->adata, free_ctx_all, NULL);
     sysmem_tbl_free((sysmem_tbl *)ctx->adata);
+    yu_alloc_ctx_free(((sysmem_tbl *)ctx->adata)->memctx);
     free(ctx->adata);
 }
 
