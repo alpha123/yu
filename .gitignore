@@ -10,3 +10,4 @@ tags
 test/test
 src/preprocessed/*
 SFMT/test-*
+include/build_debug_templates.h
