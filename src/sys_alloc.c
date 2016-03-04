@@ -35,7 +35,7 @@ YU_HASHTABLE_IMPL(sysmem_tbl, void *, size_t, addrhash_1, addrhash_2, addr_eq)
 #undef addrhash_1
 
 yu_err sys_alloc_ctx_init(yu_memctx_t *ctx) {
-    yu_default_ctx_init(ctx);
+    yu_default_alloc_ctx_init(ctx);
 
     if ((ctx->adata = calloc(1, sizeof(sysmem_tbl))) == NULL)
 	return YU_ERR_ALLOC_FAIL;

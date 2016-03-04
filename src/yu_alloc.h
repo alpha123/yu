@@ -105,7 +105,7 @@ size_t yu_array_len(yu_memctx_t *ctx, void *ptr) { return ctx->array_len(ctx, pt
 YU_INLINE
 void yu_alloc_ctx_free(yu_memctx_t *ctx) { ctx->free_ctx(ctx); }
 
-void yu_default_ctx_init(yu_memctx_t *ctx);
+void yu_default_alloc_ctx_init(yu_memctx_t *ctx);
 
 yu_err yu_default_array_alloc_impl(yu_memctx_t *ctx, void **out, size_t elem_count, size_t elem_size, size_t alignment);
 yu_err yu_default_array_realloc_impl(yu_memctx_t *ctx, void **ptr, size_t elem_count, size_t elem_size, size_t alignment);

@@ -21,7 +21,7 @@ YU_SPLAYTREE_IMPL(st, struct intpair, intpair_cmp, true)
 #define SETUP \
     yu_memctx_t mctx; \
     st tree; \
-    sys_alloc_ctx_init(&mctx); \
+    internal_alloc_ctx_init(&mctx); \
     st_init(&tree, &mctx);
 
 #define TEARDOWN \

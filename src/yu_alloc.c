@@ -1,6 +1,6 @@
 #include "yu_common.h"
 
-void yu_default_ctx_init(yu_memctx_t *ctx) {
+void yu_default_alloc_ctx_init(yu_memctx_t *ctx) {
     memset(ctx, 0, sizeof(yu_memctx_t));
     ctx->array_alloc = yu_default_array_alloc_impl;
     ctx->array_realloc = yu_default_array_realloc_impl;
