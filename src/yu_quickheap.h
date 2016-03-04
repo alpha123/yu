@@ -18,32 +18,32 @@ typedef struct { \
         psc, /* pivot stack counter */ \
         *pivstack; /* stack of pivot indices */ \
     data_t *elems; \
+    yu_memctx_t *memctx; \
     u8 cap, /* size of elems is 2^cap */ \
        pivstack_cap; \
 } qh; \
 \
-void YU_NAME(qh, init)(qh *heap, u64 size); \
+void YU_NAME(qh, init)(qh *heap, u64 size, yu_memctx_t *mctx); \
 void YU_NAME(qh, free)(qh *heap); \
 data_t YU_NAME(qh, top)(qh *heap, data_t ifempty); \
 data_t YU_NAME(qh, pop)(qh *heap, data_t ifempty); \
 void YU_NAME(qh, push)(qh *heap, data_t val);
 
 #define YU_QUICKHEAP_IMPL(qh, data_t, cmp, is_maxheap) \
-void YU_NAME(qh, init)(qh *heap, u64 size) { \
-    YU_ERR_DEFVAR \
+void YU_NAME(qh, init)(qh *heap, u64 size, yu_memctx_t *mctx) { \
     heap->size = 0; \
     heap->psc = 1; \
     heap->fc_idx = 0; \
     heap->pivstack_cap = 4; \
-    YU_CHECK_ALLOC(heap->pivstack = calloc(1 << heap->pivstack_cap, sizeof(u64))); \
+    heap->pivstack = yu_xalloc(mctx, 1 << heap->pivstack_cap, sizeof(u64)); \
     heap->cap = yu_ceil_log2(size + 1); \
-    YU_CHECK_ALLOC(heap->elems = calloc(1 << heap->cap, sizeof(data_t))); \
-    YU_ERR_DEFAULT_HANDLER(NOTHING()) \
+    heap->elems = yu_xalloc(mctx, 1 << heap->cap, sizeof(data_t)); \
+    heap->memctx = mctx; \
 } \
 \
 void YU_NAME(qh, free)(qh *heap) { \
-    free(heap->pivstack); \
-    free(heap->elems); \
+    yu_free(heap->memctx, heap->pivstack); \
+    yu_free(heap->memctx, heap->elems); \
 } \
 \
 YU_INLINE \
@@ -63,7 +63,7 @@ void YU_NAME(qh, setelem)(qh *heap, u64 i, data_t val) { \
     data_t *stay_safe; \
     while (i >= 1 << heap->cap) { \
         stay_safe = heap->elems; \
-        YU_CHECK_ALLOC(heap->elems = realloc(heap->elems, sizeof(data_t) * (1 << ++heap->cap))); \
+        heap->elems = yu_xrealloc(heap->memctx, heap->elems, 1 << ++heap->cap, sizeof(data_t)); \
     } \
     heap->elems[i] = val; \
 \
@@ -89,14 +89,14 @@ u64 YU_NAME(qh, partition)(data_t *elems, u64 lo, u64 hi) { \
     return i; \
 } \
 \
-void YU_NAME(qh, _iqs_)(data_t *elems, u64 idx, u64 **ps, u64 *ps_sz, u8 *ps_cap) { \
+void YU_NAME(qh, _iqs_)(yu_memctx_t *mctx, data_t *elems, u64 idx, u64 **ps, u64 *ps_sz, u8 *ps_cap) { \
     YU_ERR_DEFVAR \
     u64 *s = *ps, z = *ps_sz - 1, pidx, *safety_first; \
     while (idx != s[z]) { \
         pidx = YU_NAME(qh, partition)(elems, idx, s[z]-1); \
         if (*ps_sz == 1 << *ps_cap) { \
             safety_first = *ps; \
-            YU_CHECK_ALLOC(*ps = realloc(*ps, sizeof(u64) * (1 << ++(*ps_cap)))); \
+            *ps = yu_xrealloc(mctx, *ps, 1 << ++(*ps_cap), sizeof(u64)); \
             s = *ps; \
 	    memset(s + (1 << (*ps_cap - 1)), 0, sizeof(u64) * ((1 << *ps_cap) - (1 << (*ps_cap - 1)))); \
         } \
@@ -114,7 +114,8 @@ void YU_NAME(qh, _iqs_)(data_t *elems, u64 idx, u64 **ps, u64 *ps_sz, u8 *ps_cap
 \
 YU_INLINE \
 void YU_NAME(qh, _iqs_heap_)(qh *heap) { \
-    YU_NAME(qh, _iqs_)(heap->elems, heap->fc_idx, &heap->pivstack, &heap->psc, &heap->pivstack_cap); \
+    YU_NAME(qh, _iqs_)(heap->memctx, heap->elems, heap->fc_idx, \
+            &heap->pivstack, &heap->psc, &heap->pivstack_cap); \
 } \
 \
 data_t YU_NAME(qh, top)(qh *heap, data_t ifempty) { \

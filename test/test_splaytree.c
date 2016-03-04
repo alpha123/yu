@@ -5,7 +5,7 @@
 
 #include "test.h"
 
-#include "sys_alloc.h"
+#include "internal_alloc.h"
 
 struct intpair {
     int x, y;

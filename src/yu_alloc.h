@@ -113,3 +113,4 @@ void yu_default_array_free_impl(yu_memctx_t *ctx, void *ptr);
 size_t yu_default_array_len_impl(yu_memctx_t * YU_UNUSED(ctx), void *ptr);
 
 void *yu_xalloc(yu_memctx_t *ctx, size_t num, size_t elem_size);
+void *yu_xrealloc(yu_memctx_t *ctx, void *ptr, size_t num, size_t elem_size);

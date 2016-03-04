@@ -5,6 +5,8 @@
 
 #include "test.h"
 
+#include "sys_alloc.h"
+
 #define INT_CMP(a,b) ((a)-(b))
 
 YU_QUICKHEAP(minh, int, INT_CMP, YU_QUICKHEAP_MINHEAP)
@@ -14,10 +16,13 @@ YU_QUICKHEAP(maxh, int, INT_CMP, YU_QUICKHEAP_MAXHEAP)
 YU_QUICKHEAP_IMPL(maxh, int, INT_CMP, YU_QUICKHEAP_MAXHEAP)
 
 #define SETUP \
+    yu_memctx_t mctx; \
     sfmt_t rng; \
+    internal_alloc_ctx_init(&mctx); \
     sfmt_init_gen_rand(&rng, 135135);
 
-#define TEARDOWN
+#define TEARDOWN \
+    yu_alloc_ctx_free(&mctx);
 
 #define LIST_QUICKHEAP_TESTS(X) \
     X(minheap, "Minheaps should order elements smallest to largest") \
@@ -26,7 +31,7 @@ YU_QUICKHEAP_IMPL(maxh, int, INT_CMP, YU_QUICKHEAP_MAXHEAP)
 
 TEST(minheap)
     minh h;
-    minh_init(&h, 20);
+    minh_init(&h, 20, &mctx);
 
     int min = INT_MAX;
     for (int i = 0; i < 50; i++) {
@@ -127,7 +132,7 @@ END(minheap)
 
 TEST(maxheap)
     maxh h;
-    maxh_init(&h, 20);
+    maxh_init(&h, 20, &mctx);
 
     int max = INT_MIN;
     for (int i = 0; i < 50; i++) {
@@ -226,7 +231,7 @@ END(maxheap)
 
 TEST(top_empty)
     minh h;
-    minh_init(&h, 7);
+    minh_init(&h, 7, &mctx);
     PT_ASSERT_EQ(minh_pop(&h, 0), 0);
     PT_ASSERT_EQ(minh_top(&h, -10), -10);
     minh_free(&h);
