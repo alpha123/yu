@@ -8,12 +8,11 @@ static struct yu_str_dat *get_strlist_node(yu_str_ctx *ctx) {
     }
     size_t old_sz = ctx->strdatpool_len;
     ctx->strdatpool_len *= 2;
-    struct yu_str_dat *mem_check = realloc(ctx->strdatpool, ctx->strdatpool_len * sizeof(struct yu_str_dat));
-    memset(mem_check + old_sz, 0, old_sz * sizeof(struct yu_str_dat));
-    YU_CHECK_ALLOC(mem_check);
-    ctx->strdatpool = mem_check;
+    YU_CHECK(yu_realloc(ctx->bufctx.memctx, (void **)&ctx->strdatpool,
+                ctx->strdatpool_len, sizeof(struct yu_str_dat), 0));
+    memset(ctx->strdatpool + old_sz, 0, old_sz * sizeof(struct yu_str_dat));
 
-    return mem_check + old_sz;
+    return ctx->strdatpool + old_sz;
 
     YU_ERR_DEFAULT_HANDLER(NULL)
 }
@@ -23,7 +22,7 @@ static yu_err find_grapheme_clusters(yu_str s) {
     u64 buflen = yu_buf_len(s), cnt = 0, gcstart, *idxs;
     struct yu_str_dat *d = YU_STR_DAT(s);
 
-    idxs = buflen < YU_STR_BIG_THRESHOLD ? calloc(buflen, sizeof(u64)) : NULL;
+    idxs = buflen < YU_STR_BIG_THRESHOLD ? yu_xalloc(d->ctx->bufctx.memctx, buflen, sizeof(u64)) : NULL;
 
     utf8proc_ssize_t incr;
     utf8proc_int32_t cp1, cp2;
@@ -65,7 +64,7 @@ void yu_str_ctx_init(yu_str_ctx *ctx, yu_memctx_t *mctx) {
 
     yu_buf_ctx_init(&ctx->bufctx, mctx);
     ctx->strdatpool_len = 2000;
-    YU_CHECK_ALLOC(ctx->strdatpool = calloc(ctx->strdatpool_len, sizeof(struct yu_str_dat)));
+    YU_CHECK_ALLOC(ctx->strdatpool = yu_xalloc(mctx, ctx->strdatpool_len, sizeof(struct yu_str_dat)));
     return;
 
     YU_ERR_DEFAULT_HANDLER(NOTHING())
@@ -77,8 +76,23 @@ void yu_str_ctx_free(yu_str_ctx *ctx) {
             yu_buf_free(ctx->strdatpool[i].str);
     }
 
+    yu_free(ctx->bufctx.memctx, ctx->strdatpool);
     yu_buf_ctx_free(&ctx->bufctx);
-    free(ctx->strdatpool);
+}
+
+static
+void *alloc_wrapper(void *mctx, void *ptr, size_t size) {
+    yu_memctx_t *memctx = (yu_memctx_t *)mctx;
+    if (ptr == NULL)
+        return yu_xalloc(memctx, size, 1);
+    if (yu_realloc(memctx, &ptr, size, 1, 0) != YU_OK)
+        return NULL;
+    return ptr;
+}
+
+static
+void free_wrapper(void *mctx, void *ptr) {
+    yu_free((yu_memctx_t *)mctx, ptr);
 }
 
 // We now get ownership of utf8_nfc
@@ -97,7 +111,7 @@ YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 *utf8_nfc, u64 byte_len, yu_st
     else {
         // This string already exists, which means we can (and should) free
         // utf8_nfc (we own him now).
-        free((void *)utf8_nfc);  // shut up clang
+        yu_free(ctx->bufctx.memctx, (void *)utf8_nfc);  // shut up clang
     }
     return 0;
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
@@ -108,7 +122,8 @@ YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 *utf8, u64 len, yu_str *out) {
     u8 *nfc;
     ssize_t nfc_sz;
 
-    nfc_sz = utf8proc_map(utf8, len, &nfc, UTF8PROC_COMPOSE | UTF8PROC_STABLE | UTF8PROC_NLF2LS);
+    nfc_sz = utf8proc_map(utf8, len, &nfc, UTF8PROC_COMPOSE | UTF8PROC_STABLE | UTF8PROC_NLF2LS,
+            alloc_wrapper, free_wrapper, ctx->bufctx.memctx);
 
     if (nfc_sz < 0) switch (nfc_sz) {
     case UTF8PROC_ERROR_NOMEM: YU_THROW(YU_ERR_ALLOC_FAIL);
@@ -154,8 +169,11 @@ YU_ERR_RET yu_str_at(yu_str s, s64 idx, yu_str *char_out) {
 
 YU_ERR_RET yu_str_cat(yu_str a, yu_str b, yu_str *out) {
     YU_ERR_DEFVAR
+
+    assert(YU_STR_DAT(a)->ctx == YU_STR_DAT(b)->ctx);
+
     u64 al = yu_buf_len(a), bl = yu_buf_len(b);
-    u8 *contents = calloc(al + bl, 1);
+    u8 *contents = yu_xalloc(YU_STR_DAT(a)->ctx->bufctx.memctx, al + bl, 1);
     YU_CHECK_ALLOC(contents);
     memcpy(contents, a, al);
     memcpy(contents + al, b, bl);

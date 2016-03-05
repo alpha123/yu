@@ -17,8 +17,6 @@ typedef struct {
 } yu_str_ctx;
 
 struct yu_str_dat {
-    // `is_used` instead of `is_free` so that we can calloc()
-    // a big buffer of str_datas and is_used will be false.
     bool is_used;
 
     // Extended Grapheme Cluster indexes in this string.
@@ -30,6 +28,10 @@ struct yu_str_dat {
     // access is slower (O(n)) but uses much less memory.
     // We consider strings over YU_STR_BIG_THRESHOLD to be big; 1kibibyte
     // by default.
+    //
+    // TODO there's gotta be an efficient way to do this
+    // It _really_ seems like the sort of thing that's possible to have
+    // O(lg n) access time with O(n lg n) or better memory overhead.
     u64 *egc_idx;
     u64 egc_count;
 

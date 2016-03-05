@@ -108,6 +108,16 @@ UTF8PROC_DLLEXPORT const char *utf8proc_errmsg(utf8proc_ssize_t errcode) {
   }
 }
 
+void *utf8proc_realloc(void *udata, void *ptr, size_t size) {
+    (void)udata;
+    return realloc(ptr, size);
+}
+
+void utf8proc_free(void *udata, void *ptr) {
+    (void)udata;
+    free(ptr);
+}
+
 #define utf_cont(ch)  (((ch) & 0xc0) == 0x80)
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_iterate(
   const utf8proc_uint8_t *str, utf8proc_ssize_t strlen, utf8proc_int32_t *dst
@@ -584,28 +594,29 @@ UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_reencode(utf8proc_int32_t *buffer, 
 }
 
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_map(
-  const utf8proc_uint8_t *str, utf8proc_ssize_t strlen, utf8proc_uint8_t **dstptr, utf8proc_option_t options
+  const utf8proc_uint8_t *str, utf8proc_ssize_t strlen, utf8proc_uint8_t **dstptr, utf8proc_option_t options,
+  utf8proc_allocator alloc, utf8proc_deallocator dealloc, void *mem_udata
 ) {
   utf8proc_int32_t *buffer;
   utf8proc_ssize_t result;
   *dstptr = NULL;
   result = utf8proc_decompose(str, strlen, NULL, 0, options);
   if (result < 0) return result;
-  buffer = (utf8proc_int32_t *) malloc(result * sizeof(utf8proc_int32_t) + 1);
+  buffer = (utf8proc_int32_t *)alloc(mem_udata, NULL, (result+1) * sizeof(utf8proc_int32_t));
   if (!buffer) return UTF8PROC_ERROR_NOMEM;
   result = utf8proc_decompose(str, strlen, buffer, result, options);
   if (result < 0) {
-    free(buffer);
+    dealloc(mem_udata, buffer);
     return result;
   }
   result = utf8proc_reencode(buffer, result, options);
   if (result < 0) {
-    free(buffer);
+    dealloc(mem_udata, buffer);
     return result;
   }
   {
     utf8proc_int32_t *newptr;
-    newptr = (utf8proc_int32_t *) realloc(buffer, (size_t)result+1);
+    newptr = (utf8proc_int32_t *)alloc(mem_udata, buffer, (result+1) * sizeof(utf8proc_int32_t));
     if (newptr) buffer = newptr;
   }
   *dstptr = (utf8proc_uint8_t *)buffer;
@@ -615,28 +626,28 @@ UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_map(
 UTF8PROC_DLLEXPORT utf8proc_uint8_t *utf8proc_NFD(const utf8proc_uint8_t *str) {
   utf8proc_uint8_t *retval;
   utf8proc_map(str, 0, &retval, UTF8PROC_NULLTERM | UTF8PROC_STABLE |
-    UTF8PROC_DECOMPOSE);
+    UTF8PROC_DECOMPOSE, utf8proc_realloc, utf8proc_free, NULL);
   return retval;
 }
 
 UTF8PROC_DLLEXPORT utf8proc_uint8_t *utf8proc_NFC(const utf8proc_uint8_t *str) {
   utf8proc_uint8_t *retval;
   utf8proc_map(str, 0, &retval, UTF8PROC_NULLTERM | UTF8PROC_STABLE |
-    UTF8PROC_COMPOSE);
+    UTF8PROC_COMPOSE, utf8proc_realloc, utf8proc_free, NULL);
   return retval;
 }
 
 UTF8PROC_DLLEXPORT utf8proc_uint8_t *utf8proc_NFKD(const utf8proc_uint8_t *str) {
   utf8proc_uint8_t *retval;
   utf8proc_map(str, 0, &retval, UTF8PROC_NULLTERM | UTF8PROC_STABLE |
-    UTF8PROC_DECOMPOSE | UTF8PROC_COMPAT);
+    UTF8PROC_DECOMPOSE | UTF8PROC_COMPAT, utf8proc_realloc, utf8proc_free, NULL);
   return retval;
 }
 
 UTF8PROC_DLLEXPORT utf8proc_uint8_t *utf8proc_NFKC(const utf8proc_uint8_t *str) {
   utf8proc_uint8_t *retval;
   utf8proc_map(str, 0, &retval, UTF8PROC_NULLTERM | UTF8PROC_STABLE |
-    UTF8PROC_COMPOSE | UTF8PROC_COMPAT);
+    UTF8PROC_COMPOSE | UTF8PROC_COMPAT, utf8proc_realloc, utf8proc_free, NULL);
   return retval;
 }
 

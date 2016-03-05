@@ -361,6 +361,24 @@ typedef enum {
   UTF8PROC_BOUNDCLASS_SPACINGMARK        = 12, /**< Spacingmark */
 } utf8proc_boundclass_t;
 
+/** 
+ * realloc()-like function for using a custom allocator.
+ * `udata` is a context argument that the allocator can interpret
+ * however it wants (GC info, memory pool, etc).
+ *
+ * This function should behave like malloc() when called with a NULL
+ * `ptr` argument.
+ */
+typedef void *(* utf8proc_allocator)(void *udata, void *ptr, size_t size);
+typedef void (* utf8proc_deallocator)(void *udata, void *ptr);
+
+/**
+ * Wrappers for stdlib realloc/free, suitable for passing to any utf8proc
+ * functions that expect an allocator. They ignore the context argument.
+ */
+void *utf8proc_realloc(void *udata, void *ptr, size_t size);
+void utf8proc_free(void *udata, void *ptr);
+
 /**
  * Array containing the byte lengths of a UTF-8 encoded codepoint based
  * on the first byte.
@@ -567,7 +585,8 @@ UTF8PROC_DLLEXPORT const char *utf8proc_category_string(utf8proc_int32_t codepoi
  * with `malloc`, and should therefore be deallocated with `free`.
  */
 UTF8PROC_DLLEXPORT utf8proc_ssize_t utf8proc_map(
-  const utf8proc_uint8_t *str, utf8proc_ssize_t strlen, utf8proc_uint8_t **dstptr, utf8proc_option_t options
+  const utf8proc_uint8_t *str, utf8proc_ssize_t strlen, utf8proc_uint8_t **dstptr, utf8proc_option_t options,
+  utf8proc_allocator alloc, utf8proc_deallocator dealloc, void *mem_udata
 );
 
 /** @name Unicode normalization
