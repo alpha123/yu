@@ -5,10 +5,10 @@ LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
 LIBS := -lmpfr -lgmp -lm -l:libsfmt.a -l:libutf8proc.a
 ASAN_FLAGS := -fsanitize=address -O1 -fno-omit-frame-pointer
 
-CFLAGS ?= -std=c99
-
 SFMT_MEXP ?= 19937
-CFLAGS += -DSFMT_MEXP=$(SFMT_MEXP)
+
+CFLAGS ?=
+CFLAGS += -std=c99 -DSFMT_MEXP=$(SFMT_MEXP)
 
 # cgdb <http://cgdb.github.io/> is a more convenient ncurses frontend
 # for gdb. Unlike gdb -tui it does syntax coloring and stuff.
@@ -18,9 +18,14 @@ else
 	DB ?= gdb
 endif
 
-# TODO does Linux alias m4 to gm4? (or vice-versa)
-# On *BSD we always want to use GNU M4.
-M4 ?= gm4
+# Force GNU M4 if available.
+# The various m4 files use some GNU-specific features like ranges in
+# translit. It would be nice for them to be more portable.
+ifneq ($(shell which gm4),)
+    M4 ?= gm4
+else
+    M4 ?= m4
+endif
 
 # TODO perhaps don't assume $FMT accepts a -i in-place flag.
 FMT ?= clang-format
