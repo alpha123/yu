@@ -1,18 +1,18 @@
 /*
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2013 Viktor Söderqvist
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,6 +53,11 @@
 
 #pragma once
 
+// This file does some magic. Let GCC and Clang know it's intentional.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+
 /*
  * User-defined auxillary types. Default to void*. These types must be pointer
  * types or 32-bit types. (Pointers on 64-bit platforms always begin with 16
@@ -75,96 +80,28 @@
 #endif
 
 
-#include <stddef.h>  // size_t
-#include <stdint.h>  // int64_t, int32_t
-#include <stdbool.h> // bool, true, false
-#include <string.h>  // memset
-#include <assert.h>
-
-/*
- * Detect OS and endianess.
- *
- * Most of this is inspired by WTF/wtf/Platform.h in Webkit's source code.
- */
-
-/* Unix? */
-#if defined(_AIX) \
-    || defined(__APPLE__) /* Darwin */ \
-    || defined(__FreeBSD__) || defined(__DragonFly__) \
-    || defined(__FreeBSD_kernel__) \
-    || defined(__GNU__) /* GNU/Hurd */ \
-    || defined(__linux__) \
-    || defined(__NetBSD__) \
-    || defined(__OpenBSD__) \
-    || defined(__QNXNTO__) \
-    || defined(sun) || defined(__sun) /* Solaris */ \
-    || defined(unix) || defined(__unix) || defined(__unix__)
-#define NANBOX_UNIX 1
-#endif
-
-/* Windows? */
-#if defined(WIN32) || defined(_WIN32)
-#define NANBOX_WINDOWS 1
-#endif
-
-/* 64-bit mode? (Mostly equivallent to how WebKit does it) */
-#if ((defined(__x86_64__) || defined(_M_X64)) \
-     && (defined(NANBOX_UNIX) || defined(NANBOX_WINDOWS))) \
-    || (defined(__ia64__) && defined(__LP64__)) /* Itanium in LP64 mode */ \
-    || defined(__alpha__) /* DEC Alpha */ \
-    || (defined(__sparc__) && defined(__arch64__) || defined (__sparcv9)) /* BE */ \
-    || defined(__s390x__) /* S390 64-bit (BE) */ \
-    || (defined(__ppc64__) || defined(__PPC64__)) \
-    || defined(__aarch64__) /* ARM 64-bit */
-#define NANBOX_64 1
-#else
-#define NANBOX_32 1
-#endif
-
-/* Big endian? (Mostly equivallent to how WebKit does it) */
-#if defined(__MIPSEB__) /* MIPS 32-bit */ \
-    || defined(__ppc__) || defined(__PPC__) /* CPU(PPC) - PowerPC 32-bit */ \
-    || defined(__powerpc__) || defined(__powerpc) || defined(__POWERPC__) \
-    || defined(_M_PPC) || defined(__PPC) \
-    || defined(__ppc64__) || defined(__PPC64__) /* PowerPC 64-bit */ \
-    || defined(__sparc)   /* Sparc 32bit */  \
-    || defined(__sparc__) /* Sparc 64-bit */ \
-    || defined(__s390x__) /* S390 64-bit */ \
-    || defined(__s390__)  /* S390 32-bit */ \
-    || defined(__ARMEB__) /* ARM big endian */ \
-    || ((defined(__CC_ARM) || defined(__ARMCC__)) /* ARM RealView compiler */ \
-        && defined(__BIG_ENDIAN))
-#define NANBOX_BIG_ENDIAN 1
-#endif
-
 /*
  * In 32-bit mode, the double is unmasked. In 64-bit mode, the pointer is
  * unmasked.
  */
-union value_u {
-	uint64_t as_int64;
-	#if defined(NANBOX_64)
-	struct boxed_value *pointer;
-	#endif
-	double as_double;
-	#ifdef NANBOX_BIG_ENDIAN
-	struct {
-		uint32_t tag;
-		uint32_t payload;
-	} as_bits;
-	#else
-	struct {
-		uint32_t payload;
-		uint32_t tag;
-	} as_bits;
-	#endif
-};
+typedef union {
+    uint64_t as_int64;
+#ifndef YU_32BIT
+    struct boxed_value *pointer;
+#endif
+    double as_double;
+    struct {
+#ifdef YU_BIG_ENDIAN
+        uint32_t tag;
+        uint32_t payload;
+#else
+        uint32_t payload;
+        uint32_t tag;
+#endif
+    } as_bits;
+} value_t;
 
-#undef NANBOX_T
-#define NANBOX_T value_t
-typedef union value_u NANBOX_T;
-
-#if defined(NANBOX_64)
+#ifndef YU_32BIT
 
 /*
  * 64-bit platforms
@@ -246,15 +183,17 @@ typedef union value_u NANBOX_T;
 
 // Define bool nanbox_is_xxx(value_t val) and value_t nanbox_xxx(void)
 // with empty, deleted, true, false, undefined and null substituted for xxx.
-#define NANBOX_IMMEDIATE_VALUE_FUNCTIONS(NAME, VALUE)                \
-	static inline value_t value_##NAME(void) {        \
-		value_t val;                                        \
-		val.as_int64 = VALUE;                                \
-		return val;                                          \
-	}                                                            \
-	static inline bool value_is_##NAME(value_t val) { \
-		return val.as_int64 == VALUE;                        \
-	}
+#define NANBOX_IMMEDIATE_VALUE_FUNCTIONS(NAME, VALUE) \
+    static YU_INLINE \
+    value_t value_##NAME(void) { \
+        value_t val; \
+        val.as_int64 = VALUE; \
+        return val; \
+    } \
+    static YU_INLINE \
+    bool value_is_##NAME(value_t val) { \
+        return val.as_int64 == VALUE; \
+    }
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(empty, NANBOX_VALUE_EMPTY)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(deleted, NANBOX_VALUE_DELETED)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(false, NANBOX_VALUE_FALSE)
@@ -262,80 +201,95 @@ NANBOX_IMMEDIATE_VALUE_FUNCTIONS(true, NANBOX_VALUE_TRUE)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(undefined, NANBOX_VALUE_UNDEFINED)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(null, NANBOX_VALUE_NULL)
 
-static inline bool value_is_undefined_or_null(value_t val) {
-	// Undefined and null are the same if we remove the 'undefined' bit.
-	return (val.as_int64 & ~8) == NANBOX_VALUE_NULL;
+static YU_INLINE
+bool value_is_undefined_or_null(value_t val) {
+    // Undefined and null are the same if we remove the 'undefined' bit.
+    return (val.as_int64 & ~8) == NANBOX_VALUE_NULL;
 }
 
-static inline bool value_is_boolean(value_t val) {
-	// True and false are the same if we remove the 'true' bit.
-	return (val.as_int64 & ~1) == NANBOX_VALUE_FALSE;
+static YU_INLINE
+bool value_is_bool(value_t val) {
+    // True and false are the same if we remove the 'true' bit.
+    return (val.as_int64 & ~1) == NANBOX_VALUE_FALSE;
 }
-static inline bool value_to_boolean(value_t val) {
-	assert(value_is_boolean(val));
-	return val.as_int64 & 1;
+static YU_INLINE
+bool value_to_bool(value_t val) {
+    assert(value_is_bool(val));
+    return val.as_int64 & 1;
 }
-static inline value_t value_from_boolean(bool b) {
-	value_t val;
-	val.as_int64 = b ? NANBOX_VALUE_TRUE : NANBOX_VALUE_FALSE;
-	return val;
+static YU_INLINE
+value_t value_from_bool(bool b) {
+    value_t val;
+    val.as_int64 = b ? NANBOX_VALUE_TRUE : NANBOX_VALUE_FALSE;
+    return val;
 }
 
 /* true if val is a double or an int */
-static inline bool value_is_number(value_t val) {
-	return val.as_int64 >= NANBOX_MIN_NUMBER;
+static YU_INLINE
+bool value_is_number(value_t val) {
+    return val.as_int64 >= NANBOX_MIN_NUMBER;
 }
 
-static inline bool value_is_int(value_t val) {
-	return (val.as_int64 & NANBOX_HIGH16_TAG) == NANBOX_MIN_NUMBER;
+static YU_INLINE
+bool value_is_int(value_t val) {
+    return (val.as_int64 & NANBOX_HIGH16_TAG) == NANBOX_MIN_NUMBER;
 }
-static inline value_t value_from_int(int32_t i) {
-	value_t val;
-	val.as_int64 = NANBOX_MIN_NUMBER | (uint32_t)i;
-	return val;
+static YU_INLINE
+value_t value_from_int(int32_t i) {
+    value_t val;
+    val.as_int64 = NANBOX_MIN_NUMBER | (uint32_t)i;
+    return val;
 }
-static inline int32_t value_to_int(value_t val) {
-	assert(value_is_int(val));
-	return (int32_t)val.as_int64;
-}
-
-static inline bool value_is_double(value_t val) {
-	return value_is_number(val) && !value_is_int(val);
-}
-static inline value_t value_from_double(double d) {
-	value_t val;
-	val.as_double = d;
-	val.as_int64 += NANBOX_DOUBLE_ENCODE_OFFSET;
-	assert(value_is_double(val));
-	return val;
-}
-static inline double value_to_double(value_t val) {
-	assert(value_is_double(val));
-	val.as_int64 -= NANBOX_DOUBLE_ENCODE_OFFSET;
-	return val.as_double;
+static YU_INLINE
+int32_t value_to_int(value_t val) {
+    assert(value_is_int(val));
+    return (int32_t)val.as_int64;
 }
 
-static inline bool value_is_pointer(value_t val) {
+static YU_INLINE
+bool value_is_double(value_t val) {
+    return value_is_number(val) && !value_is_int(val);
+}
+static YU_INLINE
+value_t value_from_double(double d) {
+    value_t val;
+    val.as_double = d;
+    val.as_int64 += NANBOX_DOUBLE_ENCODE_OFFSET;
+    assert(value_is_double(val));
+    return val;
+}
+static YU_INLINE
+double value_to_double(value_t val) {
+    assert(value_is_double(val));
+    val.as_int64 -= NANBOX_DOUBLE_ENCODE_OFFSET;
+    return val.as_double;
+}
+
+static YU_INLINE
+bool value_is_ptr(value_t val) {
     return !(val.as_int64 & ~NANBOX_MASK_POINTER) && val.as_int64;
 }
-static inline struct boxed_value *value_to_pointer(value_t val) {
-	assert(value_is_pointer(val));
-	return val.pointer;
+static YU_INLINE
+struct boxed_value *value_to_ptr(value_t val) {
+    assert(value_is_ptr(val));
+    return val.pointer;
 }
-static inline value_t value_from_pointer(struct boxed_value *pointer) {
-	value_t val;
-	val.pointer = pointer;
-	assert(value_is_pointer(val));
-	return val;
-}
-
-static inline bool value_is_aux(value_t val) {
-	return val.as_int64 >= NANBOX_MIN_AUX &&
-	       val.as_int64 <= NANBOX_MAX_AUX;
+static YU_INLINE
+value_t value_from_ptr(struct boxed_value *pointer) {
+    value_t val;
+    val.pointer = pointer;
+    assert(value_is_ptr(val));
+    return val;
 }
 
-/* end if NANBOX_64 */
-#elif defined(NANBOX_32)
+static YU_INLINE
+bool value_is_aux(value_t val) {
+    return val.as_int64 >= NANBOX_MIN_AUX &&
+           val.as_int64 <= NANBOX_MAX_AUX;
+}
+
+/* end if !32-bit */
+#else
 
 /*
  * On 32-bit platforms we use the following NaN-boxing scheme:
@@ -366,102 +320,124 @@ static inline bool value_is_aux(value_t val) {
 #define NANBOX_MAX_AUX            0xfffdffffffffffffllu
 
 // Define nanbox_xxx and nanbox_is_xxx for deleted, undefined and null.
-#define NANBOX_IMMEDIATE_VALUE_FUNCTIONS(NAME, TAG)                   \
-	static inline value_t value_##NAME(void) {       \
-		value_t val;                                         \
-		val.as_bits.tag = TAG;                                \
-		val.as_bits.payload = 0;                              \
-		return val;                                           \
-	}                                                             \
-	static inline bool value_is_##NAME(value_t val) {  \
-		return val.as_bits.tag == TAG;                        \
-	}
+#define NANBOX_IMMEDIATE_VALUE_FUNCTIONS(NAME, TAG) \
+    static YU_INLINE \
+    value_t value_##NAME(void) { \
+        value_t val; \
+        val.as_bits.tag = TAG; \
+        val.as_bits.payload = 0; \
+        return val; \
+    } \
+    static YU_INLINE \
+    bool value_is_##NAME(value_t val) { \
+        return val.as_bits.tag == TAG; \
+    }
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(deleted, NANBOX_DELETED_VALUE_TAG)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(undefined, NANBOX_UNDEFINED_TAG)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(null, NANBOX_NULL_TAG)
 
 // The undefined and null tags differ only in one bit
-static inline bool value_is_undefined_or_null(value_t val) {
-	return (val.as_bits.tag & ~1) == NANBOX_UNDEFINED_TAG;
+static YU_INLINE
+bool value_is_undefined_or_null(value_t val) {
+    return (val.as_bits.tag & ~1) == NANBOX_UNDEFINED_TAG;
 }
 
-static inline value_t value_empty(void) {
-	value_t val;
-	val.as_int64 = 0xffffffffffffffffllu;
-	return val;
+static YU_INLINE
+value_t value_empty(void) {
+    value_t val;
+    val.as_int64 = 0xffffffffffffffffllu;
+    return val;
 }
-static inline bool value_is_empty(value_t val) {
-	return val.as_bits.tag == 0xffffffff;
+static YU_INLINE
+bool value_is_empty(value_t val) {
+    return val.as_bits.tag == 0xffffffff;
 }
 
 /* Returns true if the value is auxillary space */
-static inline bool value_is_aux(value_t val) {
-	return val.as_bits.tag >= NANBOX_MIN_AUX_TAG &&
-	       val.as_bits.tag < NANBOX_POINTER_TAG;
+static YU_INLINE
+bool value_is_aux(value_t val) {
+    return val.as_bits.tag >= NANBOX_MIN_AUX_TAG &&
+           val.as_bits.tag < NANBOX_POINTER_TAG;
 }
 
 // Define nanbox_is_yyy, nanbox_to_yyy and nanbox_from_yyy for
 // boolean, int, pointer and aux1-aux5
 #define NANBOX_TAGGED_VALUE_FUNCTIONS(NAME, TYPE, TAG) \
-	static inline bool value_is_##NAME(value_t val) { \
-		return val.as_bits.tag == TAG; \
-	} \
-	static inline TYPE value_to_##NAME(value_t val) { \
-		assert(val.as_bits.tag == TAG); \
-		return (TYPE)val.as_bits.payload; \
-	} \
-	static inline value_t value_from_##NAME(TYPE a) { \
-		value_t val; \
-		val.as_bits.tag = TAG; \
-		val.as_bits.payload = (int32_t)a; \
-		return val; \
-	}
+    static YU_INLINE \
+    bool value_is_##NAME(value_t val) { \
+        return val.as_bits.tag == TAG; \
+    } \
+    static YU_INLINE \
+    TYPE value_to_##NAME(value_t val) { \
+        assert(val.as_bits.tag == TAG); \
+        return (TYPE)val.as_bits.payload; \
+    } \
+    static YU_INLINE \
+    value_t value_from_##NAME(TYPE a) { \
+        value_t val; \
+        val.as_bits.tag = TAG; \
+        val.as_bits.payload = (int32_t)a; \
+        return val; \
+    }
 
-NANBOX_TAGGED_VALUE_FUNCTIONS(boolean, bool, NANBOX_BOOLEAN_TAG)
+NANBOX_TAGGED_VALUE_FUNCTIONS(bool, bool, NANBOX_BOOLEAN_TAG)
 NANBOX_TAGGED_VALUE_FUNCTIONS(int, int32_t, NANBOX_INT_TAG)
-NANBOX_TAGGED_VALUE_FUNCTIONS(pointer, struct boxed_value *, NANBOX_POINTER_TAG)
+NANBOX_TAGGED_VALUE_FUNCTIONS(ptr, struct boxed_value *, NANBOX_POINTER_TAG)
 
-static inline value_t value_true(void) {
-	return value_from_boolean(true);
+
+static YU_INLINE
+value_t value_true(void) {
+    return value_from_bool(true);
 }
-static inline value_t value_false(void) {
-	return value_from_boolean(false);
+static YU_INLINE
+value_t value_false(void) {
+    return value_from_bool(false);
 }
-static inline bool value_is_true(value_t val) {
-	return val.as_bits.tag == NANBOX_BOOLEAN_TAG && val.as_bits.payload;
+static YU_INLINE
+bool value_is_true(value_t val) {
+    return val.as_bits.tag == NANBOX_BOOLEAN_TAG && val.as_bits.payload;
 }
-static inline bool value_is_false(value_t val) {
-	return val.as_bits.tag == NANBOX_BOOLEAN_TAG && !val.as_bits.payload;
+static YU_INLINE
+bool value_is_false(value_t val) {
+    return val.as_bits.tag == NANBOX_BOOLEAN_TAG && !val.as_bits.payload;
 }
 
-static inline bool value_is_double(value_t val) {
-	return val.as_bits.tag < NANBOX_INT_TAG;
+static YU_INLINE
+bool value_is_double(value_t val) {
+    return val.as_bits.tag < NANBOX_INT_TAG;
 }
 // is number = is double or is int
-static inline bool value_is_number(value_t val) {
-	return val.as_bits.tag <= NANBOX_INT_TAG;
+static YU_INLINE
+bool value_is_number(value_t val) {
+    return val.as_bits.tag <= NANBOX_INT_TAG;
 }
 
-static inline value_t value_from_double(double d) {
-	value_t val;
-	val.as_double = d;
-	assert(value_is_double(val) &&
-	       val.as_bits.tag <= NANBOX_MAX_DOUBLE_TAG);
-	return val;
+static YU_INLINE
+value_t value_from_double(double d) {
+    value_t val;
+    val.as_double = d;
+    assert(value_is_double(val) &&
+           val.as_bits.tag <= NANBOX_MAX_DOUBLE_TAG);
+    return val;
 }
-static inline double value_to_double(value_t val) {
-	assert(value_is_double(val));
-	return val.as_double;
+static YU_INLINE
+double value_to_double(value_t val) {
+    assert(value_is_double(val));
+    return val.as_double;
 }
 
-#endif /* elif NANBOX_32 */
+#endif /* is 32-bit */
 
 /*
  * Representation-independent functions
  */
 
-static inline double value_to_number(value_t val) {
-	assert(value_is_number(val));
-	return value_is_int(val) ? value_to_int(val)
-	                         : value_to_double(val);
+static YU_INLINE
+double value_to_number(value_t val) {
+    assert(value_is_number(val));
+    return value_is_int(val) ? value_to_int(val)
+                             : value_to_double(val);
 }
+
+// Re-enable int-to-pointer/pointer-to-int warnings.
+#pragma GCC diagnostic pop

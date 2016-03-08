@@ -62,7 +62,7 @@ extern yu_err_handler_func yu_global_fatal_handler;
   return retval;
 
 #define YU_CHECK(expr) do{ \
-  if ((yu_local_err = (expr))) goto yu_err_handler; \
+  if (YU_UNLIKELY((yu_local_err = (expr)))) goto yu_err_handler; \
 }while(0)
 
 #define YU_THROW(err) do{ \
@@ -71,7 +71,7 @@ extern yu_err_handler_func yu_global_fatal_handler;
 }while(0)
 
 #define YU_THROWIF(expr, err) do{ \
-  if ((expr)) \
+  if (YU_UNLIKELY((expr))) \
     YU_THROW(err); \
 }while(0)
 

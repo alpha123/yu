@@ -7,16 +7,19 @@
 
 #include "yu_common.h"
 
+// Descriptions are unnecessary and unused but required to avoid
+// ‘ISO C99 requires at least one argument to variadic macros’ warnings
+// (See yu_common.h /DEF_ENUM)
 #define LIST_VALUE_TYPES(X) \
-    X(VALUE_ERR) \
-    X(VALUE_FIXNUM) \
-    X(VALUE_BOOL) \
-    X(VALUE_DOUBLE) \
-    X(VALUE_INT) \
-    X(VALUE_REAL) \
-    X(VALUE_STR) \
-    X(VALUE_QUOT) \
-    X(VALUE_TABLE)
+    X(VALUE_ERR, "error") \
+    X(VALUE_FIXNUM, "small number, stored unboxed") \
+    X(VALUE_BOOL, "boolean") \
+    X(VALUE_DOUBLE, "double") \
+    X(VALUE_INT, "GMP mpz_t bigint") \
+    X(VALUE_REAL, "MPFR mpfr_t arbitrary-precision real") \
+    X(VALUE_STR, "yu_str") \
+    X(VALUE_QUOT, "quotation, stored as bytecode") \
+    X(VALUE_TABLE, "hashtable")
 
 DEF_ENUM(value_type, LIST_VALUE_TYPES)
 
@@ -41,5 +44,7 @@ struct boxed_value {
     struct {
         bool gray : 1;
         value_type what : 7;
-    } v;
+    } x;
 };
+
+void value_mark(struct boxed_value *v);

@@ -17,7 +17,7 @@
        float: "g",	       double: "g", \
       char *: "s",    unsigned char *: "s", \
 const char *: "s", const unsigned char *: "s", \
-      void *: "p",               bool: "d"))
+        bool: "d",            default: "p"))
 
 #define PT_ASSERT(expr) pt_assert_run((int)(expr), #expr, __func__, __FILE__, __LINE__)
 #define PT_ASSERT_EQUAL(expr, expect, eql, eql_sym) do{ \
@@ -34,6 +34,9 @@ const char *: "s", const unsigned char *: "s", \
 
 #define PT_RAWEQ(a, b) ((a) == (b))
 #define PT_ASSERT_EQ(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWEQ, "==")
+
+#define PT_RAWNEQ(a, b) ((a) != (b))
+#define PT_ASSERT_NEQ(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWNEQ, "!=")
 
 #define PT_RAWGT(a, b) ((a) > (b))
 #define PT_ASSERT_GT(expr, expect) PT_ASSERT_EQUAL((expr), (expect), PT_RAWGT, ">")

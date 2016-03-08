@@ -40,6 +40,9 @@ typedef uint64_t u64;
 #define YU_RETURN_ALIGNED(n) __attribute__((assume_aligned(n)))
 #define YU_MALLOC_LIKE __attribute__((malloc))
 
+#define YU_LIKELY(expr) __builtin_expect(!!(expr),1)
+#define YU_UNLIKELY(expr) __builtin_expect(!!(expr),0)
+
 #elif _MSC_VER
 
 // Thanks to http://stackoverflow.com/a/9602511 for the warning number for MSVC
@@ -51,6 +54,9 @@ typedef uint64_t u64;
 #define YU_RETURN_ALIGNED(n)
 #define YU_MALLOC_LIKE
 
+#define YU_LIKELY(expr) (expr)
+#define YU_UNLIKELY(expr) (expr)
+
 #else
 
 #define YU_INLINE inline
@@ -60,6 +66,71 @@ typedef uint64_t u64;
 #define YU_MALLOC_LIKE
 
 #endif
+
+// The platform detection code was taken more-or-less verbatim from
+// https://github.com/zuiderkwast/nanbox, which in turn was adapted
+// from WTF/wtf/Platform.h in WebKit.
+
+/** Platform detection (OS, 32/64-bit, endianness) **/
+
+// Note that Yu currently doesn't support big-endian platforms,
+// but it's detected here anyway for the sake of completeness and
+// future portability.
+
+#if defined(_AIX) \
+    || defined(__APPLE__) /* Darwin */ \
+    || defined(__FreeBSD__) || defined(__DragonFly__) \
+    || defined(__FreeBSD_kernel__) \
+    || defined(__GNU__) /* GNU/Hurd */ \
+    || defined(__linux__) \
+    || defined(__NetBSD__) \
+    || defined(__OpenBSD__) \
+    || defined(__QNXNTO__) \
+    || defined(sun) || defined(__sun) /* Solaris */ \
+    || defined(unix) || defined(__unix) || defined(__unix__)
+#define YU_OSAPI posix
+#elif defined(WIN32) || defined(_WIN32)
+#define YU_OSAPI win32
+#endif
+
+#ifndef YU_OSAPI
+#error Unsupported operating system ¯\ ̱(°͡˷°͡) ̱/¯
+#endif
+
+#if ((defined(__x86_64__) || defined(_M_X64)) \
+     && (defined(NANBOX_UNIX) || defined(NANBOX_WINDOWS))) \
+    || (defined(__ia64__) && defined(__LP64__)) /* Itanium in LP64 mode */ \
+    || defined(__alpha__) /* DEC Alpha */ \
+    || (defined(__sparc__) && defined(__arch64__) || defined (__sparcv9)) /* BE */ \
+    || defined(__s390x__) /* S390 64-bit (BE) */ \
+    || (defined(__ppc64__) || defined(__PPC64__)) \
+    || defined(__aarch64__) /* ARM 64-bit */
+// Don't define anything for 64-bit mode, consider that the default
+#else
+#define YU_32BIT 1
+#endif
+
+// Endianness — POWER/SPARC/MIPS
+// Yu currently assumes little-endian, so this is all kind of moot.
+#if defined(__MIPSEB__) /* MIPS 32-bit */ \
+    || defined(__ppc__) || defined(__PPC__) /* CPU(PPC) - PowerPC 32-bit */ \
+    || defined(__powerpc__) || defined(__powerpc) || defined(__POWERPC__) \
+    || defined(_M_PPC) || defined(__PPC) \
+    || defined(__ppc64__) || defined(__PPC64__) /* PowerPC 64-bit */ \
+    || defined(__sparc)   /* Sparc 32bit */  \
+    || defined(__sparc__) /* Sparc 64-bit */ \
+    || defined(__s390x__) /* S390 64-bit */ \
+    || defined(__s390__)  /* S390 32-bit */ \
+    || defined(__ARMEB__) /* ARM big endian */ \
+    || ((defined(__CC_ARM) || defined(__ARMCC__)) /* ARM RealView compiler */ \
+        && defined(__BIG_ENDIAN))
+#define YU_BIG_ENDIAN 1
+#endif
+
+#ifdef YU_BIG_ENDIAN
+#error Unsupported processor `(°̆︵°̆)’
+#endif
+
 
 #define YU_INTERNAL_INCLUDES
 
@@ -101,6 +172,13 @@ u32 yu_ceil_log2(u64 n);
     __typeof__(a) _a = (a); \
     __typeof__(b) _b = (b); \
     _a < _b ? _b : _a; \
+})
+
+#define elemcount(arr) (sizeof((arr))/sizeof((arr)[0]))
+  
+#define containerof(ptr,type,member) ({ \
+    __typeof__(((type *)0)->member) *_mp = (ptr); \
+    (type *)((u8 *)_mp - offsetof(type,member)); \
 })
 
 /* For namespacing various types of tables, trees, lists, etc */

@@ -17,7 +17,7 @@ const char *yu_err_messages[] = {
 
 #undef YU_ERR_MSG
 
-void yu_exit_on_fatal(yu_err err) {
+_Noreturn void yu_exit_on_fatal(yu_err err) {
     exit(err);
 }
 

@@ -31,9 +31,7 @@
  * execution goes back to the runtime.
  */
 
-#ifndef GC_NUM_GENERATIONS
-#define GC_NUM_GENERATIONS 3
-#endif
+// Most GC constants are in arena.h
 
 #include "arena.h"
 #include "value.h"

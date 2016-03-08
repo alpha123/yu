@@ -1,53 +1,77 @@
+/**
+ * Copyright (c) 2016 Peter Cannici
+ * Licensed under the MIT (X11) license. See LICENSE.
+ */
+
 #pragma once
 
+#include <immintrin.h>
 #include "yu_common.h"
+#include "value.h"
 
 /**
  * Objects are allocated in arenas. Each generation has two or more arenas, one for
- * traversable objects and one for non-traversable objects.
+ * traversable objects and one for non-traversable objects. Objects are allocated with
+ * a simple bump allocator.
  *
  * Assuming 8-byte pointers:
- * Arenas are 1024 + 32 + 4096 * sizeof(boxed_value) bytes, arranged like so:
+ * Arenas are 512 + 8 + 2048 * sizeof(boxed_value) bytes, arranged like so:
  * Traversable arena:
  *    +---------------------------------------------------+
- *    | free bitmap (512 bytes) | mark bitmap (512 bytes) |
+ *    | gray queue (256 bytes)  | mark bitmap (256 bytes) |
  *    +---------------------------------------------------+
- *    | pointer to the top of the gray stack (8 bytes)    |
- *    | pointer to the rest of the gray stack (8 bytes)   |
- *    | gray stack counter (2 bytes)                      |
- *    | padding (6 bytes)                                 |
- *    +---------------------------------------------------+
- *    | pointer to arena metadata, such as the arena to   |
- *    | promote objects to the next generation (8 bytes)  |
+ *    |    pointer to next object to allocate (8 bytes)   |
  *    +---------------------------------------------------+
  *    |                   object space                    |
- *    |         4096 * sizeof(boxed_value) bytes          |
+ *    |         2048 * sizeof(boxed_value) bytes          |
  *    +---------------------------------------------------+
  */
 
-#define GC_ARENA_NUM_OBJECTS 4096
-#define GC_BITMAP_SIZE (4096/8)
-#define GC_ARENA_PADDING 6
+#ifndef GC_NUM_GENERATIONS
+#define GC_NUM_GENERATIONS 3
+#endif
+
+#ifndef GC_ARENA_NUM_OBJECTS
+#define GC_ARENA_NUM_OBJECTS 2048
+#endif
+
+#if (GC_ARENA_NUM_OBJECTS & (GC_ARENA_NUM_OBJECTS - 1)) != 0
+#error GC_ARENA_NUM_OBJECTS must be a power of 2
+#endif
+
+#define GC_BITMAP_SIZE (GC_ARENA_NUM_OBJECTS/8)
 
 struct arena;
 
-struct arena_metadata {
-    struct arena *self;
-    struct arena *next;
-    struct arena *next_gen;
+struct arena_handle {
+    yu_memctx_t *mem_ctx;
+    struct arena * restrict self;
+    struct arena_handle * restrict next;
+    struct arena_handle *next_gen;
     u8 generation;
 };
 
 struct arena {
-    u64 freemap[GC_BITMAP_SIZE/8];
-    u64 markmap[GC_BITMAP_SIZE/8];
+    // Indices with a bit set in this map should be considered part of the
+    // gray queue.
+    u64 graymap[GC_BITMAP_SIZE/sizeof(u64)];
 
-    struct boxed_value *gray_top;
-    struct gray_stack *gray_rest;
-    u16 grayc;
-    u8 padding[GC_ARENA_PADDING];
+    u64 markmap[GC_BITMAP_SIZE/sizeof(u64)];
 
-    struct arena_metadata *meta;
-
-    struct boxed_value[GC_ARENA_NUM_OBJECTS];
+    struct boxed_value *next;
+    struct boxed_value objs[GC_ARENA_NUM_OBJECTS];
 };
+
+struct arena_handle *arena_new(yu_memctx_t *mctx);
+void arena_free(struct arena_handle *a);
+
+struct boxed_value *arena_alloc_val(struct arena_handle *a);
+
+u32 arena_allocated_count(struct arena_handle *a);
+u32 arena_gray_count(struct arena_handle *a);
+
+struct boxed_value *arena_pop_gray(struct arena_handle *a);
+void arena_push_gray(struct arena_handle *a, struct boxed_value *v);
+
+void arena_promote(struct arena_handle *a);
+void arena_empty(struct arena_handle *a);
