@@ -51,61 +51,44 @@ struct boxed_value {
         struct arena_handle *owner;
        into a 64-bit int, since pointers even on amd64 are only 48-bits
     */
-    union {
-        u64 as_int64;
-        struct {
-#ifndef YU_BIG_ENDIAN
-            u32 lo;
-#endif
-            union {
-                u32 as_int32;
-                struct {
-                    bool is_gray : 1;
-                    value_type type : 7;
-                } as_info;
-            } hi;
-#ifdef YU_BIG_ENDIAN
-            u32 lo;
-#endif
-        } as_bits;
-    } x;
+    u64 bits;
 };
 
-#define VALUE_PTR_MASK  UINT64_C(0x00ffffffffffffff)
-#define VALUE_TYPE_MASK UINT64_C(0x7f00000000000000)
-#define VALUE_GRAY_MASK UINT64_C(0x8000000000000000)
+#define VALUE_PTR_MASK  UINT64_C(0xfffffffffffffff0)
+#define VALUE_TYPE_MASK UINT64_C(0x0000000000000007)
+#define VALUE_GRAY_MASK UINT64_C(0x0000000000000008)
 
 value_type value_what(value_t val);
 
 YU_INLINE
 value_type boxed_value_get_type(struct boxed_value *val) {
-    return val->x.as_bits.hi.as_info.type;
+    return val->bits & VALUE_TYPE_MASK;
 }
 
 YU_INLINE
 void boxed_value_set_type(struct boxed_value *val, value_type type) {
     assert((u8)type < 128);
-    val->x.as_bits.hi.as_info.type = type;
+    val->bits = (val->bits & ~VALUE_TYPE_MASK) | (u8)type;
 }
 
 YU_INLINE
 bool boxed_value_is_gray(struct boxed_value *val) {
-    return val->x.as_bits.hi.as_info.is_gray;
+    return val->bits & VALUE_GRAY_MASK;
 }
 
 YU_INLINE
 bool boxed_value_set_gray(struct boxed_value *val, bool gray) {
-    val->x.as_bits.hi.as_info.is_gray = gray;
+    val->bits = (val->bits & ~VALUE_GRAY_MASK) | (-gray & VALUE_GRAY_MASK);
 }
 
 YU_INLINE
 struct arena_handle *boxed_value_owner(struct boxed_value *val) {
-    return (struct arena_handle *)(val->x.as_int64 & VALUE_PTR_MASK);
+    return (struct arena_handle *)(val->bits & VALUE_PTR_MASK);
 }
 
 YU_INLINE
 void boxed_value_set_owner(struct boxed_value *val, struct arena_handle *owner) {
-    val->x.as_int64 &= ~VALUE_PTR_MASK | (uintptr_t)owner;
+    val->bits = (val->bits & ~VALUE_PTR_MASK) | (uintptr_t)owner;
 }
 
 void boxed_value_mark(struct boxed_value *v);

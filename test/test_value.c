@@ -22,7 +22,8 @@
     X(bool, "Booleans can be stored inline") \
     X(ptr, "Boxed values should be heap-allocated and a pointer stored") \
     X(value_type, "Value type should be not depend on whether or not the value is boxed") \
-    X(gray_bit, "Boxed values should maintain a gray bit")
+    X(gray_bit, "Boxed values should maintain a gray bit") \
+    X(packed, "Metadata about a value (type, owner, gray, etc) should be stored compacted")
 
 TEST(double)
     value_t x = value_from_double(42.101010);
@@ -46,6 +47,7 @@ TEST(ptr)
     struct boxed_value *v = arena_alloc_val(a);
     value_t x = value_from_ptr(v);
     PT_ASSERT_EQ(value_to_ptr(x), v);
+    PT_ASSERT_EQ(boxed_value_owner(v), a);
 END(ptr)
 
 TEST(value_type)
@@ -53,8 +55,8 @@ TEST(value_type)
     value_t w = value_from_int(655), x = value_true(),
             y = value_from_ptr(arena_alloc_val(a)),
             z = value_from_ptr(arena_alloc_val(a));
-    boxed_value_set_type(y, VALUE_REAL);
-    boxed_value_set_type(z, VALUE_FIXNUM);
+    boxed_value_set_type(value_to_ptr(y), VALUE_REAL);
+    boxed_value_set_type(value_to_ptr(z), VALUE_FIXNUM);
 
     PT_ASSERT_EQ(value_what(w), VALUE_FIXNUM);
     PT_ASSERT_EQ(value_what(z), VALUE_FIXNUM);
@@ -70,6 +72,24 @@ TEST(gray_bit)
     boxed_value_set_gray(v, true);
     PT_ASSERT(boxed_value_is_gray(v));
 END(gray_bit)
+
+TEST(packed)
+    struct arena_handle *a = arena_new(&mctx), *b = arena_new(&mctx);
+    struct boxed_value *v = arena_alloc_val(a);
+    boxed_value_set_gray(v, true);
+    boxed_value_set_type(v, VALUE_TABLE);
+    PT_ASSERT_EQ(boxed_value_owner(v), a);
+    boxed_value_set_owner(v, b);
+    PT_ASSERT(boxed_value_is_gray(v));
+    PT_ASSERT_EQ(boxed_value_owner(v), b);
+    boxed_value_set_gray(v, false);
+    PT_ASSERT_EQ(boxed_value_owner(v), b);
+    PT_ASSERT(!boxed_value_is_gray(v));
+    boxed_value_set_type(v, VALUE_REAL);
+    PT_ASSERT_EQ(boxed_value_owner(v), b);
+    PT_ASSERT(!boxed_value_is_gray(v));
+    PT_ASSERT_EQ(boxed_value_get_type(v), VALUE_REAL);
+END(packed)
 
 
 SUITE(value, LIST_VALUE_TESTS)
