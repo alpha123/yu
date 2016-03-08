@@ -97,15 +97,14 @@ typedef uint64_t u64;
 #error Unsupported operating system ¯\ ̱(°͡˷°͡) ̱/¯
 #endif
 
-#if ((defined(__x86_64__) || defined(_M_X64)) \
-     && (defined(NANBOX_UNIX) || defined(NANBOX_WINDOWS))) \
+#if (defined(__x86_64__) || defined(_M_X64)) \
     || (defined(__ia64__) && defined(__LP64__)) /* Itanium in LP64 mode */ \
     || defined(__alpha__) /* DEC Alpha */ \
     || (defined(__sparc__) && defined(__arch64__) || defined (__sparcv9)) /* BE */ \
     || defined(__s390x__) /* S390 64-bit (BE) */ \
     || (defined(__ppc64__) || defined(__PPC64__)) \
     || defined(__aarch64__) /* ARM 64-bit */
-// Don't define anything for 64-bit mode, consider that the default
+#define YU_32BIT 0
 #else
 #define YU_32BIT 1
 #endif

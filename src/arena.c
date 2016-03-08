@@ -43,7 +43,9 @@ struct boxed_value *arena_alloc_val(struct arena_handle *a) {
         a->next = next;
         ar = a->self;
     }
-    return ar->next++;
+    struct boxed_value *val = ar->next++;
+    boxed_value_set_owner(val, a);
+    return val;
 }
 
 u32 arena_allocated_count(struct arena_handle *a) {

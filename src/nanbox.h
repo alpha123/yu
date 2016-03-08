@@ -86,7 +86,7 @@
  */
 typedef union {
     uint64_t as_int64;
-#ifndef YU_32BIT
+#if !YU_32BIT
     struct boxed_value *pointer;
 #endif
     double as_double;
@@ -101,7 +101,7 @@ typedef union {
     } as_bits;
 } value_t;
 
-#ifndef YU_32BIT
+#if !YU_32BIT
 
 /*
  * 64-bit platforms
