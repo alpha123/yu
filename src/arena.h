@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <immintrin.h>
 #include "yu_common.h"
 #include "value.h"
 

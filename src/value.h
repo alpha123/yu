@@ -56,9 +56,9 @@ struct boxed_value {
     u64 bits;
 };
 
-#define VALUE_PTR_MASK  UINT64_C(0xfffffffffffffff0)
-#define VALUE_TYPE_MASK UINT64_C(0x0000000000000007)
-#define VALUE_GRAY_MASK UINT64_C(0x0000000000000008)
+#define VALUE_PTR_MASK  UINT64_C(0xffffffffffffff00)
+#define VALUE_TYPE_MASK UINT64_C(0x000000000000007f)
+#define VALUE_GRAY_MASK UINT64_C(0x0000000000000080)
 
 value_type value_what(value_t val);
 
@@ -88,12 +88,12 @@ void boxed_value_set_gray(struct boxed_value *val, bool gray) {
 
 YU_INLINE
 struct arena_handle *boxed_value_owner(struct boxed_value *val) {
-    return (struct arena_handle *)(val->bits & VALUE_PTR_MASK);
+    return (struct arena_handle *)((val->bits & VALUE_PTR_MASK) >> 16);
 }
 
 YU_INLINE
 void boxed_value_set_owner(struct boxed_value *val, struct arena_handle *owner) {
-    val->bits = (val->bits & ~VALUE_PTR_MASK) | (uintptr_t)owner;
+    val->bits = (val->bits & ~VALUE_PTR_MASK) | ((uintptr_t)owner << 16);
 }
 
 void boxed_value_mark(struct boxed_value *v);

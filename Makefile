@@ -133,8 +133,8 @@ src/preprocessed/%.o: src/preprocessed/%.i
 
 $(TMPL_OBJS): $(TMPL_SRCS:.c=.i)
 
-build_debug_test: copy_templates deps $(TMPL_OBJS) test/ptest.o
-	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) -o src/preprocessed/test $(LIBS)
+build_debug_test: copy_templates deps $(TMPL_OBJS) test/ptest.o $(COMMON_OBJS)
+	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) $(COMMON_OBJS) -o src/preprocessed/test $(LIBS)
 
 debug_templates: build_debug_test  ## Build a special preprocessed test executable for debugging large macro expansions
 	$(DB) $(DBFLAGS) src/preprocessed/test

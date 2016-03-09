@@ -99,6 +99,14 @@ int hash_cmp(const void *a, const void *b) {
     return (*ua > *ub) - (*ua < *ub);
 }
 
+static
+s32 cmp_uint32(uint32_t a, uint32_t b) {
+    return (a > b) - (a < b);
+}
+
+YU_SPLAYTREE(rndset, uint32_t, cmp_uint32, false)
+YU_SPLAYTREE_IMPL(rndset, uint32_t, cmp_uint32, false)
+
 TEST(hash)
     struct arena_handle *a = arena_new(&mctx);
     yu_str_ctx sctx;
@@ -107,9 +115,9 @@ TEST(hash)
     sfmt_init_gen_rand(&rng, 55123);
 
 #ifdef TEST_FAST
-    u64 valcnt = 80;
+    u64 valcnt = 800;
 #else
-    u64 valcnt = (u64)2e5;
+    u64 valcnt = (u64)3e5;
 #endif
 
     u64 *hashes1 = calloc(valcnt, sizeof(u64)),
@@ -123,14 +131,22 @@ TEST(hash)
     hashes2[0] = value_hash2(value_true());
     hashes2[1] = value_hash2(value_false());
 
+    rndset rs;
+    rndset_init(&rs, &mctx);
+
     for (u64 i = 2; i < valcnt; i++) {
         u32 n = sfmt_genrand_uint32(&rng);
+        // Make sure we only generate unique numbers to
+        // avoid false positive hash collisions.
+        while (rndset_find(&rs, n, NULL))
+            n = sfmt_genrand_uint32(&rng);
+        rndset_insert(&rs, n, NULL);
         switch (n % 7) {
         case 0:
             v = value_from_int(n);
             break;
         case 1:
-            v = value_from_double(*(double *)&n);
+            v = value_from_double(sfmt_to_real1(n) * n);
             break;
         case 2: {
             mpz_t z;
@@ -162,17 +178,22 @@ TEST(hash)
                 sdat[j*4+3] =  (m >> 24)         % 94 + 32;
             }
             yu_str s;
-            assert(yu_str_new(&sctx, sdat, cnt, &s) == YU_OK);
+            yu_err err = yu_str_new(&sctx, sdat, cnt, &s);
+            assert(err == YU_OK);
             boxed_value_set_type(b, VALUE_STR);
             b->v.s = s;
             v = value_from_ptr(b);
             break;
         }
         case 5:
-            v = value_from_int(0);
+            b = arena_alloc_val(a);
+            boxed_value_set_type(b, VALUE_TABLE);
+            v = value_from_ptr(b);
             break;
         case 6:
-            v = value_from_int(0);
+            b = arena_alloc_val(a);
+            boxed_value_set_type(b, VALUE_QUOT);
+            v = value_from_ptr(b);
             break;
         }
         hashes1[i] = value_hash1(v);
@@ -183,19 +204,20 @@ TEST(hash)
             mpfr_clear(*value_to_ptr(v)->v.r);
     }
 
+    u64 collisions1 = 0, collisions2 = 0;
+
     qsort(hashes1, valcnt, sizeof(u64), hash_cmp);
     qsort(hashes2, valcnt, sizeof(u64), hash_cmp);
 
-    u64 collisions = 0;
-
     for (u64 i = 0; i < valcnt; i++) {
         if (i > 0 && hashes1[i-1] == hashes1[i])
-            ++collisions;
+            ++collisions1;
         if (i > 0 && hashes2[i-1] == hashes2[i])
-            ++collisions;
+            ++collisions2;
     }
 
-    PT_ASSERT_LT(collisions, 1000);
+    PT_ASSERT_LT(collisions1, valcnt/20);
+    PT_ASSERT_LT(collisions2, valcnt/20);
 
     free(hashes1);
     free(hashes2);

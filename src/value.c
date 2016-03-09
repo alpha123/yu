@@ -38,40 +38,92 @@ u64 raw_value_hash1(value_t v) {
         // Hashing doubles is somewhat problematic in general.
         // Double ‘equality’ is abs(a-b) < delta, so doubles that are
         // ‘equal’ might not hash the same with a naive algorithm.
-        // Convert them to a string with 10 digits of precision, and
-        // hash that.
+        // Convert them to a string with 30 digits of precision and
+        // hash that instead.
         // TODO this is less than ideal.
         double x = value_to_double(v);
         char as_str[50];
-        int n = snprintf(as_str, 50, "%.10", x);
+        int n = snprintf(as_str, 50, "%.30", x);
         return yu_fnv1a((const u8 *)as_str, n);
+    }
+    case VALUE_STR:
+	return YU_BUF_DAT(value_to_ptr(v)->v.s)->hash[0];
+    case VALUE_INT: {
+	mpz_t *z = value_to_ptr(v)->v.i;
+	char *s = alloca(mpz_sizeinbase(*z, 62) + 2);
+	mpz_get_str(s, 62, *z);
+	return yu_fnv1a((const u8 *)s, strlen(s));
+    }
+    case VALUE_REAL: {
+	mpfr_t *r = value_to_ptr(v)->v.r;
+	mpfr_exp_t exp;
+	char *s = mpfr_get_str(NULL, &exp, 62, 0, *r, MPFR_RNDN);
+	int slen = strlen(s);
+	// Reuse the \0 for the exponent, so that 3.14 and 31.4 don't
+	// hash the same.
+	s[slen] = (char)exp;
+	u64 h = yu_fnv1a((const u8 *)s, slen + 1);
+	// Probably unnecessary, but restore the string to normal before freeing it.
+	s[slen] = '\0';
+	mpfr_free_str(s);
+	return h;
     }
     case VALUE_TABLE:  // hash by address
     case VALUE_QUOT:
         return (uintptr_t)value_to_ptr(v);
     default:
-        return *(u64 *)&v;
+	assert(false);
+#ifdef __GNUC__
+	__builtin_unreachable();
+#endif
+        return 0;
     }
 }
 
 static
 u64 raw_value_hash2(value_t v) {
     switch (value_what(v)) {
-    case VALUE_FIXNUM:
-        return ~value_to_int(v);
+    case VALUE_FIXNUM: {
+        //return (value_to_int(v) * 0x7fffff55) ^ ((value_to_int(v) & 0xff) | (value_to_int(v) >> 8));
+	int x = ~value_to_int(v);
+	return yu_murmur2((const u8 *)&x, 4);
+   }
     case VALUE_BOOL:
         return value_to_bool(v) ? UINT64_C(0xC0DE6EA55) : UINT64_C(0x5F3759DF);
     case VALUE_DOUBLE: {
         double x = value_to_double(v);
         char as_str[50];
-        int n = snprintf(as_str, 50, "%.10", x);
+        int n = snprintf(as_str, 50, "%.30", x);
         return yu_murmur2((const u8 *)as_str, n);
+    }
+    case VALUE_STR:
+	return YU_BUF_DAT(value_to_ptr(v)->v.s)->hash[1];
+    case VALUE_INT: {
+	mpz_t *z = value_to_ptr(v)->v.i;
+	char *s = alloca(mpz_sizeinbase(*z, 62) + 2);
+	mpz_get_str(s, 62, *z);
+	return yu_murmur2((const u8 *)s, strlen(s));
+    }
+    case VALUE_REAL: {
+	mpfr_t *r = value_to_ptr(v)->v.r;
+	mpfr_exp_t exp;
+	char *s = mpfr_get_str(NULL, &exp, 62, 0, *r, MPFR_RNDN);
+	int slen = strlen(s);
+	s[slen] = (char)exp;
+	u64 h = yu_murmur2((const u8 *)s, slen + 1);
+	s[slen] = '\0';
+	mpfr_free_str(s);
+	return h;
     }
     case VALUE_TABLE:
     case VALUE_QUOT:
-        return ~(uintptr_t)value_to_ptr(v);
+        return ~(uintptr_t)value_to_ptr(v) * UINT64_C(0x7ffffffffffffe29);
     default:
-        return ~*(u64 *)&v;
+	assert(false);
+#ifdef __GNUC__
+	__builtin_unreachable();
+#endif
+        return 0;
     }
 }
 

@@ -23,15 +23,19 @@
 
 TEST(intern)
     yu_str s, t;
-    assert(yu_str_new_c(&ctx, "foo", &s) == YU_OK);
-    assert(yu_str_new_c(&ctx, "foo", &t) == YU_OK);
+    yu_err err;
+    err = yu_str_new_c(&ctx, "foo", &s);
+    assert(err == YU_OK);
+    err = yu_str_new_c(&ctx, "foo", &t);
+    assert(err == YU_OK);
     PT_ASSERT_EQ(s, t);
 END(intern)
 
 TEST(length)
     yu_str s;
     // नि is two codepoints but 1 grapheme, and like 8 bytes in utf-8
-    assert(yu_str_new_c(&ctx, "hiनिффनि", &s) == YU_OK);
+    yu_err err = yu_str_new_c(&ctx, "hiनिффनि", &s) ;
+    assert(err == YU_OK);
     PT_ASSERT_EQ(yu_str_len(s), 6);
 END(length)
 
