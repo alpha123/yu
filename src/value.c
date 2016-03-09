@@ -141,6 +141,10 @@ WRAP_HASH(hash2, 1)
 #undef WRAP_HASH
 
 bool value_eq(value_t a, value_t b) {
+    if (value_is_ptr(a) && value_can_unbox_untagged(value_to_ptr(a)))
+	a = value_unbox(value_to_ptr(a));
+    if (value_is_ptr(b) && value_can_unbox_untagged(value_to_ptr(b)))
+	b = value_unbox(value_to_ptr(b));
     return value_hash1(a) == value_hash1(b) &&
            value_hash2(a) == value_hash2(b);
 }

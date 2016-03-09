@@ -24,7 +24,8 @@
     X(value_type, "Value type should be not depend on whether or not the value is boxed") \
     X(gray_bit, "Boxed values should maintain a gray bit") \
     X(packed, "Metadata about a value (type, owner, gray, etc) should be stored compacted") \
-    X(hash, "Value hashes should be well-distributed")
+    X(hash, "Value hashes should be well-distributed") \
+    X(equal, "Only equal values should be equal")
 
 TEST(double)
     value_t x = value_from_double(42.101010);
@@ -213,13 +214,49 @@ TEST(hash)
             ++collisions2;
     }
 
-    PT_ASSERT_LT(collisions1, valcnt/200);
-    PT_ASSERT_LT(collisions2, valcnt/200);
+    PT_ASSERT_LT(collisions1, valcnt/2000);
+    PT_ASSERT_LT(collisions2, valcnt/2000);
 
     free(hashes1);
     free(hashes2);
     yu_str_ctx_free(&sctx);
 END(hash)
+
+TEST(equal)
+    struct arena_handle *a = arena_new(&mctx);
+    yu_str_ctx sctx;
+    yu_str_ctx_init(&sctx, &mctx);
+    value_t w = value_from_int(42);
+    mpz_t i;
+    mpz_init_set_ui(i, 42);
+    struct boxed_value *b = arena_alloc_val(a);
+    boxed_value_set_type(b, VALUE_INT);
+    b->v.i = &i;
+    value_t x = value_from_ptr(b);
+
+    PT_ASSERT(value_eq(w, w));
+    PT_ASSERT(value_eq(x, x));
+    PT_ASSERT(value_eq(w, x));
+
+    x = value_from_int(7);
+    PT_ASSERT(!value_eq(w, x));
+
+    boxed_value_set_type(b, VALUE_STR);
+    yu_str s;
+    yu_err err = yu_str_new_c(&sctx, "silver soul", &s);
+    assert(err == YU_OK);
+    b->v.s = s;
+    value_t y = value_from_ptr(b);
+    PT_ASSERT(!value_eq(x, y));
+
+    err = yu_str_new_c(&sctx, "silver soul", &s);
+    assert(err == YU_OK);
+    struct boxed_value *c = arena_alloc_val(a);
+    boxed_value_set_type(c, VALUE_STR);
+    c->v.s = s;
+    value_t z = value_from_ptr(c);
+    PT_ASSERT(value_eq(y, z));
+END(equal)
 
 
 SUITE(value, LIST_VALUE_TESTS)

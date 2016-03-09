@@ -31,13 +31,20 @@ TEST(alloc_val)
     struct boxed_value *v;
     struct arena *old_a = a->self;
     PT_ASSERT_EQ(arena_allocated_count(a), 0);
-    for (u32 i = 0; i < (1<<20); i++) {
+
+#ifdef TEST_FAST
+    u32 valcnt = 1000;
+#else
+    u32 valcnt = 1 << 20;
+#endif
+
+    for (u32 i = 0; i < valcnt; i++) {
         v = arena_alloc_val(a);
         if (v == NULL)
             break;
     }
     PT_ASSERT_NEQ(v, NULL);
-    PT_ASSERT_EQ(arena_allocated_count(a), 1<<20);
+    PT_ASSERT_EQ(arena_allocated_count(a), valcnt);
     PT_ASSERT_NEQ(a->self, old_a);
 
     u32 acount = 0;
@@ -46,7 +53,7 @@ TEST(alloc_val)
         ++acount;
         ah = ah->next;
     }
-    PT_ASSERT_EQ(acount, (1<<20)/GC_ARENA_NUM_OBJECTS);
+    PT_ASSERT_EQ(acount, valcnt/GC_ARENA_NUM_OBJECTS);
 END(alloc_val)
 
 TEST(gray_queue)
