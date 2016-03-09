@@ -5,8 +5,6 @@
 
 #include "test.h"
 
-#include "internal_alloc.h"
-
 #define inthash_1(x) ((u64)(x))
 #define inthash_2(x) ((u64)((x)*(x)))
 #define int_eq(a,b) ((a) == (b))
@@ -17,7 +15,7 @@ YU_HASHTABLE_IMPL(ht, u32, char *, inthash_1, inthash_2, int_eq)
 #define SETUP \
     yu_memctx_t mctx; \
     ht tbl; \
-    internal_alloc_ctx_init(&mctx); \
+    TEST_GET_INTERNAL_ALLOCATOR(&mctx); \
     ht_init(&tbl, 3, &mctx);
 
 #define TEARDOWN \
@@ -92,21 +90,20 @@ TEST(collide)
     bool collided = false;
 
 #ifdef TEST_FAST
-    for (u32 i = 0; i < (u32)2000; i++)
+    u32 valcnt = 2000;
+#elif TEST_ALLOC == TEST_USE_BUMP_ALLOC
+    u32 valcnt = (u32)5e5;
 #else
-    for (u32 i = 0; i < (u32)5e7; i++)
+    u32 valcnt = (u32)5e7;
 #endif
-    {
+
+    for (u32 i = 0; i < valcnt; i++) {
 	if ((collided = ht_put(&tbl, i, as_words[i % (sizeof(as_words) / sizeof(char *))], NULL)))
 	    break;
     }
     PT_ASSERT(!collided);
     PT_ASSERT_GT(tbl.capacity, old_cap);
-#ifdef TEST_FAST
-    PT_ASSERT_EQ(tbl.size, 2000);
-#else
-    PT_ASSERT_EQ(tbl.size, (u64)5e7);
-#endif
+    PT_ASSERT_EQ(tbl.size, valcnt);
 END(collide)
 
 TEST(remove)

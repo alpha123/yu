@@ -5,17 +5,16 @@
 
 #include "test.h"
 
-#include "sys_alloc.h"
 #include "arena.h"
 
 #define SETUP \
     yu_memctx_t mctx; \
-    sys_alloc_ctx_init(&mctx); \
+    TEST_GET_ALLOCATOR(&mctx); \
     struct arena_handle *a = arena_new(&mctx);
 
 #define TEARDOWN \
     arena_free(a); \
-    sys_alloc_ctx_free(&mctx);
+    yu_alloc_ctx_free(&mctx);
 
 #define LIST_ARENA_TESTS(X) \
     X(alloc, "Arenas should be aligned to their size") \

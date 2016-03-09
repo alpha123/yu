@@ -6,6 +6,9 @@
 #pragma once
 
 #include "yu_common.h"
+#include "bump_alloc.h"
+#include "internal_alloc.h"
+#include "sys_alloc.h"
 #include "ptest.h"
 
 #define SUITE_NAME(name) YU_NAME(suite, name)
@@ -13,6 +16,48 @@
 
 #define SUITE_ENUMERATE_ADD_TESTS(name, desc) \
     pt_add_test(TEST_NAME(name), desc, sname);
+
+#define TEST_USE_SYS_ALLOC 1
+#define TEST_USE_INTERNAL_ALLOC 2
+#define TEST_USE_BUMP_ALLOC 3
+
+#ifndef TEST_ALLOC
+#define TEST_ALLOC TEST_USE_SYS_ALLOC
+#endif
+
+#ifndef BUMP_ALLOC_SIZE
+#define BUMP_ALLOC_SIZE (64 * 1024 * 1024)
+#endif
+
+#if TEST_ALLOC == TEST_USE_BUMP_ALLOC
+
+#define TEST_GET_ALLOCATOR(ctx) ({ \
+    yu_err _allocerr = bump_alloc_ctx_init((ctx), BUMP_ALLOC_SIZE); \
+    assert(_allocerr == YU_OK); \
+    _allocerr; \
+})
+
+#define TEST_GET_INTERNAL_ALLOCATOR(ctx) ({ \
+    yu_err _allocerr = bump_alloc_ctx_init((ctx), BUMP_ALLOC_SIZE); \
+    assert(_allocerr == YU_OK); \
+    _allocerr; \
+})
+
+#else
+
+#define TEST_GET_ALLOCATOR(ctx) ({ \
+    yu_err _allocerr = sys_alloc_ctx_init((ctx)); \
+    assert(_allocerr == YU_OK); \
+    _allocerr; \
+})
+
+#define TEST_GET_INTERNAL_ALLOCATOR(ctx) ({ \
+    yu_err _allocerr = internal_alloc_ctx_init((ctx)); \
+    assert(_allocerr == YU_OK); \
+    _allocerr; \
+})
+
+#endif
 
 /* See http://stackoverflow.com/a/4152185 for what this is doing.
  * In addition to __section__ we also need __attribute__(used) or

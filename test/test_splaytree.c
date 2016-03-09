@@ -5,8 +5,6 @@
 
 #include "test.h"
 
-#include "internal_alloc.h"
-
 struct intpair {
     int x, y;
 };
@@ -21,7 +19,7 @@ YU_SPLAYTREE_IMPL(st, struct intpair, intpair_cmp, true)
 #define SETUP \
     yu_memctx_t mctx; \
     st tree; \
-    internal_alloc_ctx_init(&mctx); \
+    TEST_GET_INTERNAL_ALLOCATOR(&mctx); \
     st_init(&tree, &mctx);
 
 #define TEARDOWN \
@@ -57,33 +55,27 @@ TEST(find)
     PT_ASSERT_EQ(out.y, 20);
 
 #ifdef TEST_FAST
-    for (u32 i = 0; i < 40; i++)
+    u32 valcnt = (u32)100;
+#elif TEST_ALLOC == TEST_USE_BUMP_ALLOC
+    u32 valcnt = (u32)1e6;
 #else
-    for (u32 i = 0; i < (u32)3e6; i++)
+    u32 valcnt = (u32)3e6;
 #endif
-    {
+
+    for (u32 i = 0; i < valcnt; i++) {
         a.x = i;
         a.y = i*2;
         st_insert(&tree, a, NULL);
     }
 
-#ifdef TEST_FAST
-    for (u32 i = 0; i < 40; i++)
-#else
-    for (u32 i = 0; i < (u32)3e6; i++)
-#endif
-    {
+    for (u32 i = 0; i < valcnt; i++) {
         a.x = i;
         if (!st_find(&tree, a, &b)) {
             PT_ASSERT(false);
             break;
         }
     }
-#ifdef TEST_FAST
-    PT_ASSERT_EQ(tree.root->dat.x, 39);
-#else
-    PT_ASSERT_EQ(tree.root->dat.x, 3e6-1);
-#endif
+    PT_ASSERT_EQ(tree.root->dat.x, valcnt-1);
 END(find)
 
 TEST(find_set_root)

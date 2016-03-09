@@ -5,13 +5,12 @@
 
 #include "test.h"
 
-#include "sys_alloc.h"
 #include "arena.h"
 #include "value.h"
 
 #define SETUP \
     yu_memctx_t mctx; \
-    sys_alloc_ctx_init(&mctx);
+    TEST_GET_ALLOCATOR(&mctx);
 
 #define TEARDOWN \
     yu_alloc_ctx_free(&mctx);
@@ -214,8 +213,8 @@ TEST(hash)
             ++collisions2;
     }
 
-    PT_ASSERT_LT(collisions1, valcnt/2000);
-    PT_ASSERT_LT(collisions2, valcnt/2000);
+    PT_ASSERT_LTE(collisions1, valcnt/2000);
+    PT_ASSERT_LTE(collisions2, valcnt/2000);
 
     free(hashes1);
     free(hashes2);
