@@ -48,7 +48,7 @@ TEST(insert)
 END(insert)
 
 TEST(find)
-    struct intpair a = {1, 10}, b = {1, 0}, c = {2, 20}, out;
+    struct intpair a = {1, 10}, b = {1, 0}, c = {2, 20}, out = {-1, -1};
     st_insert(&tree, a, NULL);
     st_insert(&tree, c, NULL);
     PT_ASSERT(st_find(&tree, b, &out));

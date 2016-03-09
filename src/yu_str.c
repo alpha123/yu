@@ -1,6 +1,7 @@
 #include "yu_common.h"
 
-static struct yu_str_dat *get_strlist_node(yu_str_ctx *ctx) {
+static
+struct yu_str_dat *get_strlist_node(yu_str_ctx *ctx) {
     YU_ERR_DEFVAR
     for (size_t i = 0; i < ctx->strdatpool_len; i++) {
         if (!ctx->strdatpool[i].is_used)
@@ -17,7 +18,8 @@ static struct yu_str_dat *get_strlist_node(yu_str_ctx *ctx) {
     YU_ERR_DEFAULT_HANDLER(NULL)
 }
 
-static yu_err find_grapheme_clusters(yu_str s) {
+static
+YU_ERR_RET find_grapheme_clusters(yu_str s) {
     YU_ERR_DEFVAR
     u64 buflen = yu_buf_len(s), cnt = 0, gcstart, *idxs;
     struct yu_str_dat *d = YU_STR_DAT(s);
@@ -96,7 +98,7 @@ void free_wrapper(void *mctx, void *ptr) {
 }
 
 // We now get ownership of utf8_nfc
-YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 *utf8_nfc, u64 byte_len, yu_str *out) {
+YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 * restrict utf8_nfc, u64 byte_len, yu_str * restrict out) {
     YU_ERR_DEFVAR
     struct yu_str_dat *sdat;
     *out = yu_buf_new(&ctx->bufctx, utf8_nfc, byte_len, true);
@@ -117,7 +119,7 @@ YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 *utf8_nfc, u64 byte_len, yu_st
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
 }
 
-YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 *utf8, u64 len, yu_str *out) {
+YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 * restrict utf8, u64 len, yu_str * restrict out) {
     YU_ERR_DEFVAR
     u8 *nfc;
     ssize_t nfc_sz;
@@ -143,7 +145,7 @@ YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 *utf8, u64 len, yu_str *out) {
     return yu_local_err;
 }
 
-YU_ERR_RET yu_str_new_c(yu_str_ctx *ctx, const char *cstr, yu_str *out) {
+YU_ERR_RET yu_str_new_c(yu_str_ctx *ctx, const char * restrict cstr, yu_str * restrict out) {
     return yu_str_new(ctx, (const u8 *)cstr, strlen(cstr), out);
 }
 

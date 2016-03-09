@@ -7,33 +7,15 @@
 #include "internal_alloc.h"
 #include "sys_alloc.h"
 
-// but more correct (to let the compiler know we're using the
-// address as an unsigned integer).
-// Also shift off the lower byte or two which will always be 0
-// since the addresses will be 8/16-byte aligned on x86(_64).
-// Both of these functions are basically just FNV-1a hashes.
-
 #define addrhash_1(x) ((uintptr_t)(x))
-
-static
-u64 addrhash_2(void *x) {
-    u64 h = UINT64_C(0xcbf29ce484222325),
-        n = (uintptr_t)x;
-    h ^= (n >> 48)       ; h *= UINT64_C(0x100000001b3);
-    h ^= (n >> 40) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (n >> 32) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (n >> 24) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (n >> 16) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^= (n >>  8) & 0xff; h *= UINT64_C(0x100000001b3);
-    h ^=  n        & 0xff; h *= UINT64_C(0x100000001b3);
-    return h;
-}
+#define addrhash_2(x) (~(uintptr_t)(x))
 #define addr_eq(x,y) ((x)==(y))
 
 YU_HASHTABLE_IMPL(sysmem_tbl, void *, size_t, addrhash_1, addrhash_2, addr_eq)
 
 #undef addr_eq
 #undef addrhash_1
+#undef addrhash_2
 
 yu_err sys_alloc_ctx_init(yu_memctx_t *ctx) {
     yu_default_alloc_ctx_init(ctx);

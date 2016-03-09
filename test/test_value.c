@@ -23,7 +23,8 @@
     X(ptr, "Boxed values should be heap-allocated and a pointer stored") \
     X(value_type, "Value type should be not depend on whether or not the value is boxed") \
     X(gray_bit, "Boxed values should maintain a gray bit") \
-    X(packed, "Metadata about a value (type, owner, gray, etc) should be stored compacted")
+    X(packed, "Metadata about a value (type, owner, gray, etc) should be stored compacted") \
+    X(hash, "Value hashes should be well-distributed")
 
 TEST(double)
     value_t x = value_from_double(42.101010);
@@ -90,6 +91,116 @@ TEST(packed)
     PT_ASSERT(!boxed_value_is_gray(v));
     PT_ASSERT_EQ(boxed_value_get_type(v), VALUE_REAL);
 END(packed)
+
+static
+int hash_cmp(const void *a, const void *b) {
+    const u64 *ua = (const u64 *)a;
+    const u64 *ub = (const u64 *)b;
+    return (*ua > *ub) - (*ua < *ub);
+}
+
+TEST(hash)
+    struct arena_handle *a = arena_new(&mctx);
+    yu_str_ctx sctx;
+    yu_str_ctx_init(&sctx, &mctx);
+    sfmt_t rng;
+    sfmt_init_gen_rand(&rng, 55123);
+
+#ifdef TEST_FAST
+    u64 valcnt = 80;
+#else
+    u64 valcnt = (u64)2e5;
+#endif
+
+    u64 *hashes1 = calloc(valcnt, sizeof(u64)),
+        *hashes2 = calloc(valcnt, sizeof(u64));
+
+    value_t v;
+    struct boxed_value *b = arena_alloc_val(a);
+
+    hashes1[0] = value_hash1(value_true());
+    hashes1[1] = value_hash1(value_false());
+    hashes2[0] = value_hash2(value_true());
+    hashes2[1] = value_hash2(value_false());
+
+    for (u64 i = 2; i < valcnt; i++) {
+        u32 n = sfmt_genrand_uint32(&rng);
+        switch (n % 7) {
+        case 0:
+            v = value_from_int(n);
+            break;
+        case 1:
+            v = value_from_double(*(double *)&n);
+            break;
+        case 2: {
+            mpz_t z;
+            mpz_init_set_ui(z, n);
+            mpz_mul_ui(z, z, sfmt_genrand_uint32(&rng));
+            boxed_value_set_type(b, VALUE_INT);
+            b->v.i = &z;
+            v = value_from_ptr(b);
+            break;
+        }
+        case 3: {
+            mpfr_t r;
+            mpfr_init_set_d(r, *(double *)&n, MPFR_RNDN);
+            u32 m = sfmt_genrand_uint32(&rng);
+            mpfr_mul_d(r, r, *(double *)&m, MPFR_RNDN);
+            boxed_value_set_type(b, VALUE_REAL);
+            b->v.r = r;
+            v = value_from_ptr(b);
+            break;
+        }
+        case 4: {
+            int cnt = 12 + n % 8 * 4;
+            u8 sdat[cnt];
+            for (int j = 0; j < cnt/4; j++) {
+                u32 m = sfmt_genrand_uint32(&rng);
+                sdat[j*4]   =  (m        & 0xff) % 94 + 32;
+                sdat[j*4+1] = ((m >>  8) & 0xff) % 94 + 32;
+                sdat[j*4+2] = ((m >> 16) & 0xff) % 94 + 32;
+                sdat[j*4+3] =  (m >> 24)         % 94 + 32;
+            }
+            yu_str s;
+            assert(yu_str_new(&sctx, sdat, cnt, &s) == YU_OK);
+            boxed_value_set_type(b, VALUE_STR);
+            b->v.s = s;
+            v = value_from_ptr(b);
+            break;
+        }
+        case 5:
+            v = value_from_int(0);
+            break;
+        case 6:
+            v = value_from_int(0);
+            break;
+        }
+        hashes1[i] = value_hash1(v);
+        hashes2[i] = value_hash2(v);
+        if (value_what(v) == VALUE_INT)
+            mpz_clear(*value_to_ptr(v)->v.i);
+        else if (value_what(v) == VALUE_REAL)
+            mpfr_clear(*value_to_ptr(v)->v.r);
+    }
+
+    qsort(hashes1, valcnt, sizeof(u64), hash_cmp);
+    qsort(hashes2, valcnt, sizeof(u64), hash_cmp);
+
+    u64 collisions = 0;
+
+    for (u64 i = 0; i < valcnt; i++) {
+        if (i > 0 && hashes1[i-1] == hashes1[i])
+            ++collisions;
+        if (i > 0 && hashes2[i-1] == hashes2[i])
+            ++collisions;
+    }
+
+    PT_ASSERT_LT(collisions, 1000);
+
+    free(hashes1);
+    free(hashes2);
+    yu_str_ctx_free(&sctx);
+END(hash)
 
 
 SUITE(value, LIST_VALUE_TESTS)

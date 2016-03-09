@@ -7,19 +7,18 @@
 
 #include "yu_common.h"
 
-// Descriptions are unnecessary and unused but required to avoid
-// ‘ISO C99 requires at least one argument to variadic macros’ warnings
-// (See yu_common.h /DEF_ENUM)
+// The 64-bit integers are a unique, random code
+// for this type. Primary use is hashing.
 #define LIST_VALUE_TYPES(X) \
-    X(VALUE_ERR, "error") \
-    X(VALUE_FIXNUM, "small number, stored unboxed") \
-    X(VALUE_BOOL, "boolean") \
-    X(VALUE_DOUBLE, "double") \
-    X(VALUE_INT, "GMP mpz_t bigint") \
-    X(VALUE_REAL, "MPFR mpfr_t arbitrary-precision real") \
-    X(VALUE_STR, "yu_str") \
-    X(VALUE_QUOT, "quotation, stored as bytecode") \
-    X(VALUE_TABLE, "hashtable")
+    X(VALUE_ERR,    UINT64_C(0x0000000000000000)) \
+    X(VALUE_FIXNUM, UINT64_C(0xcd0d00325d47f5d7)) \
+    X(VALUE_BOOL,   UINT64_C(0x5a0afbf6aea87b24)) \
+    X(VALUE_DOUBLE, UINT64_C(0xe24675a519385cf0)) \
+    X(VALUE_INT,    UINT64_C(0x78d21b919717779b)) \
+    X(VALUE_REAL,   UINT64_C(0x64865eed2081a8e4)) \
+    X(VALUE_STR,    UINT64_C(0x7fc8135de41ebbd0)) \
+    X(VALUE_QUOT,   UINT64_C(0x9f70ef325b9a5b12)) \
+    X(VALUE_TABLE,  UINT64_C(0x56927984b20a8d63))
 
 DEF_ENUM(value_type, LIST_VALUE_TYPES)
 
@@ -42,6 +41,9 @@ struct boxed_value {
         mpfr_t *r;
         yu_str s;
         value_table *tbl;
+	int fx;
+	double d;
+	bool b;
     } v;
     yu_str tag;
 
@@ -60,6 +62,9 @@ struct boxed_value {
 
 value_type value_what(value_t val);
 
+bool value_can_unbox_untagged(struct boxed_value *v);
+value_t value_unbox(struct boxed_value *v);
+
 YU_INLINE
 value_type boxed_value_get_type(struct boxed_value *val) {
     return val->bits & VALUE_TYPE_MASK;
@@ -77,7 +82,7 @@ bool boxed_value_is_gray(struct boxed_value *val) {
 }
 
 YU_INLINE
-bool boxed_value_set_gray(struct boxed_value *val, bool gray) {
+void boxed_value_set_gray(struct boxed_value *val, bool gray) {
     val->bits = (val->bits & ~VALUE_GRAY_MASK) | (-gray & VALUE_GRAY_MASK);
 }
 

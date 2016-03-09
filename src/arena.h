@@ -72,6 +72,7 @@ u32 arena_gray_count(struct arena_handle *a);
 
 struct boxed_value *arena_pop_gray(struct arena_handle *a);
 void arena_push_gray(struct arena_handle *a, struct boxed_value *v);
+void arena_mark(struct arena_handle *a, struct boxed_value *v);
 
 void arena_promote(struct arena_handle *a);
 void arena_empty(struct arena_handle *a);

@@ -12,7 +12,7 @@ struct yu_str_dat;
 
 typedef struct {
     yu_buf_ctx bufctx;
-    struct yu_str_dat *strdatpool;
+    struct yu_str_dat * restrict strdatpool;
     size_t strdatpool_len;
 } yu_str_ctx;
 
@@ -45,10 +45,10 @@ void yu_str_ctx_init(yu_str_ctx *ctx, yu_memctx_t *mctx);
 void yu_str_ctx_free(yu_str_ctx *ctx);
 
 // Creates a new string and takes ownership of the pointer (utf8_nfc) passed to it.
-YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 *utf8_nfc, u64 byte_len, yu_str *out);
+YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 * restrict utf8_nfc, u64 byte_len, yu_str * restrict out);
 // Like yu_str_adopt, but composes utf8 to NFC and copies it.
-YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 *utf8, u64 len, yu_str *out);
-YU_ERR_RET yu_str_new_c(yu_str_ctx *ctx, const char *cstr, yu_str *out);
+YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 * restrict utf8, u64 len, yu_str * restrict out);
+YU_ERR_RET yu_str_new_c(yu_str_ctx *ctx, const char * restrict cstr, yu_str * restrict out);
 
 YU_INLINE
 u64 yu_str_len(yu_str s) {

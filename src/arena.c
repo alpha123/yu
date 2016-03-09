@@ -88,15 +88,16 @@ struct boxed_value *arena_pop_gray(struct arena_handle *a) {
 
 void arena_push_gray(struct arena_handle *a, struct boxed_value *v) {
     struct arena *ar = a->self;
-    u32 idx_base = 0;
     while ((uintptr_t)v < (uintptr_t)ar->objs || (uintptr_t)v >= (uintptr_t)ar->objs + GC_ARENA_NUM_OBJECTS) {
         if ((a = a->next) == NULL)
             return;
         ar = a->self;
-        ++idx_base;
     }
     u32 idx = ((uintptr_t)v - (uintptr_t)ar->objs) / sizeof(struct boxed_value);
-    ar->graymap[idx_base] |= 1 << idx;
+    ar->graymap[idx / 64] |= 1 << (idx & 63);
+}
+
+void arena_mark(struct arena_handle *a, struct boxed_value *v) {
 }
 
 void arena_promote(struct arena_handle *a) {
