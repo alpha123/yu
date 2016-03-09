@@ -151,7 +151,6 @@ TEST(hash)
         case 2: {
             mpz_t z;
             mpz_init_set_ui(z, n);
-            mpz_mul_ui(z, z, sfmt_genrand_uint32(&rng));
             boxed_value_set_type(b, VALUE_INT);
             b->v.i = &z;
             v = value_from_ptr(b);
@@ -159,9 +158,7 @@ TEST(hash)
         }
         case 3: {
             mpfr_t r;
-            mpfr_init_set_d(r, *(double *)&n, MPFR_RNDN);
-            u32 m = sfmt_genrand_uint32(&rng);
-            mpfr_mul_d(r, r, *(double *)&m, MPFR_RNDN);
+            mpfr_init_set_d(r, sfmt_to_real1(n) * n, MPFR_RNDN);
             boxed_value_set_type(b, VALUE_REAL);
             b->v.r = r;
             v = value_from_ptr(b);
@@ -216,8 +213,8 @@ TEST(hash)
             ++collisions2;
     }
 
-    PT_ASSERT_LT(collisions1, valcnt/20);
-    PT_ASSERT_LT(collisions2, valcnt/20);
+    PT_ASSERT_LT(collisions1, valcnt/200);
+    PT_ASSERT_LT(collisions2, valcnt/200);
 
     free(hashes1);
     free(hashes2);

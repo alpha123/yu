@@ -38,13 +38,12 @@ u64 raw_value_hash1(value_t v) {
         // Hashing doubles is somewhat problematic in general.
         // Double ‘equality’ is abs(a-b) < delta, so doubles that are
         // ‘equal’ might not hash the same with a naive algorithm.
-        // Convert them to a string with 30 digits of precision and
-        // hash that instead.
+	// I attempted converting them to a string with 30 digits of
+	// precision and hashing that instead, but that resulted in
+	// quite a lot of collisions.
         // TODO this is less than ideal.
         double x = value_to_double(v);
-        char as_str[50];
-        int n = snprintf(as_str, 50, "%.30", x);
-        return yu_fnv1a((const u8 *)as_str, n);
+	return *(u64 *)&x;
     }
     case VALUE_STR:
 	return YU_BUF_DAT(value_to_ptr(v)->v.s)->hash[0];
@@ -84,7 +83,6 @@ static
 u64 raw_value_hash2(value_t v) {
     switch (value_what(v)) {
     case VALUE_FIXNUM: {
-        //return (value_to_int(v) * 0x7fffff55) ^ ((value_to_int(v) & 0xff) | (value_to_int(v) >> 8));
 	int x = ~value_to_int(v);
 	return yu_murmur2((const u8 *)&x, 4);
    }
@@ -92,9 +90,7 @@ u64 raw_value_hash2(value_t v) {
         return value_to_bool(v) ? UINT64_C(0xC0DE6EA55) : UINT64_C(0x5F3759DF);
     case VALUE_DOUBLE: {
         double x = value_to_double(v);
-        char as_str[50];
-        int n = snprintf(as_str, 50, "%.30", x);
-        return yu_murmur2((const u8 *)as_str, n);
+        return yu_murmur2((const u8 *)&x, sizeof(double));
     }
     case VALUE_STR:
 	return YU_BUF_DAT(value_to_ptr(v)->v.s)->hash[1];
