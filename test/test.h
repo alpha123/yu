@@ -31,31 +31,27 @@
 
 #if TEST_ALLOC == TEST_USE_BUMP_ALLOC
 
-#define TEST_GET_ALLOCATOR(ctx) ({ \
+#define TEST_GET_ALLOCATOR(ctx) do{ \
     yu_err _allocerr = bump_alloc_ctx_init((ctx), BUMP_ALLOC_SIZE); \
     assert(_allocerr == YU_OK); \
-    _allocerr; \
-})
+}while(0)
 
-#define TEST_GET_INTERNAL_ALLOCATOR(ctx) ({ \
+#define TEST_GET_INTERNAL_ALLOCATOR(ctx) do{ \
     yu_err _allocerr = bump_alloc_ctx_init((ctx), BUMP_ALLOC_SIZE); \
     assert(_allocerr == YU_OK); \
-    _allocerr; \
-})
+}while(0)
 
 #else
 
-#define TEST_GET_ALLOCATOR(ctx) ({ \
+#define TEST_GET_ALLOCATOR(ctx) do{ \
     yu_err _allocerr = sys_alloc_ctx_init((ctx)); \
     assert(_allocerr == YU_OK); \
-    _allocerr; \
-})
+}while(0)
 
-#define TEST_GET_INTERNAL_ALLOCATOR(ctx) ({ \
+#define TEST_GET_INTERNAL_ALLOCATOR(ctx) do{ \
     yu_err _allocerr = internal_alloc_ctx_init((ctx)); \
     assert(_allocerr == YU_OK); \
-    _allocerr; \
-})
+}while(0)
 
 #endif
 

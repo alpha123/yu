@@ -75,7 +75,7 @@ TEST(find)
             break;
         }
     }
-    PT_ASSERT_EQ(tree.root->dat.x, valcnt-1);
+    PT_ASSERT_EQ(tree.root->dat.x, (s32)(valcnt-1));
 END(find)
 
 TEST(find_set_root)

@@ -36,7 +36,7 @@ TEST(length)
     // नि is two codepoints but 1 grapheme, and like 8 bytes in utf-8
     yu_err err = yu_str_new_c(&ctx, "hiनिффनि", &s) ;
     assert(err == YU_OK);
-    PT_ASSERT_EQ(yu_str_len(s), 6);
+    PT_ASSERT_EQ(yu_str_len(s), 6u);
 END(length)
 
 

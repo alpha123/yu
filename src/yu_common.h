@@ -188,8 +188,11 @@ u32 yu_ceil_log2(u64 n);
 /* Define enums with printable string names using X-macros */
 #define DEF_ENUM_MEMBER(name, ...) name,
 #define DEF_ENUM_NAME_CASE(name, ...) case name: return #name;
+// Dummy value is to force a signed enum type and get GCC/Clang to
+// shut up about certain warnings.
+// TODO I feel like there's a better way.
 #define DEF_ENUM(typename, XX) \
-    typedef enum { XX(DEF_ENUM_MEMBER) } typename; \
+    typedef enum { _ ## typename ## dummy = -1, XX(DEF_ENUM_MEMBER) } typename; \
     inline const char *YU_NAME(typename, name)(typename x) { \
         switch (x) { \
         XX(DEF_ENUM_NAME_CASE) \

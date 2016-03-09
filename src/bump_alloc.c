@@ -52,7 +52,7 @@ yu_err bump_alloc(yu_memctx_t *ctx, void **out, size_t num, size_t elem_size, si
         return YU_ERR_ALLOC_FAIL;
 
     void *ptr;
-    if (alignment == 0 || (uintptr_t)bmp->block & (alignment - 1) == 0) {
+    if (alignment == 0 || ((uintptr_t)bmp->block & (alignment - 1)) == 0) {
         ptr = (u8 *)bmp->block + bmp->used + sizeof(size_t);
         goto ok;
     }

@@ -199,5 +199,7 @@ void boxed_value_mark(struct boxed_value *v) {
     case VALUE_TABLE:
         value_table_iter(v->v.tbl, mark_table, NULL);
         break;
+    default:
+	break;
     }
 }

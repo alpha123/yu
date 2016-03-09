@@ -1,18 +1,9 @@
-#if 0
 
 #include "gc.h"
 
-YU_INLINE
-int gc_root_list_ptr_cmp(struct boxed_value *a, struct boxed_value *b) {
-    u64 ua = (u64)a, ub = (u64)b;
-    if (ua > ub)
-        return -1;
-    else if (ua < ub)
-        return 1;
-    return 0;
-}
-
 YU_SPLAYTREE_IMPL(root_list, struct boxed_value *, gc_root_list_ptr_cmp, true)
+
+#if 0
 
 YU_ERR_RET gc_init(struct gc_info *gc) {
     YU_ERR_DEFVAR

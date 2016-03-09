@@ -160,7 +160,7 @@ TEST(hash)
             mpfr_t r;
             mpfr_init_set_d(r, sfmt_to_real1(n) * n, MPFR_RNDN);
             boxed_value_set_type(b, VALUE_REAL);
-            b->v.r = r;
+            b->v.r = &r;
             v = value_from_ptr(b);
             break;
         }

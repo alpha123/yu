@@ -23,13 +23,13 @@
 
 TEST(alloc)
     size_t align = 1 << yu_ceil_log2(sizeof(struct arena));
-    PT_ASSERT_EQ((uintptr_t)a->self & (align-1), 0);
+    PT_ASSERT_EQ((uintptr_t)a->self & (align-1), 0u);
 END(alloc)
 
 TEST(alloc_val)
     struct boxed_value *v;
     struct arena *old_a = a->self;
-    PT_ASSERT_EQ(arena_allocated_count(a), 0);
+    PT_ASSERT_EQ(arena_allocated_count(a), 0u);
 
 #ifdef TEST_FAST
     u32 valcnt = 1000;
@@ -60,15 +60,15 @@ TEST(gray_queue)
                        *x = arena_alloc_val(a), *y = arena_alloc_val(a),
                        *z = arena_alloc_val(a);
 
-    PT_ASSERT_EQ(arena_gray_count(a), 0);
+    PT_ASSERT_EQ(arena_gray_count(a), 0u);
     PT_ASSERT_EQ(arena_pop_gray(a), NULL);
     arena_push_gray(a, v);
     arena_push_gray(a, w);
     arena_push_gray(a, x);
-    PT_ASSERT_EQ(arena_gray_count(a), 3);
+    PT_ASSERT_EQ(arena_gray_count(a), 3u);
     PT_ASSERT_EQ(arena_pop_gray(a), v);
     PT_ASSERT_EQ(arena_pop_gray(a), w);
-    PT_ASSERT_EQ(arena_gray_count(a), 1);
+    PT_ASSERT_EQ(arena_gray_count(a), 1u);
     arena_push_gray(a, y);
     arena_push_gray(a, z);
     PT_ASSERT_EQ(arena_pop_gray(a), x);
