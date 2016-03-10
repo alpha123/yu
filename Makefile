@@ -38,13 +38,13 @@ else
 endif
 
 ifeq ($(DEBUG),yes)
-	CFLAGS += -gdwarf-4 -g3 -Og -DDEBUG -Wall -Wextra -pedantic
-	# GCC doesn't seem to build with ASAN on my machine
-	ifneq ($(findstring clang,$(CC)),)
-		CFLAGS += $(ASAN_FLAGS)
-	endif
+    CFLAGS += -gdwarf-4 -g3 -Og -DDEBUG -Wall -Wextra -pedantic
+    # GCC doesn't seem to build with ASAN on my machine
+    ifneq ($(findstring clang,$(CC)),)
+	CFLAGS += $(ASAN_FLAGS)
+    endif
 else
-	CFLAGS += -DNDEBUG -Ofast -ftree-vectorize
+    CFLAGS += -DNDEBUG -Ofast -ftree-vectorize
 endif
 
 COMMON_SRCS := $(wildcard src/*.c)
@@ -64,16 +64,22 @@ test/%.o: test/%.c
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
-test_driver: $(TEST_OBJS) $(COMMON_OBJS) deps
+# See the comments for `clean`, but basically if --check (--check-symlink-times)
+# is passed, $MAKEFLAGS will contain "L".
+ifneq ($(findstring L,$(MAKEFLAGS)),)
+    CFLAGS += -DTEST_FAST
+endif
+
+test-bin: $(TEST_OBJS) $(COMMON_OBJS) deps  ## Build the test binary — run as \\033[037m$MAKECMD test-bin --check\\033[0m to build a quick check suite
 	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) $(COMMON_OBJS) -o $(TEST_OUT) $(LIBS)
 
-test: test_driver  ## Build and run the test suite
+test: test-bin  ## Build and run the test suite
 	./$(TEST_OUT)
 
 tags:  ## Create a ctags file for the source tree
 	$(CTAGS) -R src
 
-clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\033[0m to keep dependencies
+clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\033[0m to keep bundled dependencies
 # This is kind of cute, but something of a hack:
 # Don't clean bundled dependencies if clean is invoked with --keep.
 # GNU Make treats this as --keep-going (which is harmless), and puts
@@ -111,14 +117,14 @@ deps: libsfmt libutf8proc  ## Build static libraries of bundled dependencies
 # Hopefully, you shouldn't have to fiddle with this.                 #
 ######################################################################
 
-.PHONY: copy_templates build_debug_test debug_templates
+.PHONY: copy-templates debug-test-bin debug-test
 
 # Assign with = instead of := because there won't be any files in src/preprocessed/
 # until copy_templates runs.
 TMPL_SRCS = $(wildcard src/preprocessed/*.c)
 TMPL_OBJS = $(TMPL_SRCS:.c=.o)
 
-copy_templates:
+copy-templates:
 	cp $(filter-out test/ptest.c,$(TEST_SRCS)) src/preprocessed
 	$(M4) $(M4FLAGS) include/build_debug_templates.h.m4 > include/build_debug_templates.h
 
@@ -133,10 +139,10 @@ src/preprocessed/%.o: src/preprocessed/%.i
 
 $(TMPL_OBJS): $(TMPL_SRCS:.c=.i)
 
-build_debug_test: copy_templates deps $(TMPL_OBJS) test/ptest.o $(COMMON_OBJS)
+debug-test-bin: copy-templates deps $(TMPL_OBJS) test/ptest.o $(COMMON_OBJS)  ## Build a special test binary for debugging certain internal Yu structures
 	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) $(COMMON_OBJS) -o src/preprocessed/test $(LIBS)
 
-debug_templates: build_debug_test  ## Build a special preprocessed test executable for debugging large macro expansions
+debug-test: debug-test-bin  ## Build and start debugging the test suite
 	$(DB) $(DBFLAGS) src/preprocessed/test
 
 
@@ -150,7 +156,7 @@ debug_templates: build_debug_test  ## Build a special preprocessed test executab
 
 .PHONY: help targets
 
-targets:  ## Print a list of available targets with short descriptions.
+targets:  ## Print a list of available targets with short descriptions
 # Only include alphanumeric targets, i.e. exclude stuff like %.o
 # Double xargs sh -c: the first one handles escape characters (e.g. colors).
 # The second is an extra level of indirection to handle setting variables
