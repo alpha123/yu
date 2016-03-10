@@ -65,7 +65,8 @@ void YU_NAME(qh, setelem)(qh *heap, u64 i, data_t val) { \
 } \
 \
 u64 YU_NAME(qh, partition)(data_t *elems, u64 lo, u64 hi) { \
-    data_t pivot = elems[hi], swap; \
+    data_t pivot = elems[hi]; \
+    data_t swap; \
     u64 i = lo; \
     for (u64 j = lo; j < hi; j++) { \
 	if ((is_maxheap ? cmp(pivot, elems[j]) : cmp(elems[j], pivot)) <= 0) { \
