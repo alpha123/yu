@@ -86,21 +86,50 @@ struct boxed_value *arena_pop_gray(struct arena_handle *a) {
     return arena_pop_gray(a->next);
 }
 
-void arena_push_gray(struct arena_handle *a, struct boxed_value *v) {
+static
+u64 get_value_arena_idx(struct arena_handle *a, struct boxed_value *v, struct arena **ar_out) {
     struct arena *ar = a->self;
-    while ((uintptr_t)v < (uintptr_t)ar->objs || (uintptr_t)v >= (uintptr_t)ar->objs + GC_ARENA_NUM_OBJECTS) {
-        if ((a = a->next) == NULL)
-            return;
+    while ((uintptr_t)v < (uintptr_t)ar->objs ||
+            (uintptr_t)v >= (uintptr_t)ar->objs + GC_ARENA_NUM_OBJECTS * sizeof(struct boxed_value)) {
+        if ((a = a->next) == NULL) {
+            *ar_out = NULL;
+            return 0;
+        }
         ar = a->self;
     }
-    u32 idx = ((uintptr_t)v - (uintptr_t)ar->objs) / sizeof(struct boxed_value);
-    ar->graymap[idx / 64] |= 1 << (idx & 63);
+    *ar_out = ar;
+    return ((uintptr_t)v - (uintptr_t)ar->objs) / sizeof(struct boxed_value);
+}
+
+void arena_push_gray(struct arena_handle *a, struct boxed_value *v) {
+    struct arena *ar;
+    u64 idx = get_value_arena_idx(a, v, &ar);
+    assert(ar != NULL);
+    ar->graymap[idx / 64] |= UINT64_C(1) << (idx & 63);
 }
 
 void arena_mark(struct arena_handle *a, struct boxed_value *v) {
+    struct arena *ar;
+    u64 idx = get_value_arena_idx(a, v, &ar);
+    assert(ar != NULL);
+    ar->markmap[idx / 64] |= UINT64_C(1) << (idx & 63);
 }
 
 void arena_promote(struct arena_handle *a) {
+    assert(a->next_gen != NULL);
+    struct arena_handle *to = a->next_gen;
+    struct arena *ar;
+    struct boxed_value *dest;
+    while (a) {
+        ar = a->self;
+        for (u64 i = 0; i < GC_ARENA_NUM_OBJECTS; i++) {
+            if (ar->markmap[i / 64] & (UINT64_C(1) << (i & 63))) {
+                dest = arena_alloc_val(to);
+                memcpy(dest, ar->objs + i, sizeof(struct boxed_value));
+            }
+        }
+        a = a->next;
+    }
 }
 
 void arena_empty(struct arena_handle *a) {

@@ -3,7 +3,7 @@ DEBUG ?= yes
 INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -I.
 LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
 LIBS := -lmpfr -lgmp -lm -l:libsfmt.a -l:libutf8proc.a
-ASAN_FLAGS := -fsanitize=address -O1 -fno-omit-frame-pointer
+ASAN_FLAGS := -fsanitize=address -O1 -fno-optimize-sibling-calls -fno-omit-frame-pointer
 
 SFMT_MEXP ?= 19937
 
@@ -38,13 +38,13 @@ else
 endif
 
 ifeq ($(DEBUG),yes)
-	CFLAGS += -gdwarf-4 -g3 -DDEBUG -Wall -Wextra -pedantic
+	CFLAGS += -gdwarf-4 -g3 -Og -DDEBUG -Wall -Wextra -pedantic
 	# GCC doesn't seem to build with ASAN on my machine
 	ifneq ($(findstring clang,$(CC)),)
 		CFLAGS += $(ASAN_FLAGS)
 	endif
 else
-	CFLAGS += -DNDEBUG -O3
+	CFLAGS += -DNDEBUG -Ofast -ftree-vectorize
 endif
 
 COMMON_SRCS := $(wildcard src/*.c)
