@@ -51,25 +51,11 @@ YU_QUICKHEAP(arena_heap, struct arena_handle *, gc_arena_gray_cmp, YU_QUICKHEAP_
 #undef gc_arena_gray_cmp
 
 struct gc_info {
-// Determine size-optimal layout based on how big the `arenas` array
-// is going to be. With 8-byte pointers, a quickheap is 56 bytes and
-// a splaytree is 32, so at 5 generations the array will be between
-// the two and at 9 generations it will be bigger than both.
-#if GC_NUM_GENERATIONS > 8
-    struct arena_handle *arenas[GC_NUM_GENERATIONS];
     arena_heap a_gray; // Priority queue of arenas for looking at the next gray object.
                        // Won't necessarily be 100% accurate in terms of counts, but it
                        // should be good enough.
     root_list roots;
-#elif GC_NUM_GENERATIONS > 4
-    arena_heap a_gray;
     struct arena_handle *arenas[GC_NUM_GENERATIONS];
-    root_list roots;
-#else
-    arena_heap a_gray;
-    root_list roots;
-    struct arena_handle *arenas[GC_NUM_GENERATIONS];
-#endif
 
     yu_memctx_t *mem_ctx;
     struct arena_handle *active_gray;
