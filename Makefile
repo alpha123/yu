@@ -71,7 +71,7 @@ ifneq ($(findstring L,$(MAKEFLAGS)),)
 endif
 
 test-bin: $(TEST_OBJS) $(COMMON_OBJS) deps  ## Build the test binary — run as \\033[037m$MAKECMD test-bin --check\\033[0m to build a quick check suite
-	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) $(COMMON_OBJS) -o $(TEST_OUT) $(LIBS)
+	$(CC) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) $(COMMON_OBJS) -o $(TEST_OUT) $(LIBS)
 
 test: test-bin  ## Build and run the test suite
 	./$(TEST_OUT)
@@ -85,7 +85,7 @@ clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\03
 # GNU Make treats this as --keep-going (which is harmless), and puts
 # "k" in $MAKEFLAGS.
 # Use bash instead of sh for the [[ ]] syntax for testing $MAKEFLAGS.
-	rm -f tags src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
+	rm -f tags build.ninja src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
 	@echo 'if [[ "$(MAKEFLAGS)" != *k* ]]; \
 	then \
 	  echo 'rm -f SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a'; \
@@ -140,10 +140,25 @@ src/preprocessed/%.o: src/preprocessed/%.i
 $(TMPL_OBJS): $(TMPL_SRCS:.c=.i)
 
 debug-test-bin: copy-templates deps $(TMPL_OBJS) test/ptest.o $(COMMON_OBJS)  ## Build a special test binary for debugging certain internal Yu structures
-	$(CC) $(LDFLAGS) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) $(COMMON_OBJS) -o src/preprocessed/test $(LIBS)
+	$(CC) $(LIB_DIRS) -Wl,-Ttest/test.ld test/ptest.o $(TMPL_OBJS) $(COMMON_OBJS) -o src/preprocessed/test $(LIBS)
 
 debug-test: debug-test-bin  ## Build and start debugging the test suite
 	$(DB) $(DBFLAGS) src/preprocessed/test
+
+
+######################################################################
+# Create a Ninja file for building the test suite with Ninja. This   #
+# is pretty experimental and build times are pretty fast anyway, but #
+# it makes for interesting tinkering. ;-)                            #
+######################################################################
+
+.PHONY: ninja
+
+ninja:  ## Create a build file for the Ninja build system
+	$(M4) $(M4FLAGS) -DCC="$(CC)" -DCFLAGS="$(CFLAGS)" \
+	    -DINCLUDE_DIRS="$(INCLUDE_DIRS)" -DLIB_DIRS="$(LIB_DIRS)" \
+	    -DLIBS="$(LIBS)" \
+	    m4/ninja.m4 > build.ninja
 
 
 ######################################################################

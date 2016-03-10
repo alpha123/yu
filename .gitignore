@@ -1,13 +1,16 @@
 *.o
 *.a
+*.d
+*.i
 a.out
 *.core
 _*
 err
 *.tar.gz
-*.i
 tags
 test/test
 src/preprocessed/*
 SFMT/test-*
 include/build_debug_templates.h
+build.ninja
+.ninja*
