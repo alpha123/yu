@@ -27,6 +27,8 @@ struct arena_handle *arena_new(yu_memctx_t *mctx) {
 }
 
 void arena_free(struct arena_handle *a) {
+    if (a->next)
+        arena_free(a->next);
     yu_memctx_t *mctx = a->mem_ctx;
     yu_free(mctx, a->self);
     yu_free(mctx, a);
