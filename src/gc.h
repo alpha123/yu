@@ -69,3 +69,8 @@ void gc_collect(struct gc_info *gc);
 
 void gc_root(struct gc_info *gc, struct boxed_value *v);
 void gc_unroot(struct gc_info *gc, struct boxed_value *v);
+
+void gc_set_gray(struct gc_info *gc, struct boxed_value *v);
+
+struct boxed_value *gc_next_gray(struct gc_info *gc);
+void gc_scan_step(struct gc_info *gc);

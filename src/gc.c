@@ -35,12 +35,14 @@ YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx) {
         gc->arenas[i]->next_gen = i < GC_NUM_GENERATIONS - 1 ? gc->arenas[i] : NULL;
 
     gc->alloc_pressure_score = 0;
+    gc->active_gray = NULL;
 
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
 }
 
 void gc_free(struct gc_info *gc) {
     root_list_free(&gc->roots);
+    arena_heap_free(&gc->a_gray);
     for (u8 i = 0; i < GC_NUM_GENERATIONS; i++)
         arena_free(gc->arenas[i]);
 }
@@ -51,4 +53,31 @@ void gc_root(struct gc_info *gc, struct boxed_value *v) {
 
 void gc_unroot(struct gc_info *gc, struct boxed_value *v) {
     root_list_remove(&gc->roots, v, NULL);
+}
+
+void gc_set_gray(struct gc_info *gc, struct boxed_value *v) {
+    struct arena_handle *a = boxed_value_owner(v);
+    arena_push_gray(a, v);
+    if (arena_gray_count(a) == 1)
+        arena_heap_push(&gc->a_gray, a);
+}
+
+struct boxed_value *gc_next_gray(struct gc_info *gc) {
+    struct boxed_value *v;
+    if (gc->active_gray)
+        goto pop_gray;
+
+    struct arena_handle *a = arena_heap_pop(&gc->a_gray, NULL);
+    if (a == NULL)
+        return NULL;
+    gc->active_gray = a;
+
+    pop_gray:
+    v = arena_pop_gray(gc->active_gray);
+    if (arena_gray_count(gc->active_gray) == 0)
+        gc->active_gray = NULL;
+    return v;
+}
+
+void gc_scan_step(struct gc_info *gc) {
 }
