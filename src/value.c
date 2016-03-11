@@ -184,26 +184,3 @@ value_t value_unbox(struct boxed_value *v) {
         return value_undefined();
     }
 }
-
-static
-u32 mark_table(value_t key, value_t val, void * YU_UNUSED(data)) {
-    if (value_is_ptr(key)) {
-        struct boxed_value *k = value_to_ptr(key);
-        arena_mark(boxed_value_owner(k), k);
-    }
-    if (value_is_ptr(val)) {
-        struct boxed_value *v = value_to_ptr(val);
-        arena_mark(boxed_value_owner(v), v);
-    }
-    return 0;
-}
-
-void boxed_value_mark(struct boxed_value *v) {
-    switch (boxed_value_get_type(v)) {
-    case VALUE_TABLE:
-        value_table_iter(v->v.tbl, mark_table, NULL);
-        break;
-    default:
-	break;
-    }
-}

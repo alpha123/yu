@@ -51,14 +51,23 @@ YU_QUICKHEAP(arena_heap, struct arena_handle *, gc_arena_gray_cmp, YU_QUICKHEAP_
 #undef gc_arena_gray_cmp
 
 struct gc_info {
-    arena_heap a_gray; // Priority queue of arenas for looking at the next gray object.
-                       // Won't necessarily be 100% accurate in terms of counts, but it
-                       // should be good enough.
+    // Priority queue of arenas for looking at the next gray object.
+   // Won't necessarily be 100% accurate in terms of counts, but it
+   // should be good enough.
+    arena_heap a_gray;
+
+    // A splay tree happens to be a good data structure for storing
+    // roots. We don't want duplicates and roots are frequently
+    // removed in LIFO order (as the stack is the primary provider
+    // of root values). With a splay tree, removing roots will be
+    // amortized constant time, which is better than using a skiplist
+    // since we don't care about in-order iteration.
     root_list roots;
+
     struct arena_handle *arenas[GC_NUM_GENERATIONS];
 
     yu_memctx_t *mem_ctx;
-    struct arena_handle *active_gray;
+    struct arena_handle *active_gray; // Popped off the gray priority heap
     u32 alloc_pressure_score;
 };
 
@@ -71,6 +80,9 @@ void gc_root(struct gc_info *gc, struct boxed_value *v);
 void gc_unroot(struct gc_info *gc, struct boxed_value *v);
 
 void gc_set_gray(struct gc_info *gc, struct boxed_value *v);
+void gc_mark(struct gc_info *gc, struct boxed_value *v);
 
 struct boxed_value *gc_next_gray(struct gc_info *gc);
 void gc_scan_step(struct gc_info *gc);
+
+void gc_sweep(struct gc_info *gc);

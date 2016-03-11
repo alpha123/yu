@@ -49,6 +49,7 @@ void gc_free(struct gc_info *gc) {
 
 void gc_root(struct gc_info *gc, struct boxed_value *v) {
     root_list_insert(&gc->roots, v, NULL);
+    gc_mark(gc, v);
 }
 
 void gc_unroot(struct gc_info *gc, struct boxed_value *v) {
@@ -57,27 +58,74 @@ void gc_unroot(struct gc_info *gc, struct boxed_value *v) {
 
 void gc_set_gray(struct gc_info *gc, struct boxed_value *v) {
     struct arena_handle *a = boxed_value_owner(v);
+    boxed_value_set_gray(v, true);
     arena_push_gray(a, v);
     if (arena_gray_count(a) == 1)
         arena_heap_push(&gc->a_gray, a);
 }
 
+static
+void queue_mark(struct gc_info *gc, struct boxed_value *v) {
+    arena_mark(boxed_value_owner(v), v);
+    gc_set_gray(gc, v);
+}
+
+static
+u32 mark_table(value_t key, value_t val, void *data) {
+    if (value_is_ptr(key))
+        queue_mark((struct gc_info *)data, value_to_ptr(key));
+    if (value_is_ptr(val))
+        queue_mark((struct gc_info *)data, value_to_ptr(val));
+    return 0;
+}
+
+void gc_mark(struct gc_info *gc, struct boxed_value *v) {
+    switch (boxed_value_get_type(v)) {
+    case VALUE_TABLE:
+        value_table_iter(v->v.tbl, mark_table, gc);
+        break;
+    default:
+	break;
+    }
+}
+
 struct boxed_value *gc_next_gray(struct gc_info *gc) {
-    struct boxed_value *v;
-    if (gc->active_gray)
-        goto pop_gray;
+    if (gc->active_gray == NULL) {
+        if ((gc->active_gray = arena_heap_pop(&gc->a_gray, NULL)) == NULL)
+            return NULL;
+    }
 
-    struct arena_handle *a = arena_heap_pop(&gc->a_gray, NULL);
-    if (a == NULL)
-        return NULL;
-    gc->active_gray = a;
-
-    pop_gray:
-    v = arena_pop_gray(gc->active_gray);
+    struct boxed_value *v = arena_pop_gray(gc->active_gray);
     if (arena_gray_count(gc->active_gray) == 0)
         gc->active_gray = NULL;
     return v;
 }
 
+// Rescan the root set (mostly the Yu stack) before the final sweep
+// to avoid a write barrier on stack pushes/pops.
+static
+void rescan_roots(struct gc_info *gc) {
+    struct root_list_nodelist *n = gc->roots.nodes;
+    while (n) {
+        gc_mark(gc, n->n->dat);
+        n = n->next;
+    }
+}
+
 void gc_scan_step(struct gc_info *gc) {
+    struct boxed_value *v = gc_next_gray(gc);
+    if (v)
+        gc_mark(gc, v);
+    else {
+        rescan_roots(gc);
+        gc_sweep(gc);
+    }
+}
+
+void gc_sweep(struct gc_info *gc) {
+    for (u8 i = 0; i < GC_NUM_GENERATIONS-1; i++) {
+        arena_promote(gc->arenas[i]);
+        arena_empty(gc->arenas[i]);
+    }
+    gc->arenas[GC_NUM_GENERATIONS-1] = arena_compact(gc->arenas[GC_NUM_GENERATIONS-1]);
 }

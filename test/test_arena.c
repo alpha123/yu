@@ -21,7 +21,8 @@
     X(alloc_val, "Arenas should provide objects, expanding themselves if necessary") \
     X(gray_queue, "Arenas should maintain a queue of gray objects") \
     X(empty, "Emptying an arena should reset its object pool") \
-    X(promote, "Promoting an arena should copy alive objects to its next generation")
+    X(promote, "Promoting an arena should copy alive objects to its next generation") \
+    X(compact, "Compacting an arena should fill holes left by unmarked objects")
 
 TEST(alloc)
     size_t align = 1 << yu_ceil_log2(sizeof(struct arena));
@@ -145,6 +146,44 @@ TEST(promote)
     PT_ASSERT(types_ok);
     PT_ASSERT(values_ok);
 END(promote)
+
+TEST(compact)
+#ifdef TEST_FAST
+    int valcnt = 4000;
+#else
+    int valcnt = (int)1e5;
+#endif
+
+    for (int i = 0; i < valcnt; i++) {
+        struct boxed_value *v = arena_alloc_val(a);
+        boxed_value_set_type(v, VALUE_FIXNUM);
+        v->v.fx = i;
+        if (i & 1) arena_mark(a, v);
+    }
+    a = arena_compact(a);
+    PT_ASSERT_EQ(arena_allocated_count(a), (u32)valcnt/2);
+
+    bool contiguous = true;
+    struct arena_handle *ah = a;
+    while (ah) {
+        for (u32 i = 0; i < elemcount(ah->self->markmap); i++) {
+            u64 marked = ah->self->markmap[i];
+            if (marked != (u64)-1) {
+                u64 s = (u64)-1 << __builtin_ctzll(marked);
+                if (marked != s &&
+                        (marked != 0 &&
+                         (i == elemcount(ah->self->markmap) - 1 ||
+                          ah->self->markmap[i+1] == 0))) {
+                    contiguous = false;
+                    goto dengo;
+                }
+            }
+        }
+        ah = ah->next;
+    }
+    dengo:
+    PT_ASSERT(contiguous);
+END(compact)
 
 
 SUITE(arena, LIST_ARENA_TESTS)

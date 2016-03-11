@@ -80,4 +80,3 @@ void boxed_value_set_gray(struct boxed_value *val, bool gray) {
 }
 
 struct arena_handle *boxed_value_owner(struct boxed_value *val);
-void boxed_value_mark(struct boxed_value *v);

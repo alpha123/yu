@@ -78,3 +78,5 @@ void arena_mark(struct arena_handle *a, struct boxed_value *v);
 
 void arena_promote(struct arena_handle *a);
 void arena_empty(struct arena_handle *a);
+
+struct arena_handle *arena_compact(struct arena_handle *a);
