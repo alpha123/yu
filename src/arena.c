@@ -14,7 +14,7 @@ struct arena_handle *arena_new(yu_memctx_t *mctx) {
     YU_CHECK(yu_alloc(mctx, (void **)&ah, 1, sizeof(struct arena_handle), 0));
 
     a->next = a->objs;
-
+    a->meta = ah;
     ah->self = a;
     ah->mem_ctx = mctx;
     
@@ -39,14 +39,15 @@ struct boxed_value *arena_alloc_val(struct arena_handle *a) {
     if (YU_UNLIKELY(ar->next == ar->objs + GC_ARENA_NUM_OBJECTS)) {
         struct arena_handle *next = arena_new(a->mem_ctx);
         a->self = next->self;
+        next->self->meta = a;
         next->self = ar;
+        ar->meta = next;
         next->next_gen = a->next_gen;
         next->next = a->next;
         a->next = next;
         ar = a->self;
     }
     struct boxed_value *val = ar->next++;
-    boxed_value_set_owner(val, a);
     return val;
 }
 

@@ -22,7 +22,6 @@
     X(ptr, "Boxed values should be heap-allocated and a pointer stored") \
     X(value_type, "Value type should be not depend on whether or not the value is boxed") \
     X(gray_bit, "Boxed values should maintain a gray bit") \
-    X(packed, "Metadata about a value (type, owner, gray, etc) should be stored compacted") \
     X(hash, "Value hashes should be well-distributed") \
     X(equal, "Only equal values should be equal")
 
@@ -73,24 +72,6 @@ TEST(gray_bit)
     boxed_value_set_gray(v, true);
     PT_ASSERT(boxed_value_is_gray(v));
 END(gray_bit)
-
-TEST(packed)
-    struct arena_handle *a = arena_new(&mctx), *b = arena_new(&mctx);
-    struct boxed_value *v = arena_alloc_val(a);
-    boxed_value_set_gray(v, true);
-    boxed_value_set_type(v, VALUE_TABLE);
-    PT_ASSERT_EQ(boxed_value_owner(v), a);
-    boxed_value_set_owner(v, b);
-    PT_ASSERT(boxed_value_is_gray(v));
-    PT_ASSERT_EQ(boxed_value_owner(v), b);
-    boxed_value_set_gray(v, false);
-    PT_ASSERT_EQ(boxed_value_owner(v), b);
-    PT_ASSERT(!boxed_value_is_gray(v));
-    boxed_value_set_type(v, VALUE_REAL);
-    PT_ASSERT_EQ(boxed_value_owner(v), b);
-    PT_ASSERT(!boxed_value_is_gray(v));
-    PT_ASSERT_EQ(boxed_value_get_type(v), VALUE_REAL);
-END(packed)
 
 static
 int hash_cmp(const void *a, const void *b) {

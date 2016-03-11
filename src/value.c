@@ -20,6 +20,10 @@ value_type value_what(value_t val) {
     return VALUE_ERR;
 }
 
+struct arena_handle *boxed_value_owner(struct boxed_value *val) {
+    return ((struct arena *)((uintptr_t)val & ~((1 << yu_ceil_log2(sizeof(struct arena))) - 1)))->meta;
+}
+
 #define BUILD_TYPE_TABLE(enumval, randint) \
     [enumval] = randint,
 static const u64 type_hashes[] = {

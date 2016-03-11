@@ -19,6 +19,8 @@
  *    +---------------------------------------------------+
  *    | gray queue (256 bytes)  | mark bitmap (256 bytes) |
  *    +---------------------------------------------------+
+ *    |     pointer to this arena's metadata (8 bytes)    |
+ *    +---------------------------------------------------+
  *    |    pointer to next object to allocate (8 bytes)   |
  *    +---------------------------------------------------+
  *    |                   object space                    |
@@ -57,6 +59,7 @@ struct arena {
 
     u64 markmap[GC_BITMAP_SIZE/sizeof(u64)];
 
+    struct arena_handle *meta;
     struct boxed_value *next;
     struct boxed_value objs[GC_ARENA_NUM_OBJECTS];
 };

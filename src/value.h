@@ -47,18 +47,11 @@ struct boxed_value {
     } v;
     yu_str tag;
 
-    /* Compact the following:
-        bool gray;
-        value_type what;
-        struct arena_handle *owner;
-       into a 64-bit int, since pointers even on amd64 are only 48-bits
-    */
-    u64 bits;
+    struct {
+        value_type what : 7;
+        bool gray : 1;
+    } bits;
 };
-
-#define VALUE_PTR_MASK  UINT64_C(0xffffffffffffff00)
-#define VALUE_TYPE_MASK UINT64_C(0x000000000000007f)
-#define VALUE_GRAY_MASK UINT64_C(0x0000000000000080)
 
 value_type value_what(value_t val);
 
@@ -67,33 +60,24 @@ value_t value_unbox(struct boxed_value *v);
 
 YU_INLINE
 value_type boxed_value_get_type(struct boxed_value *val) {
-    return val->bits & VALUE_TYPE_MASK;
+    return val->bits.what;
 }
 
 YU_INLINE
 void boxed_value_set_type(struct boxed_value *val, value_type type) {
     assert((u8)type < 128);
-    val->bits = (val->bits & ~VALUE_TYPE_MASK) | (u8)type;
+    val->bits.what = type;
 }
 
 YU_INLINE
 bool boxed_value_is_gray(struct boxed_value *val) {
-    return val->bits & VALUE_GRAY_MASK;
+    return val->bits.gray;
 }
 
 YU_INLINE
 void boxed_value_set_gray(struct boxed_value *val, bool gray) {
-    val->bits = (val->bits & ~VALUE_GRAY_MASK) | (-gray & VALUE_GRAY_MASK);
+    val->bits.gray = gray;
 }
 
-YU_INLINE
-struct arena_handle *boxed_value_owner(struct boxed_value *val) {
-    return (struct arena_handle *)((val->bits & VALUE_PTR_MASK) >> 16);
-}
-
-YU_INLINE
-void boxed_value_set_owner(struct boxed_value *val, struct arena_handle *owner) {
-    val->bits = (val->bits & ~VALUE_PTR_MASK) | ((uintptr_t)owner << 16);
-}
-
+struct arena_handle *boxed_value_owner(struct boxed_value *val);
 void boxed_value_mark(struct boxed_value *v);
