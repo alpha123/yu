@@ -32,7 +32,7 @@ YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx) {
     for (u8 i = 0; i < GC_NUM_GENERATIONS; i++)
         YU_CHECK_ALLOC(gc->arenas[i] = arena_new(mctx));
     for (u8 i = 0; i < GC_NUM_GENERATIONS; i++)
-        gc->arenas[i]->next_gen = i < GC_NUM_GENERATIONS - 1 ? gc->arenas[i] : NULL;
+        gc->arenas[i]->next_gen = i < GC_NUM_GENERATIONS-1 ? gc->arenas[i+1] : NULL;
 
     gc->alloc_pressure_score = 0;
     gc->active_gray = NULL;
@@ -47,13 +47,27 @@ void gc_free(struct gc_info *gc) {
         arena_free(gc->arenas[i]);
 }
 
+struct boxed_value *gc_alloc_val(struct gc_info *gc, value_type type) {
+    struct boxed_value *v = arena_alloc_val(gc->arenas[0]);
+    boxed_value_set_type(v, type);
+    boxed_value_set_gray(v, type == VALUE_TABLE);
+    return v;
+}
+
 void gc_root(struct gc_info *gc, struct boxed_value *v) {
-    root_list_insert(&gc->roots, v, NULL);
+    bool already_rooted = root_list_insert(&gc->roots, v, NULL);
+    assert(!already_rooted);
     gc_mark(gc, v);
 }
 
 void gc_unroot(struct gc_info *gc, struct boxed_value *v) {
-    root_list_remove(&gc->roots, v, NULL);
+    bool was_rooted = root_list_remove(&gc->roots, v, NULL);
+    assert(was_rooted);
+}
+
+void gc_barrier(struct gc_info *gc, struct boxed_value *v) {
+    if (!boxed_value_is_gray(v))
+        gc_set_gray(gc, v);
 }
 
 void gc_set_gray(struct gc_info *gc, struct boxed_value *v) {
@@ -80,6 +94,7 @@ u32 mark_table(value_t key, value_t val, void *data) {
 }
 
 void gc_mark(struct gc_info *gc, struct boxed_value *v) {
+    queue_mark(gc, v);
     switch (boxed_value_get_type(v)) {
     case VALUE_TABLE:
         value_table_iter(v->v.tbl, mark_table, gc);
@@ -112,20 +127,28 @@ void rescan_roots(struct gc_info *gc) {
     }
 }
 
-void gc_scan_step(struct gc_info *gc) {
+static
+bool scan_step(struct gc_info *gc) {
     struct boxed_value *v = gc_next_gray(gc);
-    if (v)
+    if (v && !arena_is_marked(boxed_value_owner(v), v))
         gc_mark(gc, v);
-    else {
+    return !!v;
+}
+
+bool gc_scan_step(struct gc_info *gc) {
+    if (!scan_step(gc)) {
         rescan_roots(gc);
+        while (scan_step(gc)) { }
         gc_sweep(gc);
+        return true;
     }
+    return false;
 }
 
 void gc_sweep(struct gc_info *gc) {
-    for (u8 i = 0; i < GC_NUM_GENERATIONS-1; i++) {
-        arena_promote(gc->arenas[i]);
-        arena_empty(gc->arenas[i]);
-    }
     gc->arenas[GC_NUM_GENERATIONS-1] = arena_compact(gc->arenas[GC_NUM_GENERATIONS-1]);
+    for (u8 i = GC_NUM_GENERATIONS-1; i > 0; i--) {
+        arena_promote(gc->arenas[i-1]);
+        arena_empty(gc->arenas[i-1]);
+    }
 }

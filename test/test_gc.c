@@ -21,7 +21,9 @@
     yu_alloc_ctx_free(&mctx);
 
 #define LIST_GC_TESTS(X) \
-    X(next_gray, "The GC should know the next gray object to scan")
+    X(next_gray, "The GC should know the next gray object to scan") \
+    X(root, "Rooted objects should not be freed in a GC cycle") \
+    //X(sanity_check, "The GC should be able to allocate and free objects")
 
 TEST(next_gray)
     struct boxed_value *v = arena_alloc_val(a), *w = arena_alloc_val(a), *x, *y, *z;
@@ -44,6 +46,20 @@ TEST(next_gray)
     PT_ASSERT_EQ(gc_next_gray(&gc), v);
     PT_ASSERT_EQ(gc_next_gray(&gc), z);
 END(next_gray)
+
+TEST(root)
+    struct boxed_value *v = gc_alloc_val(&gc, VALUE_FIXNUM), *w = gc_alloc_val(&gc, VALUE_FIXNUM);
+    v->v.fx = 10;
+    w->v.fx = 20;
+    gc_root(&gc, v);
+    while (!gc_scan_step(&gc)) { }
+    PT_ASSERT_EQ(boxed_value_get_type(b->self->objs), VALUE_FIXNUM);
+    PT_ASSERT_EQ(b->self->objs->v.fx, 10);
+    // Explicit cast because typeof() naturally returns differently for pointers
+    // and arrays, and the ASSERT_EQ macro uses typeof.
+    PT_ASSERT_EQ(a->self->next, (struct boxed_value *)a->self->objs);
+    PT_ASSERT_EQ(b->self->next, (b->self->objs + 1));
+END(root)
 
 
 SUITE(gc, LIST_GC_TESTS)

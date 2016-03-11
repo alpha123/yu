@@ -126,6 +126,13 @@ void arena_mark(struct arena_handle *a, struct boxed_value *v) {
     ar->markmap[idx / 64] |= UINT64_C(1) << (idx & 63);
 }
 
+bool arena_is_marked(struct arena_handle *a, struct boxed_value *v) {
+    struct arena *ar;
+    u64 idx = get_value_arena_idx(a, v, &ar);
+    assert(ar != NULL);
+    return ar->markmap[idx / 64] & UINT64_C(1) << (idx & 63);
+}
+
 void arena_promote(struct arena_handle *a) {
     assert(a->next_gen != NULL);
     struct arena_handle *to = a->next_gen;

@@ -52,8 +52,8 @@ YU_QUICKHEAP(arena_heap, struct arena_handle *, gc_arena_gray_cmp, YU_QUICKHEAP_
 
 struct gc_info {
     // Priority queue of arenas for looking at the next gray object.
-   // Won't necessarily be 100% accurate in terms of counts, but it
-   // should be good enough.
+    // Won't necessarily be 100% accurate in terms of counts, but it
+    // should be good enough.
     arena_heap a_gray;
 
     // A splay tree happens to be a good data structure for storing
@@ -74,15 +74,17 @@ struct gc_info {
 YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx);
 void gc_free(struct gc_info *gc);
 
-void gc_collect(struct gc_info *gc);
+struct boxed_value *gc_alloc_val(struct gc_info *gc, value_type type);
 
 void gc_root(struct gc_info *gc, struct boxed_value *v);
 void gc_unroot(struct gc_info *gc, struct boxed_value *v);
+
+void gc_barrier(struct gc_info *gc, struct boxed_value *v);
 
 void gc_set_gray(struct gc_info *gc, struct boxed_value *v);
 void gc_mark(struct gc_info *gc, struct boxed_value *v);
 
 struct boxed_value *gc_next_gray(struct gc_info *gc);
-void gc_scan_step(struct gc_info *gc);
+bool gc_scan_step(struct gc_info *gc);
 
 void gc_sweep(struct gc_info *gc);

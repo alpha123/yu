@@ -39,12 +39,18 @@ endif
 
 ifeq ($(DEBUG),yes)
     CFLAGS += -gdwarf-4 -g3 -Og -DDEBUG -Wall -Wextra -pedantic
-    # GCC doesn't seem to build with ASAN on my machine
+# GCC doesn't seem to build with ASAN on my machine
     ifneq ($(findstring clang,$(CC)),)
 	CFLAGS += $(ASAN_FLAGS)
     endif
 else
     CFLAGS += -DNDEBUG -Ofast -ftree-vectorize
+endif
+
+# See the comments for `clean`, but basically if --check (--check-symlink-times)
+# is passed, $MAKEFLAGS will contain "L".
+ifneq ($(findstring L,$(MAKEFLAGS)),)
+    CFLAGS += -DTEST_FAST
 endif
 
 COMMON_SRCS := $(wildcard src/*.c)
@@ -63,12 +69,6 @@ test/%.o: test/%.c
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
-
-# See the comments for `clean`, but basically if --check (--check-symlink-times)
-# is passed, $MAKEFLAGS will contain "L".
-ifneq ($(findstring L,$(MAKEFLAGS)),)
-    CFLAGS += -DTEST_FAST
-endif
 
 test-bin: $(TEST_OBJS) $(COMMON_OBJS) deps  ## Build the test binary — run as \\033[037m$MAKECMD test-bin --check\\033[0m to build a quick check suite
 	$(CC) $(LIB_DIRS) -Wl,-Ttest/test.ld $(TEST_OBJS) $(COMMON_OBJS) -o $(TEST_OUT) $(LIBS)
