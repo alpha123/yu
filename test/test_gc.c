@@ -23,7 +23,8 @@
 #define LIST_GC_TESTS(X) \
     X(next_gray, "The GC should know the next gray object to scan") \
     X(root, "Rooted objects should not be freed in a GC cycle") \
-    X(object_graph, "The GC should correctly traverse the object graph, including cycles")
+    X(object_graph, "The GC should correctly traverse the object graph, including cycles") \
+    X(write_barrier, "Objects written to after being scanned should be re-scanned")
 
 TEST(next_gray)
     struct boxed_value *v = arena_alloc_val(a), *w = arena_alloc_val(a), *x, *y, *z;
@@ -98,6 +99,23 @@ TEST(object_graph)
     PT_ASSERT_EQ(boxed_value_get_type(tup3), VALUE_ERR);
     PT_ASSERT_EQ(boxed_value_get_type(y), VALUE_ERR);
 END(object_graph)
+
+TEST(write_barrier)
+    struct boxed_value *tup = gc_alloc_val(&gc, VALUE_TUPLE),
+        *x = gc_alloc_val(&gc, VALUE_FIXNUM), *y = gc_alloc_val(&gc, VALUE_FIXNUM);
+
+    gc_root(&gc, tup);
+    gc_scan_step(&gc);
+    gc_barrier(&gc, tup);
+    tup->v.tup[0] = value_from_ptr(x);
+    gc_scan_step(&gc);
+    gc_barrier(&gc, tup);
+    tup->v.tup[1] = value_from_ptr(y);
+
+    while (!gc_scan_step(&gc)) { }
+
+    PT_ASSERT_EQ(arena_allocated_count(b), 3);
+END(write_barrier)
 
 
 SUITE(gc, LIST_GC_TESTS)

@@ -68,8 +68,10 @@ void gc_unroot(struct gc_info *gc, struct boxed_value *v) {
 }
 
 void gc_barrier(struct gc_info *gc, struct boxed_value *v) {
-    if (!boxed_value_is_gray(v))
+    if (boxed_value_is_gray(v))
         gc_set_gray(gc, v);
+    else
+        boxed_value_set_gray(v, true);
 }
 
 void gc_set_gray(struct gc_info *gc, struct boxed_value *v) {
