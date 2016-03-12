@@ -5,6 +5,8 @@ LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
 LIBS := -lmpfr -lgmp -lm -l:libsfmt.a -l:libutf8proc.a
 ASAN_FLAGS := -fsanitize=address -O1 -fno-optimize-sibling-calls -fno-omit-frame-pointer
 
+PREFIX ?= /usr/local/bin
+
 SFMT_MEXP ?= 19937
 
 CFLAGS ?=
@@ -63,6 +65,7 @@ TEST_OBJS := $(TEST_SRCS:.c=.o)
 .PHONY: all clean test tags
 
 all:
+	@echo "Plot twist: There is no interpreter yet.  ̀(•́︿•̀)ʹ"
 
 test/%.o: test/%.c
 	$(CC) $(subst std=c99,std=c11,$(CFLAGS)) $(INCLUDE_DIRS) -c $< -o $@
@@ -184,9 +187,14 @@ targets:  ## Print a list of available targets with short descriptions
 
 help:  ## Print a synopsis of useful Makefile targets
 	@sh -c "echo -e 'Common targets:'"
-	@sh -c "echo -e '\033[36m$(MAKE)\033[0m\tBuild the Yu REPL' | expand -t 30"
-	@sh -c "echo -e '\033[36m$(MAKE) test\033[0m\tBuild and run the test suite' | expand -t 30"
-	@sh -c "echo -e '\033[36m$(MAKE) targets\033[0m\tList available targets' | expand -t 30"
+	@sh -c "echo -e '  • \033[36m$(MAKE)\033[0m\tBuild the Yu interpreter' | expand -t 40"
+	@sh -c "echo -e '  • \033[36m$(MAKE) install\033[0m\tInstall binaries to $(PREFIX)' | expand -t 40"
+	@sh -c "echo -e '  • \033[36m$(MAKE) test\033[0m\tBuild and run the test suite' | expand -t 40"
+	@sh -c "echo -e '  • \033[36m$(MAKE) targets\033[0m\tList available targets' | expand -t 40"
+	@sh -c "echo -e '  • \033[36m$(MAKE) ninja\033[0m\tCreate a ninja.build file' | expand -t 40"
+	@sh -c "echo -e 'Options (default):'"
+	@sh -c "echo -e '  • \033[36mDEBUG\033[0m \033[37m($(DEBUG))\033[0m\tBuild with debug or release flags' | expand -t 50"
+	@sh -c "echo -e '  • \033[36mPREFIX\033[0m \033[37m($(PREFIX))\033[0m\tPrefix to install binaries' | expand -t 50"
 
 
 ######################################################################
