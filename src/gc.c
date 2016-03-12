@@ -81,34 +81,31 @@ void gc_set_gray(struct gc_info *gc, struct boxed_value *v) {
 }
 
 static
-void queue_mark(struct gc_info *gc, struct boxed_value *v) {
-    arena_mark(boxed_value_owner(v), v);
-    gc_set_gray(gc, v);
-}
-
-static
 u32 mark_table(value_t key, value_t val, void *data) {
     if (value_is_ptr(key))
-        queue_mark((struct gc_info *)data, value_to_ptr(key));
+        gc_set_gray((struct gc_info *)data, value_to_ptr(key));
     if (value_is_ptr(val))
-        queue_mark((struct gc_info *)data, value_to_ptr(val));
+        gc_set_gray((struct gc_info *)data, value_to_ptr(val));
     return 0;
 }
 
 static
 s32 mark_tuple(value_t val, void *data) {
     if (value_is_ptr(val))
-        queue_mark((struct gc_info *)data, value_to_ptr(val));
+        gc_set_gray((struct gc_info *)data, value_to_ptr(val));
+    return 0;
 }
 
 void gc_mark(struct gc_info *gc, struct boxed_value *v) {
-    queue_mark(gc, v);
+    arena_mark(boxed_value_owner(v), v);
+    gc_set_gray(gc, v);
     switch (boxed_value_get_type(v)) {
     case VALUE_TABLE:
         value_table_iter(v->v.tbl, mark_table, gc);
         break;
     case VALUE_TUPLE:
         value_tuple_foreach(v, mark_tuple, gc);
+        break;
     default:
 	break;
     }

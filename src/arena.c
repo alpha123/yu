@@ -155,6 +155,11 @@ void arena_empty(struct arena_handle *a) {
     ar->next = ar->objs;
     memset(ar->graymap, 0, sizeof(ar->graymap));
     memset(ar->markmap, 0, sizeof(ar->markmap));
+    // Makes testing *much* easier if we can verify that things
+    // have been zeroed.
+#ifndef NDEBUG
+    memset(ar->objs, 0, sizeof(ar->objs));
+#endif
 }
 
 // TODO don't use 2x memory just to compact
@@ -167,6 +172,9 @@ struct arena_handle *arena_compact(struct arena_handle *a) {
             if (marks[i / 64] & (UINT64_C(1) << (i & 63))) {
                 struct boxed_value *v = arena_alloc_val(to);
                 memcpy(v, ar->objs + i, sizeof(struct boxed_value));
+#ifndef NDEBUG
+                memset(ar->objs + i, 0, sizeof(struct boxed_value));
+#endif
             }
         }
         a = a->next;
