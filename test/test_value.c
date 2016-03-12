@@ -23,6 +23,7 @@
     X(value_type, "Value type should be not depend on whether or not the value is boxed") \
     X(gray_bit, "Boxed values should maintain a gray bit") \
     X(hash, "Value hashes should be well-distributed") \
+    X(hash_tuple, "Hashes from equal tuples should be equal") \
     X(equal, "Only equal values should be equal")
 
 TEST(double)
@@ -201,6 +202,26 @@ TEST(hash)
     free(hashes2);
     yu_str_ctx_free(&sctx);
 END(hash)
+
+TEST(hash_tuple)
+    struct arena_handle *a = arena_new(&mctx);
+    struct boxed_value *t = arena_alloc_val(a), *s = arena_alloc_val(a);
+    boxed_value_set_type(t, VALUE_TUPLE);
+    boxed_value_set_type(s, VALUE_TUPLE);
+    PT_ASSERT_EQ(value_hash1(value_from_ptr(t)), value_hash1(value_from_ptr(s)));
+    PT_ASSERT_EQ(value_hash2(value_from_ptr(t)), value_hash2(value_from_ptr(s)));
+
+    t = arena_alloc_val(a);
+    s = arena_alloc_val(a);
+    boxed_value_set_type(t, VALUE_TUPLE);
+    boxed_value_set_type(s, VALUE_TUPLE);
+    t->v.tup[0] = value_from_int(42);
+    t->v.tup[1] = value_from_int(322);
+    s->v.tup[0] = value_from_int(42);
+    s->v.tup[1] = value_from_int(322);
+    PT_ASSERT_EQ(value_hash1(value_from_ptr(t)), value_hash1(value_from_ptr(s)));
+    PT_ASSERT_EQ(value_hash2(value_from_ptr(t)), value_hash2(value_from_ptr(s)));
+END(hash_tuple)
 
 TEST(equal)
     struct arena_handle *a = arena_new(&mctx);

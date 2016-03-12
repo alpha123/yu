@@ -6,12 +6,11 @@
 #pragma once
 
 #include "yu_common.h"
-#include "arena.h"
 #include "gc.h"
-#include "gss.h"
 #include "value.h"
 
 typedef struct {
     struct gc_info *gc;
-    gss *s;
 } yu_ctx;
+
+void yu_tuple_append(yu_ctx *ctx, value_t tup, value_t value);

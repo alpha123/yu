@@ -50,7 +50,9 @@ void gc_free(struct gc_info *gc) {
 struct boxed_value *gc_alloc_val(struct gc_info *gc, value_type type) {
     struct boxed_value *v = arena_alloc_val(gc->arenas[0]);
     boxed_value_set_type(v, type);
-    boxed_value_set_gray(v, type == VALUE_TABLE);
+    boxed_value_set_gray(v, type == VALUE_TABLE || type == VALUE_TUPLE);
+    if (type == VALUE_TUPLE)
+        v->v.tup[0] = v->v.tup[1] = v->v.tup[2] = value_empty();
     return v;
 }
 
@@ -93,12 +95,20 @@ u32 mark_table(value_t key, value_t val, void *data) {
     return 0;
 }
 
+static
+s32 mark_tuple(value_t val, void *data) {
+    if (value_is_ptr(val))
+        queue_mark((struct gc_info *)data, value_to_ptr(val));
+}
+
 void gc_mark(struct gc_info *gc, struct boxed_value *v) {
     queue_mark(gc, v);
     switch (boxed_value_get_type(v)) {
     case VALUE_TABLE:
         value_table_iter(v->v.tbl, mark_table, gc);
         break;
+    case VALUE_TUPLE:
+        value_tuple_foreach(v, mark_tuple, gc);
     default:
 	break;
     }

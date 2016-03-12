@@ -18,7 +18,8 @@
     X(VALUE_REAL,   UINT64_C(0x64865eed2081a8e4)) \
     X(VALUE_STR,    UINT64_C(0x7fc8135de41ebbd0)) \
     X(VALUE_QUOT,   UINT64_C(0x9f70ef325b9a5b12)) \
-    X(VALUE_TABLE,  UINT64_C(0x56927984b20a8d63))
+    X(VALUE_TABLE,  UINT64_C(0x56927984b20a8d63)) \
+    X(VALUE_TUPLE,  UINT64_C(0xf079ac77a3053fb7))
 
 DEF_ENUM(value_type, LIST_VALUE_TYPES)
 
@@ -34,6 +35,9 @@ YU_HASHTABLE(value_table, value_t, value_t, value_hash1, value_hash2, value_eq)
 
 struct boxed_value {
     union {
+        // First two are two tuple elements, 3rd is next link in tuple
+        // chain or value_empty().
+        value_t tup[3];
         // mpz and mpfr are actually quite big (mpfr is 32! bytes)
         // Use pointers to them to keep object size down, as well as
         // open the possibility of pooling them in the future.
@@ -54,6 +58,11 @@ struct boxed_value {
 };
 
 value_type value_what(value_t val);
+
+typedef s32 (* value_tuple_iter_fn)(value_t val, void *data);
+s32 value_tuple_foreach(struct boxed_value *val, value_tuple_iter_fn iter, void *data);
+
+u64 value_tuple_len(struct boxed_value *val);
 
 bool value_can_unbox_untagged(struct boxed_value *v);
 value_t value_unbox(struct boxed_value *v);

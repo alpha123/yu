@@ -32,6 +32,20 @@ static const u64 type_hashes[] = {
 #undef BUILD_TYPE_TABLE
 
 static
+s32 tuple_hash1(value_t v, void *data) {
+    u64 *h = data;
+    *h ^= value_hash1(v);
+    return 0;
+}
+
+static
+s32 tuple_hash2(value_t v, void *data) {
+    u64 *h = data;
+    *h ^= value_hash2(v);
+    return 0;
+}
+
+static
 u64 raw_value_hash1(value_t v) {
     switch (value_what(v)) {
     case VALUE_FIXNUM:
@@ -71,6 +85,13 @@ u64 raw_value_hash1(value_t v) {
 	mpfr_free_str(s);
 	return h;
     }
+    case VALUE_TUPLE: {
+	if (value_tuple_len(value_to_ptr(v)) == 0)
+	    return UINT64_C(0xB16B00B5);
+	u64 h = 0;
+	value_tuple_foreach(value_to_ptr(v), tuple_hash1, &h);
+	return h;
+    }
     case VALUE_TABLE:  // hash by address
     case VALUE_QUOT:
         return (uintptr_t)value_to_ptr(v);
@@ -89,7 +110,7 @@ u64 raw_value_hash2(value_t v) {
     case VALUE_FIXNUM: {
 	int x = ~value_to_int(v);
 	return yu_murmur2((const u8 *)&x, 4);
-   }
+    }
     case VALUE_BOOL:
         return value_to_bool(v) ? UINT64_C(0xC0DE6EA55) : UINT64_C(0x5F3759DF);
     case VALUE_DOUBLE: {
@@ -113,6 +134,13 @@ u64 raw_value_hash2(value_t v) {
 	u64 h = yu_murmur2((const u8 *)s, slen + 1);
 	s[slen] = '\0';
 	mpfr_free_str(s);
+	return h;
+    }
+    case VALUE_TUPLE: {
+	u64 h = 0;
+	if (value_tuple_len(value_to_ptr(v)) == 0)
+	    return UINT64_C(0xCAFEBABE);
+	value_tuple_foreach(value_to_ptr(v), tuple_hash2, &h);
 	return h;
     }
     case VALUE_TABLE:
@@ -151,6 +179,39 @@ bool value_eq(value_t a, value_t b) {
 	b = value_unbox(value_to_ptr(b));
     return value_hash1(a) == value_hash1(b) &&
            value_hash2(a) == value_hash2(b);
+}
+
+s32 value_tuple_foreach(struct boxed_value *val, value_tuple_iter_fn iter, void *data) {
+    assert(boxed_value_get_type(val) == VALUE_TUPLE);
+
+    value_t v = val->v.tup[0];
+    s32 res = 0;
+    while (!value_is_empty(v)) {
+	if ((res = iter(v, data)))
+	    break;
+	v = val->v.tup[1];
+	if ((res = iter(v, data)))
+	    break;
+	if (value_is_empty((v = val->v.tup[2])))
+	    break;
+	else {
+	    assert(value_is_ptr(v));
+	    val = value_to_ptr(v);
+	    assert(boxed_value_get_type(val) == VALUE_TUPLE);
+	    v = val->v.tup[0];
+	}
+    }
+    return res;
+}
+
+u64 value_tuple_len(struct boxed_value *val) {
+    u64 len = 0;
+    while (!value_is_empty(val->v.tup[2])) {
+	len += !value_is_empty(val->v.tup[0]);
+	len += !value_is_empty(val->v.tup[1]);
+	val = value_to_ptr(val->v.tup[2]);
+    }
+    return len;
 }
 
 bool value_can_unbox_untagged(struct boxed_value *v) {
