@@ -46,18 +46,19 @@ END(bool)
 TEST(ptr)
     struct arena_handle *a = arena_new(&mctx);
     struct boxed_value *v = arena_alloc_val(a);
-    value_t x = value_from_ptr(v);
-    PT_ASSERT_EQ(value_to_ptr(x), v);
+    value_t x = value_from_ptr(&v);
+    PT_ASSERT_EQ(value_get_ptr(x), v);
     PT_ASSERT_EQ(boxed_value_owner(v), a);
 END(ptr)
 
 TEST(value_type)
     struct arena_handle *a = arena_new(&mctx);
+    struct boxed_value *v1 = arena_alloc_val(a), *v2 = arena_alloc_val(a);
     value_t w = value_from_int(655), x = value_true(),
-            y = value_from_ptr(arena_alloc_val(a)),
-            z = value_from_ptr(arena_alloc_val(a));
-    boxed_value_set_type(value_to_ptr(y), VALUE_REAL);
-    boxed_value_set_type(value_to_ptr(z), VALUE_FIXNUM);
+            y = value_from_ptr(&v1),
+            z = value_from_ptr(&v2);
+    boxed_value_set_type(value_get_ptr(y), VALUE_REAL);
+    boxed_value_set_type(value_get_ptr(z), VALUE_FIXNUM);
 
     PT_ASSERT_EQ(value_what(w), VALUE_FIXNUM);
     PT_ASSERT_EQ(value_what(z), VALUE_FIXNUM);
@@ -135,7 +136,7 @@ TEST(hash)
             mpz_init_set_ui(z, n);
             boxed_value_set_type(b, VALUE_INT);
             b->v.i = &z;
-            v = value_from_ptr(b);
+            v = value_from_ptr(&b);
             break;
         }
         case 3: {
@@ -143,7 +144,7 @@ TEST(hash)
             mpfr_init_set_d(r, sfmt_to_real1(n) * n, MPFR_RNDN);
             boxed_value_set_type(b, VALUE_REAL);
             b->v.r = &r;
-            v = value_from_ptr(b);
+            v = value_from_ptr(&b);
             break;
         }
         case 4: {
@@ -161,26 +162,26 @@ TEST(hash)
             assert(err == YU_OK);
             boxed_value_set_type(b, VALUE_STR);
             b->v.s = s;
-            v = value_from_ptr(b);
+            v = value_from_ptr(&b);
             break;
         }
         case 5:
             b = arena_alloc_val(a);
             boxed_value_set_type(b, VALUE_TABLE);
-            v = value_from_ptr(b);
+            v = value_from_ptr(&b);
             break;
         case 6:
             b = arena_alloc_val(a);
             boxed_value_set_type(b, VALUE_QUOT);
-            v = value_from_ptr(b);
+            v = value_from_ptr(&b);
             break;
         }
         hashes1[i] = value_hash1(v);
         hashes2[i] = value_hash2(v);
         if (value_what(v) == VALUE_INT)
-            mpz_clear(*value_to_ptr(v)->v.i);
+            mpz_clear(*value_get_ptr(v)->v.i);
         else if (value_what(v) == VALUE_REAL)
-            mpfr_clear(*value_to_ptr(v)->v.r);
+            mpfr_clear(*value_get_ptr(v)->v.r);
     }
 
     u64 collisions1 = 0, collisions2 = 0;
@@ -208,8 +209,8 @@ TEST(hash_tuple)
     struct boxed_value *t = arena_alloc_val(a), *s = arena_alloc_val(a);
     boxed_value_set_type(t, VALUE_TUPLE);
     boxed_value_set_type(s, VALUE_TUPLE);
-    PT_ASSERT_EQ(value_hash1(value_from_ptr(t)), value_hash1(value_from_ptr(s)));
-    PT_ASSERT_EQ(value_hash2(value_from_ptr(t)), value_hash2(value_from_ptr(s)));
+    PT_ASSERT_EQ(value_hash1(value_from_ptr(&t)), value_hash1(value_from_ptr(&s)));
+    PT_ASSERT_EQ(value_hash2(value_from_ptr(&t)), value_hash2(value_from_ptr(&s)));
 
     t = arena_alloc_val(a);
     s = arena_alloc_val(a);
@@ -219,8 +220,8 @@ TEST(hash_tuple)
     t->v.tup[1] = value_from_int(322);
     s->v.tup[0] = value_from_int(42);
     s->v.tup[1] = value_from_int(322);
-    PT_ASSERT_EQ(value_hash1(value_from_ptr(t)), value_hash1(value_from_ptr(s)));
-    PT_ASSERT_EQ(value_hash2(value_from_ptr(t)), value_hash2(value_from_ptr(s)));
+    PT_ASSERT_EQ(value_hash1(value_from_ptr(&t)), value_hash1(value_from_ptr(&s)));
+    PT_ASSERT_EQ(value_hash2(value_from_ptr(&t)), value_hash2(value_from_ptr(&s)));
 END(hash_tuple)
 
 TEST(equal)
@@ -233,7 +234,7 @@ TEST(equal)
     struct boxed_value *b = arena_alloc_val(a);
     boxed_value_set_type(b, VALUE_INT);
     b->v.i = &i;
-    value_t x = value_from_ptr(b);
+    value_t x = value_from_ptr(&b);
 
     PT_ASSERT(value_eq(w, w));
     PT_ASSERT(value_eq(x, x));
@@ -247,7 +248,7 @@ TEST(equal)
     yu_err err = yu_str_new_c(&sctx, "silver soul", &s);
     assert(err == YU_OK);
     b->v.s = s;
-    value_t y = value_from_ptr(b);
+    value_t y = value_from_ptr(&b);
     PT_ASSERT(!value_eq(x, y));
 
     err = yu_str_new_c(&sctx, "silver soul", &s);
@@ -255,7 +256,7 @@ TEST(equal)
     struct boxed_value *c = arena_alloc_val(a);
     boxed_value_set_type(c, VALUE_STR);
     c->v.s = s;
-    value_t z = value_from_ptr(c);
+    value_t z = value_from_ptr(&c);
     PT_ASSERT(value_eq(y, z));
 END(equal)
 

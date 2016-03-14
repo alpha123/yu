@@ -24,6 +24,7 @@
 DEF_ENUM(value_type, LIST_VALUE_TYPES)
 
 struct boxed_value;
+typedef struct boxed_value ** value_handle;
 #include "nanbox.h" /* value_t */
 
 
@@ -57,12 +58,21 @@ struct boxed_value {
     } bits;
 };
 
+YU_INLINE
+struct boxed_value *value_deref(value_handle v) {
+    return *v;
+}
+
+YU_INLINE
+struct boxed_value *value_get_ptr(value_t v) {
+    return value_deref(value_to_ptr(v));
+}
+
 value_type value_what(value_t val);
 
 typedef s32 (* value_tuple_iter_fn)(value_t val, void *data);
-s32 value_tuple_foreach(struct boxed_value *val, value_tuple_iter_fn iter, void *data);
-
-u64 value_tuple_len(struct boxed_value *val);
+s32 value_tuple_foreach(struct boxed_value *v, value_tuple_iter_fn iter, void *data);
+u64 value_tuple_len(struct boxed_value *v);
 
 bool value_can_unbox_untagged(struct boxed_value *v);
 value_t value_unbox(struct boxed_value *v);
@@ -86,6 +96,11 @@ bool boxed_value_is_gray(struct boxed_value *val) {
 YU_INLINE
 void boxed_value_set_gray(struct boxed_value *val, bool gray) {
     val->bits.gray = gray;
+}
+
+YU_INLINE
+bool boxed_value_is_traversable(struct boxed_value *val) {
+    return val->bits.what == VALUE_TUPLE || val->bits.what == VALUE_TABLE;
 }
 
 struct arena_handle *boxed_value_owner(struct boxed_value *val);

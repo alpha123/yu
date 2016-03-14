@@ -60,7 +60,7 @@ TEST(alloc_val)
         ah = ah->next;
     }
 #ifdef TEST_FAST
-    PT_ASSERT_EQ(acount, 1);
+    PT_ASSERT_EQ(acount, 1u);
 #else
     PT_ASSERT_EQ(acount, valcnt/GC_ARENA_NUM_OBJECTS);
 #endif
@@ -116,7 +116,7 @@ TEST(promote)
         v->v.fx = i;
         if (i & 1) arena_mark(a, v);
     }
-    arena_promote(a);
+    arena_promote(a, NULL, NULL);
     PT_ASSERT_EQ(arena_allocated_count(b), (u32)valcnt/2);
     bool types_ok = true, values_ok = true;
     struct arena *ar = b->self;
@@ -160,7 +160,7 @@ TEST(compact)
         v->v.fx = i;
         if (i & 1) arena_mark(a, v);
     }
-    a = arena_compact(a);
+    a = arena_compact(a, NULL, NULL);
     PT_ASSERT_EQ(arena_allocated_count(a), (u32)valcnt/2);
 
     bool contiguous = true;

@@ -87,7 +87,7 @@
 typedef union {
     uint64_t as_int64;
 #if !YU_32BIT
-    struct boxed_value *pointer;
+    value_handle pointer;
 #endif
     double as_double;
     struct {
@@ -184,13 +184,13 @@ typedef union {
 // Define bool nanbox_is_xxx(value_t val) and value_t nanbox_xxx(void)
 // with empty, deleted, true, false, undefined and null substituted for xxx.
 #define NANBOX_IMMEDIATE_VALUE_FUNCTIONS(NAME, VALUE) \
-    static YU_INLINE \
+    YU_INLINE \
     value_t value_##NAME(void) { \
         value_t val; \
         val.as_int64 = VALUE; \
         return val; \
     } \
-    static YU_INLINE \
+    YU_INLINE \
     bool value_is_##NAME(value_t val) { \
         return val.as_int64 == VALUE; \
     }
@@ -201,23 +201,23 @@ NANBOX_IMMEDIATE_VALUE_FUNCTIONS(true, NANBOX_VALUE_TRUE)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(undefined, NANBOX_VALUE_UNDEFINED)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(null, NANBOX_VALUE_NULL)
 
-static YU_INLINE
+YU_INLINE
 bool value_is_undefined_or_null(value_t val) {
     // Undefined and null are the same if we remove the 'undefined' bit.
     return (val.as_int64 & ~8) == NANBOX_VALUE_NULL;
 }
 
-static YU_INLINE
+YU_INLINE
 bool value_is_bool(value_t val) {
     // True and false are the same if we remove the 'true' bit.
     return (val.as_int64 & ~1) == NANBOX_VALUE_FALSE;
 }
-static YU_INLINE
+YU_INLINE
 bool value_to_bool(value_t val) {
     assert(value_is_bool(val));
     return val.as_int64 & 1;
 }
-static YU_INLINE
+YU_INLINE
 value_t value_from_bool(bool b) {
     value_t val;
     val.as_int64 = b ? NANBOX_VALUE_TRUE : NANBOX_VALUE_FALSE;
@@ -225,32 +225,32 @@ value_t value_from_bool(bool b) {
 }
 
 /* true if val is a double or an int */
-static YU_INLINE
+YU_INLINE
 bool value_is_number(value_t val) {
     return val.as_int64 >= NANBOX_MIN_NUMBER;
 }
 
-static YU_INLINE
+YU_INLINE
 bool value_is_int(value_t val) {
     return (val.as_int64 & NANBOX_HIGH16_TAG) == NANBOX_MIN_NUMBER;
 }
-static YU_INLINE
+YU_INLINE
 value_t value_from_int(int32_t i) {
     value_t val;
     val.as_int64 = NANBOX_MIN_NUMBER | (uint32_t)i;
     return val;
 }
-static YU_INLINE
+YU_INLINE
 int32_t value_to_int(value_t val) {
     assert(value_is_int(val));
     return (int32_t)val.as_int64;
 }
 
-static YU_INLINE
+YU_INLINE
 bool value_is_double(value_t val) {
     return value_is_number(val) && !value_is_int(val);
 }
-static YU_INLINE
+YU_INLINE
 value_t value_from_double(double d) {
     value_t val;
     val.as_double = d;
@@ -258,31 +258,31 @@ value_t value_from_double(double d) {
     assert(value_is_double(val));
     return val;
 }
-static YU_INLINE
+YU_INLINE
 double value_to_double(value_t val) {
     assert(value_is_double(val));
     val.as_int64 -= NANBOX_DOUBLE_ENCODE_OFFSET;
     return val.as_double;
 }
 
-static YU_INLINE
+YU_INLINE
 bool value_is_ptr(value_t val) {
     return !(val.as_int64 & ~NANBOX_MASK_POINTER) && val.as_int64;
 }
-static YU_INLINE
-struct boxed_value *value_to_ptr(value_t val) {
+YU_INLINE
+value_handle value_to_ptr(value_t val) {
     assert(value_is_ptr(val));
     return val.pointer;
 }
-static YU_INLINE
-value_t value_from_ptr(struct boxed_value *pointer) {
+YU_INLINE
+value_t value_from_ptr(value_handle pointer) {
     value_t val;
     val.pointer = pointer;
     assert(value_is_ptr(val));
     return val;
 }
 
-static YU_INLINE
+YU_INLINE
 bool value_is_aux(value_t val) {
     return val.as_int64 >= NANBOX_MIN_AUX &&
            val.as_int64 <= NANBOX_MAX_AUX;
@@ -321,14 +321,14 @@ bool value_is_aux(value_t val) {
 
 // Define nanbox_xxx and nanbox_is_xxx for deleted, undefined and null.
 #define NANBOX_IMMEDIATE_VALUE_FUNCTIONS(NAME, TAG) \
-    static YU_INLINE \
+    YU_INLINE \
     value_t value_##NAME(void) { \
         value_t val; \
         val.as_bits.tag = TAG; \
         val.as_bits.payload = 0; \
         return val; \
     } \
-    static YU_INLINE \
+    YU_INLINE \
     bool value_is_##NAME(value_t val) { \
         return val.as_bits.tag == TAG; \
     }
@@ -337,24 +337,24 @@ NANBOX_IMMEDIATE_VALUE_FUNCTIONS(undefined, NANBOX_UNDEFINED_TAG)
 NANBOX_IMMEDIATE_VALUE_FUNCTIONS(null, NANBOX_NULL_TAG)
 
 // The undefined and null tags differ only in one bit
-static YU_INLINE
+YU_INLINE
 bool value_is_undefined_or_null(value_t val) {
     return (val.as_bits.tag & ~1) == NANBOX_UNDEFINED_TAG;
 }
 
-static YU_INLINE
+YU_INLINE
 value_t value_empty(void) {
     value_t val;
     val.as_int64 = 0xffffffffffffffffllu;
     return val;
 }
-static YU_INLINE
+YU_INLINE
 bool value_is_empty(value_t val) {
     return val.as_bits.tag == 0xffffffff;
 }
 
 /* Returns true if the value is auxillary space */
-static YU_INLINE
+YU_INLINE
 bool value_is_aux(value_t val) {
     return val.as_bits.tag >= NANBOX_MIN_AUX_TAG &&
            val.as_bits.tag < NANBOX_POINTER_TAG;
@@ -363,16 +363,16 @@ bool value_is_aux(value_t val) {
 // Define nanbox_is_yyy, nanbox_to_yyy and nanbox_from_yyy for
 // boolean, int, pointer and aux1-aux5
 #define NANBOX_TAGGED_VALUE_FUNCTIONS(NAME, TYPE, TAG) \
-    static YU_INLINE \
+    YU_INLINE \
     bool value_is_##NAME(value_t val) { \
         return val.as_bits.tag == TAG; \
     } \
-    static YU_INLINE \
+    YU_INLINE \
     TYPE value_to_##NAME(value_t val) { \
         assert(val.as_bits.tag == TAG); \
         return (TYPE)val.as_bits.payload; \
     } \
-    static YU_INLINE \
+    YU_INLINE \
     value_t value_from_##NAME(TYPE a) { \
         value_t val; \
         val.as_bits.tag = TAG; \
@@ -382,37 +382,37 @@ bool value_is_aux(value_t val) {
 
 NANBOX_TAGGED_VALUE_FUNCTIONS(bool, bool, NANBOX_BOOLEAN_TAG)
 NANBOX_TAGGED_VALUE_FUNCTIONS(int, int32_t, NANBOX_INT_TAG)
-NANBOX_TAGGED_VALUE_FUNCTIONS(ptr, struct boxed_value *, NANBOX_POINTER_TAG)
+NANBOX_TAGGED_VALUE_FUNCTIONS(ptr, value_handle, NANBOX_POINTER_TAG)
 
 
-static YU_INLINE
+YU_INLINE
 value_t value_true(void) {
     return value_from_bool(true);
 }
-static YU_INLINE
+YU_INLINE
 value_t value_false(void) {
     return value_from_bool(false);
 }
-static YU_INLINE
+YU_INLINE
 bool value_is_true(value_t val) {
     return val.as_bits.tag == NANBOX_BOOLEAN_TAG && val.as_bits.payload;
 }
-static YU_INLINE
+YU_INLINE
 bool value_is_false(value_t val) {
     return val.as_bits.tag == NANBOX_BOOLEAN_TAG && !val.as_bits.payload;
 }
 
-static YU_INLINE
+YU_INLINE
 bool value_is_double(value_t val) {
     return val.as_bits.tag < NANBOX_INT_TAG;
 }
 // is number = is double or is int
-static YU_INLINE
+YU_INLINE
 bool value_is_number(value_t val) {
     return val.as_bits.tag <= NANBOX_INT_TAG;
 }
 
-static YU_INLINE
+YU_INLINE
 value_t value_from_double(double d) {
     value_t val;
     val.as_double = d;
@@ -420,7 +420,7 @@ value_t value_from_double(double d) {
            val.as_bits.tag <= NANBOX_MAX_DOUBLE_TAG);
     return val;
 }
-static YU_INLINE
+YU_INLINE
 double value_to_double(value_t val) {
     assert(value_is_double(val));
     return val.as_double;
@@ -432,7 +432,7 @@ double value_to_double(value_t val) {
  * Representation-independent functions
  */
 
-static YU_INLINE
+YU_INLINE
 double value_to_number(value_t val) {
     assert(value_is_number(val));
     return value_is_int(val) ? value_to_int(val)

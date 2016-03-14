@@ -15,7 +15,8 @@ define(`in_file', `patsubst(`$1', `\.o', `.c')')
 define(`out_file', `patsubst(`$1', `\.c', `.o')')
 
 define(`build_objs', `foreach_line(`SRC_FILE', `esyscmd(`ls -1 $1')', `build out_file(SRC_FILE): cc SRC_FILE
-')')
+'ifelse($2, `', `', `  $2
+'))')
 
 define(`link_static', `build $1: ar out_file(slice(patsubst(esyscmd(`ls' in_file(`$2')),`.+$',`\& $'),0,-2))')
 
@@ -48,11 +49,10 @@ rule ld
 
 
 build_objs(`src/*.c')
-build_objs(`test/*.c')dnl
-  cflags = patsubst(CFLAGS, `-std=c99', `-std=c11') $include_dirs
+build_objs(`test/*.c', `cflags = patsubst(CFLAGS, `-std=c99', `-std=c11') $include_dirs')
 build_objs(`SFMT/SFMT.c')
-build_objs(`utf8proc/utf8proc*.c')dnl
-  cflags = -include utf8proc/utf8proc.h $cflags
+build_objs(`utf8proc/utf8proc*.c', `cflags = -include utf8proc/utf8proc.h $cflags')
+  
 
 link_static(`SFMT/libsfmt.a', `SFMT/SFMT.o')
 link_static(`utf8proc/libutf8proc.a', `utf8proc/*.o')

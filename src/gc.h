@@ -41,20 +41,29 @@
 #include "arena.h"
 #include "value.h"
 
-#define gc_root_list_ptr_cmp(...) _fake()
-#define gc_arena_gray_cmp(...) _fake()
+#define root_list_ptr_cmp(...) _fake()
+#define arena_gray_cmp(...) _fake()
 
-YU_SPLAYTREE(root_list, struct boxed_value *, gc_root_list_ptr_cmp, true)
-YU_QUICKHEAP(arena_heap, struct arena_handle *, gc_arena_gray_cmp, YU_QUICKHEAP_MAXHEAP)
+YU_SPLAYTREE(root_list, value_handle, root_list_ptr_cmp, true)
+YU_QUICKHEAP(arena_heap, struct arena_handle *, arena_gray_cmp, YU_QUICKHEAP_MAXHEAP)
 
-#undef gc_root_list_ptr_cmp
-#undef gc_arena_gray_cmp
+#undef root_list_ptr_cmp
+#undef arena_gray_cmp
+
+struct gc_handle_set {
+    struct boxed_value *handles[1023];
+    struct gc_handle_set *next;
+};
 
 struct gc_info {
     // Priority queue of arenas for looking at the next gray object.
     // Won't necessarily be 100% accurate in terms of counts, but it
     // should be good enough.
     arena_heap a_gray;
+
+    // Since this is a copying GC and values move around, we need to
+    // keep track of them.
+    struct gc_handle_set *hs;
 
     // A splay tree happens to be a good data structure for storing
     // roots. We don't want duplicates and roots are frequently
@@ -74,12 +83,13 @@ struct gc_info {
 YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx);
 void gc_free(struct gc_info *gc);
 
-struct boxed_value *gc_alloc_val(struct gc_info *gc, value_type type);
+value_handle gc_make_handle(struct gc_info *gc, struct boxed_value *v);
+value_handle gc_alloc_val(struct gc_info *gc, value_type type);
 
-void gc_root(struct gc_info *gc, struct boxed_value *v);
-void gc_unroot(struct gc_info *gc, struct boxed_value *v);
+void gc_root(struct gc_info *gc, value_handle v);
+void gc_unroot(struct gc_info *gc, value_handle v);
 
-void gc_barrier(struct gc_info *gc, struct boxed_value *v);
+void gc_barrier(struct gc_info *gc, value_handle v);
 
 void gc_set_gray(struct gc_info *gc, struct boxed_value *v);
 void gc_mark(struct gc_info *gc, struct boxed_value *v);

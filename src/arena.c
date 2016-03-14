@@ -126,6 +126,13 @@ void arena_mark(struct arena_handle *a, struct boxed_value *v) {
     ar->markmap[idx / 64] |= UINT64_C(1) << (idx & 63);
 }
 
+void arena_unmark(struct arena_handle *a, struct boxed_value *v) {
+    struct arena *ar;
+    u64 idx = get_value_arena_idx(a, v, &ar);
+    assert(ar != NULL);
+    ar->markmap[idx / 64] &= ~(UINT64_C(1) << (idx & 63));
+}
+
 bool arena_is_marked(struct arena_handle *a, struct boxed_value *v) {
     struct arena *ar;
     u64 idx = get_value_arena_idx(a, v, &ar);
@@ -133,7 +140,7 @@ bool arena_is_marked(struct arena_handle *a, struct boxed_value *v) {
     return ar->markmap[idx / 64] & UINT64_C(1) << (idx & 63);
 }
 
-void arena_promote(struct arena_handle *a) {
+void arena_promote(struct arena_handle *a, arena_move_fn move_cb, void *data) {
     assert(a->next_gen != NULL);
     struct arena_handle *to = a->next_gen;
     struct arena *ar;
@@ -144,6 +151,13 @@ void arena_promote(struct arena_handle *a) {
             if (ar->markmap[i / 64] & (UINT64_C(1) << (i & 63))) {
                 dest = arena_alloc_val(to);
                 memcpy(dest, ar->objs + i, sizeof(struct boxed_value));
+                if (move_cb)
+                    move_cb(ar->objs + i, dest, data);
+// Makes testing *much* easier if we can verify that things
+// have been zeroed.
+#ifndef NDEBUG
+                memset(ar->objs + i, 0, sizeof(struct boxed_value));
+#endif
             }
         }
         a = a->next;
@@ -155,15 +169,13 @@ void arena_empty(struct arena_handle *a) {
     ar->next = ar->objs;
     memset(ar->graymap, 0, sizeof(ar->graymap));
     memset(ar->markmap, 0, sizeof(ar->markmap));
-    // Makes testing *much* easier if we can verify that things
-    // have been zeroed.
 #ifndef NDEBUG
     memset(ar->objs, 0, sizeof(ar->objs));
 #endif
 }
 
 // TODO don't use 2x memory just to compact
-struct arena_handle *arena_compact(struct arena_handle *a) {
+struct arena_handle *arena_compact(struct arena_handle *a, arena_move_fn move_cb, void *data) {
     struct arena_handle *to = arena_new(a->mem_ctx);
     while (a) {
         struct arena *ar = a->self;
@@ -172,6 +184,8 @@ struct arena_handle *arena_compact(struct arena_handle *a) {
             if (marks[i / 64] & (UINT64_C(1) << (i & 63))) {
                 struct boxed_value *v = arena_alloc_val(to);
                 memcpy(v, ar->objs + i, sizeof(struct boxed_value));
+                if (move_cb)
+                    move_cb(ar->objs + i, v, data);
 #ifndef NDEBUG
                 memset(ar->objs + i, 0, sizeof(struct boxed_value));
 #endif

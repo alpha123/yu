@@ -7,9 +7,9 @@
 #include "context.h"
 
 void yu_tuple_append(yu_ctx *ctx, value_t tup, value_t value) {
-    struct boxed_value *val = value_to_ptr(tup);
+    struct boxed_value *val = value_get_ptr(tup);
     assert(boxed_value_get_type(val) == VALUE_TUPLE);
-    gc_barrier(ctx->gc, val);
+    gc_barrier(ctx->gc, value_to_ptr(value));
 
     u8 i = 0;
     value_t v;
@@ -22,9 +22,9 @@ void yu_tuple_append(yu_ctx *ctx, value_t tup, value_t value) {
 	if (i < 2)
 	    ++i;
 	else if (value_is_empty(val->v.tup[2])) {
-            struct boxed_value *rest = gc_alloc_val(ctx->gc, VALUE_TUPLE);
+            value_handle rest = gc_alloc_val(ctx->gc, VALUE_TUPLE);
 	    val->v.tup[2] = value_from_ptr(rest);
-	    val = rest;
+	    val = value_deref(rest);
 	}
     }
 }
