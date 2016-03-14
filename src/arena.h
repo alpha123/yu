@@ -28,10 +28,6 @@
  *    +---------------------------------------------------+
  */
 
-#ifndef GC_NUM_GENERATIONS
-#define GC_NUM_GENERATIONS 3
-#endif
-
 #ifndef GC_ARENA_NUM_OBJECTS
 #define GC_ARENA_NUM_OBJECTS 2048
 #endif

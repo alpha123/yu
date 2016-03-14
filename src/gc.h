@@ -25,9 +25,13 @@
  * 5. After the object has been traversed, its gray bit is cleared.
  * 6. If an object survives a GC cycle, both its gray and mark bits are cleared.
  * 7. It is then copied to the next generation, and the younger generations are
- *    freed en masse. The final generation must be freed one-by-one.
- * 8. If the object is then written to again, its gray bit is set but it is
- *    not pushed onto the gray stack until it is turned dark gray.
+ *    freed en masse. The final generation is freed one-by-one and compacted.
+ * 8. If the object is then written to again (the "write barrier"):
+ *      - If the object is already light/dark gray, nothing happens. This is the
+ *        common case and the write barrier is essentially avoided entirely.
+ *      - If the object has already been marked (is black) it is reverted to dark gray
+ *        and rescanned.
+ *      - If the object is still white, then it simply gets set to light gray.
  * 9. For non-traversable objects, marking simply changes it from white to black.
  * 10. Every now and then, the oldest generation is collected with a standard sweep
  *     phase then compacted.
@@ -36,7 +40,17 @@
  * execution goes back to the runtime.
  */
 
-// Most GC constants are in arena.h
+// Other GC constants are in arena.h
+
+// Number of separate object heaps to manage
+#ifndef GC_NUM_GENERATIONS
+#define GC_NUM_GENERATIONS 3
+#endif
+
+// Number of objects to pop off the gray stack and mark during a GC pause.
+#ifndef GC_INCREMENTAL_STEP_COUNT
+#define GC_INCREMENTAL_STEP_COUNT 10
+#endif
 
 #include "arena.h"
 #include "value.h"

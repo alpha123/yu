@@ -2,6 +2,7 @@
  * Copyright (c) 2016 Peter Cannici
  * Licensed under the MIT (X11) license. See LICENSE.
  */
+
 #include "gc.h"
 
 YU_INLINE
@@ -182,7 +183,14 @@ bool scan_step(struct gc_info *gc) {
 }
 
 bool gc_scan_step(struct gc_info *gc) {
-    if (!scan_step(gc)) {
+    bool sweep = false;
+    for (u32 i = 0; i < GC_INCREMENTAL_STEP_COUNT; i++) {
+        if (!scan_step(gc)) {
+            sweep = true;
+            break;
+        }
+    }
+    if (sweep) {
         gc_sweep(gc);
         return true;
     }
