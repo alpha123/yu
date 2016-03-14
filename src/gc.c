@@ -112,17 +112,18 @@ void gc_barrier(struct gc_info *gc, value_handle val) {
     if (!boxed_value_is_gray(v)) {
         struct arena_handle *a = boxed_value_owner(v);
         boxed_value_set_gray(v, true);
-        if (arena_is_marked(a, v)) {
-            // Force a rescan of the written to object
+        // Force a rescan of the touched object
+        if (arena_is_marked(a, v))
             push_gray(gc, v);
-            // TODO while it works just fine, it's not very clean nor
-            // understandable to unmark the value here.
-            arena_unmark(a, v);
-        }
     }
 }
 
 void gc_set_gray(struct gc_info *gc, struct boxed_value *v) {
+    // Black objects shouldn't be pushed on the gray stack
+    // unless the write barrier reverts them to dark gray.
+    if (arena_is_marked(boxed_value_owner(v), v))
+        return;
+
     if (boxed_value_is_traversable(v)) {
         boxed_value_set_gray(v, true);
         push_gray(gc, v);
@@ -177,7 +178,7 @@ struct boxed_value *gc_next_gray(struct gc_info *gc) {
 static
 bool scan_step(struct gc_info *gc) {
     struct boxed_value *v = gc_next_gray(gc);
-    if (v && !arena_is_marked(boxed_value_owner(v), v))
+    if (v)
         gc_mark(gc, v);
     return !!v;
 }
