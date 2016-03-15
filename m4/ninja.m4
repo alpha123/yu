@@ -31,8 +31,7 @@ cflags = CFLAGS $include_dirs
 ar = ar
 
 libs = LIBS
-lib_dirs = LIB_DIRS
-link_flags =
+link_flags = LINK_FLAGS
 
 rule cc
   command = $cc -MMD -MT $out -MF $out.d $cflags -c $in -o $out
@@ -44,7 +43,7 @@ rule ar
   description = Creating static library $out
 
 rule ld
-  command = $cc $link_flags $lib_dirs $in -o $out $libs
+  command = $cc $link_flags $in -o $out $libs
   description = Linking $out
 
 
@@ -58,4 +57,4 @@ link_static(`SFMT/libsfmt.a', `SFMT/SFMT.o')
 link_static(`utf8proc/libutf8proc.a', `utf8proc/*.o')
 
 link_out(`test/test', `src/*.o test/*.o') | SFMT/libsfmt.a utf8proc/libutf8proc.a
-  link_flags = -Wl,-Ttest/test.ld
+  link_flags = -Wl,-Ttest/test.ld $link_flags

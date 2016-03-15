@@ -1,7 +1,11 @@
+# Options meant to be set on the command line, see the help rule for
+# some descriptions.
+
+COVERAGE ?= no
 DEBUG ?= yes
 DMALLOC ?= no
-PROFILE ?= no
 PREFIX ?= /usr/local/bin
+PROFILE ?= no
 
 INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -I.
 LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
@@ -41,6 +45,11 @@ else
     CTAGS ?= ctags
 endif
 
+ifeq ($(COVERAGE),yes)
+    override CFLAGS += -fprofile-arcs -ftest-coverage
+    override LINK_FLAGS += -fprofile-arcs -ftest-coverage
+endif
+
 ifeq ($(DEBUG),yes)
     override CFLAGS += -gdwarf-4 -g3 -DDEBUG -Wall -Wextra -pedantic
 # GCC doesn't seem to build with ASAN on my machine
@@ -58,6 +67,7 @@ endif
 
 ifeq ($(PROFILE),yes)
     override CFLAGS += -O1 -pg
+    override LINK_FLAGS += -pg
 endif
 
 # See the comments for `clean`, but basically if --check (--check-symlink-times)
@@ -100,10 +110,13 @@ clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\03
 # "k" in $MAKEFLAGS.
 # Use bash instead of sh for the [[ ]] syntax for testing $MAKEFLAGS.
 	rm -f tags build.ninja src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
+	rm -f src/*.gcda src/*.gcno test/*.gcda test/*.gcno src/*.html test/*.html
 	@echo 'if [[ "$(MAKEFLAGS)" != *k* ]]; \
 	then \
 	  echo 'rm -f SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a'; \
 	  rm -f SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a; \
+	  echo 'rm -f SFMT/*.gcda SFMT/*.gcno utf8proc/*.gcda utf8proc/*.gcno'; \
+	  rm -f SFMT/*.gcda SFMT/*.gcno utf8proc/*.gcda utf8proc/*.gcno; \
 	fi' | bash
 
 
@@ -170,7 +183,7 @@ debug-test: debug-test-bin  ## Build and start debugging the test suite
 
 ninja:  ## Create a build file for the Ninja build system
 	$(M4) $(M4FLAGS) -DCC="$(CC)" -DCFLAGS="$(CFLAGS)" \
-	    -DINCLUDE_DIRS="$(INCLUDE_DIRS)" -DLIB_DIRS="$(LIB_DIRS)" \
+	    -DINCLUDE_DIRS="$(INCLUDE_DIRS)" -DLINK_FLAGS="$(LINK_FLAGS)" \
 	    -DLIBS="$(LIBS)" \
 	    m4/ninja.m4 > build.ninja
 
@@ -208,6 +221,7 @@ help:  ## Print a synopsis of useful Makefile targets
 	@sh -c "echo -e '  • \033[36mPREFIX\033[0m \033[37m($(PREFIX))\033[0m\tPrefix to install binaries' | expand -t 50"
 	@sh -c "echo -e '  • \033[36mPROFILE\033[0m \033[37m($(PROFILE))\033[0m\tInstrument binaries for profiling' | expand -t 50"
 	@sh -c "echo -e '  • \033[36mDMALLOC\033[0m \033[37m($(DMALLOC))\033[0m\tDebug memory issues and report on leaks (requires libdmalloc)' | expand -t 50"
+	@sh -c "echo -e '  • \033[36mCOVERAGE\033[0m \033[37m($(COVERAGE))\033[0m\tCompile with code coverage information for use with gcov' | expand -t 50"
 
 
 ######################################################################
