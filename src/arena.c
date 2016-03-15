@@ -176,54 +176,6 @@ void arena_empty(struct arena_handle *a) {
         arena_empty(a->next);
 }
 
-static
-u64 last_arena_obj(struct arena *ar, struct boxed_value **out_v) {
-    for (u32 i = elemcount(ar->markmap); i > 0; i--) {
-        u64 marked = ar->markmap[i-1];
-        if (marked != 0) {
-            u64 last_set = 64 - __builtin_clzll(marked) - 1 + 64 * (i - 1);
-            *out_v = ar->objs + last_set;
-            return last_set;
-        }
-    }
-    *out_v = NULL;
-    return 0;
-}
-
-
-static
-u64 last_obj(struct arena_handle *a, struct boxed_value **out_v, struct arena **out_a) {
-    u32 arena_count = 0;
-    struct arena_handle *ah = a;
-    while (ah) {
-        ++arena_count;
-        ah = ah->next;
-    }
-
-    struct arena **rev_stack = alloca(arena_count * sizeof(struct arena *));
-    ah = a;
-    while (ah) {
-        *rev_stack = ah->self;
-        ++rev_stack;
-        ah = ah->next;
-    }
-
-    for (u32 i = 0; i < arena_count; i++) {
-        --rev_stack;
-        struct arena *ar = *rev_stack;
-        struct boxed_value *val;
-        u64 idx = last_arena_obj(ar, &val);
-        if (val) {
-            *out_v = val;
-            *out_a = ar;
-            return idx;
-        }
-    }
-    *out_v = NULL;
-    *out_a = NULL;
-    return 0;
-}
-
 // TODO don't allocate another arena to compact to
 void arena_compact(struct arena_handle *a, arena_move_fn move_cb, void *data) {
     struct arena_handle *to = arena_new(a->mem_ctx), *first = a, *next;
