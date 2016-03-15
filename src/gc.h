@@ -55,14 +55,8 @@
 #include "arena.h"
 #include "value.h"
 
-#define root_list_ptr_cmp(...) _fake()
-#define arena_gray_cmp(...) _fake()
-
 YU_SPLAYTREE(root_list, value_handle, root_list_ptr_cmp, true)
 YU_QUICKHEAP(arena_heap, struct arena_handle *, arena_gray_cmp, YU_QUICKHEAP_MAXHEAP)
-
-#undef root_list_ptr_cmp
-#undef arena_gray_cmp
 
 struct gc_handle_set {
     struct boxed_value *handles[1023];
