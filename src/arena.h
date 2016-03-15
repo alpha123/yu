@@ -28,13 +28,29 @@
  *    +---------------------------------------------------+
  */
 
-#ifndef GC_ARENA_NUM_OBJECTS
-#define GC_ARENA_NUM_OBJECTS 2048
+// TODO arenas could be more space efficient if the gray
+// queue and mark map were arrays of u8 instead of u64.
+// The number of objects must be a multiple of the size in
+// bits of the integer type used for the bitmaps, so u64
+// restricts our options a bit.
+
+#ifndef GC_ARENA_SIZE
+#define GC_ARENA_SIZE 65536
 #endif
 
-#if (GC_ARENA_NUM_OBJECTS & (GC_ARENA_NUM_OBJECTS - 1)) != 0
-#error GC_ARENA_NUM_OBJECTS must be a power of 2
+#if (GC_ARENA_SIZE & (GC_ARENA_SIZE - 1)) != 0
+#error Arena size must be a power of 2
 #endif
+
+#if GC_ARENA_SIZE < 4096
+#error Minimum arena size is 4KiB
+#endif
+
+#if GC_ARENA_SIZE < 8192
+#warning Arena sizes under 8KiB are inefficient
+#endif
+
+#define GC_ARENA_NUM_OBJECTS (GC_ARENA_SIZE/sizeof(struct boxed_value)/64*64)
 
 #define GC_BITMAP_SIZE (GC_ARENA_NUM_OBJECTS/8)
 
@@ -45,7 +61,6 @@ struct arena_handle {
     struct arena * restrict self;
     struct arena_handle * restrict next;
     struct arena_handle *next_gen;
-    u8 generation;
 };
 
 struct arena {
