@@ -62,7 +62,8 @@ TEST(alloc_val)
 #ifdef TEST_FAST
     PT_ASSERT_EQ(acount, 1u);
 #else
-    PT_ASSERT_EQ(acount, valcnt/GC_ARENA_NUM_OBJECTS);
+    u32 num_arenas = 1 + (valcnt - 1) / GC_ARENA_NUM_OBJECTS;
+    PT_ASSERT_EQ(acount, num_arenas);
 #endif
 END(alloc_val)
 
