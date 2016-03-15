@@ -1,11 +1,12 @@
 DEBUG ?= yes
+DMALLOC ?= no
+PROFILE ?= no
+PREFIX ?= /usr/local/bin
 
 INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -I.
 LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
 LIBS := -lmpfr -lgmp -lm -l:libsfmt.a -l:libutf8proc.a
 ASAN_FLAGS := -fsanitize=address -O1 -fno-optimize-sibling-calls -fno-omit-frame-pointer
-
-PREFIX ?= /usr/local/bin
 
 SFMT_MEXP ?= 19937
 
@@ -16,9 +17,9 @@ override LINK_FLAGS += $(LIB_DIRS)
 # cgdb <http://cgdb.github.io/> is a more convenient ncurses frontend
 # for gdb. Unlike gdb -tui it does syntax coloring and stuff.
 ifneq ($(shell which cgdb),)
-	DB ?= cgdb
+    DB ?= cgdb
 else
-	DB ?= gdb
+    DB ?= gdb
 endif
 
 # Force GNU M4 if available.
@@ -43,11 +44,20 @@ endif
 ifeq ($(DEBUG),yes)
     override CFLAGS += -gdwarf-4 -g3 -DDEBUG -Wall -Wextra -pedantic
 # GCC doesn't seem to build with ASAN on my machine
-    ifneq ($(findstring clang,$(CC)),)
-	CFLAGS += $(ASAN_FLAGS)
-    endif
+ifneq ($(findstring clang,$(CC)),)
+    CFLAGS += $(ASAN_FLAGS)
+endif
 else
-    override CFLAGS += -DNDEBUG -Ofast -ftree-vectorize
+    override CFLAGS += -DNDEBUG -O3 -ffast-math -ftree-vectorize
+endif
+
+ifeq ($(DMALLOC),yes)
+    override CFLAGS += -DDMALLOC -DTEST_ALLOC=4
+    LIBS += -ldmalloc
+endif
+
+ifeq ($(PROFILE),yes)
+    override CFLAGS += -O1 -pg
 endif
 
 # See the comments for `clean`, but basically if --check (--check-symlink-times)
@@ -66,7 +76,7 @@ TEST_OBJS := $(TEST_SRCS:.c=.o)
 .PHONY: all clean test tags
 
 all:
-	@echo "Plot twist: There is no interpreter yet.  ̀(•́︿•̀)ʹ"
+	@echo "There is no interpreter yet.  ̀(•́︿•̀)ʹ"
 
 test/%.o: test/%.c
 	$(CC) $(subst std=c99,std=c11,$(CFLAGS)) $(INCLUDE_DIRS) -c $< -o $@
@@ -196,6 +206,8 @@ help:  ## Print a synopsis of useful Makefile targets
 	@sh -c "echo -e 'Options (default):'"
 	@sh -c "echo -e '  • \033[36mDEBUG\033[0m \033[37m($(DEBUG))\033[0m\tBuild with debug or release flags' | expand -t 50"
 	@sh -c "echo -e '  • \033[36mPREFIX\033[0m \033[37m($(PREFIX))\033[0m\tPrefix to install binaries' | expand -t 50"
+	@sh -c "echo -e '  • \033[36mPROFILE\033[0m \033[37m($(PROFILE))\033[0m\tInstrument binaries for profiling' | expand -t 50"
+	@sh -c "echo -e '  • \033[36mDMALLOC\033[0m \033[37m($(DMALLOC))\033[0m\tDebug memory issues and report on leaks (requires libdmalloc)' | expand -t 50"
 
 
 ######################################################################

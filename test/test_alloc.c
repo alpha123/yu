@@ -72,7 +72,7 @@ TEST(free_all)
     // f/fs/s like above, since it's been freed.
     // Instead re-create it and make sure it got rid
     // of all the other junk.
-    // TODO figure out how to test if f/fs/n are actually
+    // TODO figure out how to test if f/fs/s are actually
     // free. Until then, Valgrind.
     sys_alloc_ctx_init(&ctx);
     PT_ASSERT(!sysmem_tbl_get((sysmem_tbl *)ctx.adata, f, NULL));
@@ -103,4 +103,10 @@ TEST(alloc_aligned)
     yu_free(&ctx, n);
 END(alloc_aligned)
 
+#if TEST_ALLOC == TEST_USE_SYS_ALLOC
+// Skip this test suite if we aren't defined to use the system allocator.
+// We rely on some internals of sys_alloc to check that things have been freed.
+
 SUITE(alloc, LIST_ALLOC_TESTS)
+
+#endif

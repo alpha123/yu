@@ -5,7 +5,7 @@
 #define SETUP \
     yu_memctx_t mctx; \
     yu_buf_ctx ctx; \
-    sys_alloc_ctx_init(&mctx); \
+    TEST_GET_ALLOCATOR(&mctx); \
     yu_buf_ctx_init(&ctx, &mctx);
 
 #define TEARDOWN \

@@ -7,6 +7,7 @@
 
 #include "yu_common.h"
 #include "bump_alloc.h"
+#include "debug_alloc.h"
 #include "internal_alloc.h"
 #include "sys_alloc.h"
 #include "ptest.h"
@@ -20,6 +21,7 @@
 #define TEST_USE_SYS_ALLOC 1
 #define TEST_USE_INTERNAL_ALLOC 2
 #define TEST_USE_BUMP_ALLOC 3
+#define TEST_USE_DEBUG_ALLOC 4
 
 #ifndef TEST_ALLOC
 #define TEST_ALLOC TEST_USE_SYS_ALLOC
@@ -38,6 +40,18 @@
 
 #define TEST_GET_INTERNAL_ALLOCATOR(ctx) do{ \
     yu_err _allocerr = bump_alloc_ctx_init((ctx), BUMP_ALLOC_SIZE); \
+    assert(_allocerr == YU_OK); \
+}while(0)
+
+#elif TEST_ALLOC == TEST_USE_DEBUG_ALLOC
+
+#define TEST_GET_ALLOCATOR(ctx) do{ \
+    yu_err _allocerr = debug_alloc_ctx_init((ctx)); \
+    assert(_allocerr == YU_OK); \
+}while(0)
+
+#define TEST_GET_INTERNAL_ALLOCATOR(ctx) do{ \
+    yu_err _allocerr = debug_alloc_ctx_init((ctx)); \
     assert(_allocerr == YU_OK); \
 }while(0)
 

@@ -201,7 +201,7 @@ void arena_compact(struct arena_handle *a, arena_move_fn move_cb, void *data) {
         yu_free(a->mem_ctx, a->self);
         a->self = to->self;
         a->self->meta = a;
-        yu_free(to->mem_ctx, to);
+        yu_free(a->mem_ctx, to);
         to = next;
         a = a->next;
     }

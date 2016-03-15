@@ -277,3 +277,7 @@ u32 yu_ceil_log2(u64 n);
 #include "yu_str.h"
 
 #undef YU_INTERNAL_INCLUDES
+
+#ifdef DMALLOC
+#include <dmalloc.h>
+#endif

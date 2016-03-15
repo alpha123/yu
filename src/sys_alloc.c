@@ -87,7 +87,7 @@ yu_err sys_realloc(yu_memctx_t *ctx, void **ptr, size_t num, size_t elem_size, s
     // Unsure about the ISO C11 standard.
     //
     // For now, sys_realloc to a alignment of 0 on a pointer that was originally aligned
-    // with a non-0 argument to sys_align *MAY FAIL CATASTROPHICALLY AND WITHOUT WARNING*.
+    // with a non-0 argument to sys_alloc *MAY FAIL CATASTROPHICALLY AND WITHOUT WARNING*.
     // Fortunately, Yu never does that. ;-)
     // But this code is technically possibly broken.
 
