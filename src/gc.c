@@ -214,7 +214,7 @@ void move_ptr(struct boxed_value *old_ptr, struct boxed_value *new_ptr, void *da
 }
 
 void gc_sweep(struct gc_info *gc) {
-    gc->arenas[GC_NUM_GENERATIONS-1] = arena_compact(gc->arenas[GC_NUM_GENERATIONS-1], move_ptr, gc);
+    arena_compact(gc->arenas[GC_NUM_GENERATIONS-1], move_ptr, gc);
     for (u8 i = GC_NUM_GENERATIONS-1; i > 0; i--) {
         arena_promote(gc->arenas[i-1], move_ptr, gc);
         arena_empty(gc->arenas[i-1]);

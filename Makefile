@@ -41,7 +41,7 @@ else
 endif
 
 ifeq ($(DEBUG),yes)
-    override CFLAGS += -gdwarf-4 -g3 -Og -DDEBUG -Wall -Wextra -pedantic
+    override CFLAGS += -gdwarf-4 -g3 -DDEBUG -Wall -Wextra -pedantic
 # GCC doesn't seem to build with ASAN on my machine
     ifneq ($(findstring clang,$(CC)),)
 	CFLAGS += $(ASAN_FLAGS)

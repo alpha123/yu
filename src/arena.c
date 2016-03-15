@@ -172,20 +172,70 @@ void arena_empty(struct arena_handle *a) {
 #ifndef NDEBUG
     memset(ar->objs, 0, sizeof(ar->objs));
 #endif
+    if (a->next)
+        arena_empty(a->next);
 }
 
-// TODO don't use 2x memory just to compact
-struct arena_handle *arena_compact(struct arena_handle *a, arena_move_fn move_cb, void *data) {
-    struct arena_handle *to = arena_new(a->mem_ctx);
+static
+u64 last_arena_obj(struct arena *ar, struct boxed_value **out_v) {
+    for (u32 i = elemcount(ar->markmap); i > 0; i--) {
+        u64 marked = ar->markmap[i-1];
+        if (marked != 0) {
+            u64 last_set = 64 - __builtin_clzll(marked) - 1 + 64 * (i - 1);
+            *out_v = ar->objs + last_set;
+            return last_set;
+        }
+    }
+    *out_v = NULL;
+    return 0;
+}
+
+
+static
+u64 last_obj(struct arena_handle *a, struct boxed_value **out_v, struct arena **out_a) {
+    u32 arena_count = 0;
+    struct arena_handle *ah = a;
+    while (ah) {
+        ++arena_count;
+        ah = ah->next;
+    }
+
+    struct arena **rev_stack = alloca(arena_count * sizeof(struct arena *));
+    ah = a;
+    while (ah) {
+        *rev_stack = ah->self;
+        ++rev_stack;
+        ah = ah->next;
+    }
+
+    for (u32 i = 0; i < arena_count; i++) {
+        --rev_stack;
+        struct arena *ar = *rev_stack;
+        struct boxed_value *val;
+        u64 idx = last_arena_obj(ar, &val);
+        if (val) {
+            *out_v = val;
+            *out_a = ar;
+            return idx;
+        }
+    }
+    *out_v = NULL;
+    *out_a = NULL;
+    return 0;
+}
+
+// TODO don't allocate another arena to compact to
+void arena_compact(struct arena_handle *a, arena_move_fn move_cb, void *data) {
+    struct arena_handle *to = arena_new(a->mem_ctx), *first = a, *next;
     while (a) {
         struct arena *ar = a->self;
         u64 *marks = ar->markmap;
         for (u64 i = 0; i < GC_ARENA_NUM_OBJECTS; i++) {
             if (marks[i / 64] & (UINT64_C(1) << (i & 63))) {
-                struct boxed_value *v = arena_alloc_val(to);
-                memcpy(v, ar->objs + i, sizeof(struct boxed_value));
+                struct boxed_value *dest = arena_alloc_val(to);
+                memcpy(dest, ar->objs + i, sizeof(struct boxed_value));
                 if (move_cb)
-                    move_cb(ar->objs + i, v, data);
+                    move_cb(ar->objs + i, dest, data);
 #ifndef NDEBUG
                 memset(ar->objs + i, 0, sizeof(struct boxed_value));
 #endif
@@ -193,5 +243,17 @@ struct arena_handle *arena_compact(struct arena_handle *a, arena_move_fn move_cb
         }
         a = a->next;
     }
-    return to;
+    a = first;
+    while (to) {
+        next = to->next;
+        yu_free(a->mem_ctx, a->self);
+        a->self = to->self;
+        a->self->meta = a;
+        yu_free(to->mem_ctx, to);
+        to = next;
+        a = a->next;
+    }
+    // If there were fewer new arenas than old, we should reset the old ones
+    if (a)
+        arena_empty(a);
 }

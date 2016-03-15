@@ -146,7 +146,7 @@ TEST(write_barrier)
 END(write_barrier)
 
 TEST(sanity_check)
-    int valcnt = 30;
+    int valcnt = 3000;
     value_handle root = gc_alloc_val(&gc, VALUE_TABLE);
     gc_root(&gc, root);
     for (int i = 0; i < valcnt; i++) {
@@ -158,6 +158,31 @@ TEST(sanity_check)
     }
     while (!gc_scan_step(&gc)) { }
     PT_ASSERT_EQ(arena_allocated_count(b)+arena_allocated_count(c), (u32)valcnt+1);
+    gc_unroot(&gc, root);
+
+    value_handle v, w, x, y, z;
+    v = gc_alloc_val(&gc, VALUE_TUPLE);
+    gc_root(&gc, v);
+    gc_scan_step(&gc);
+    w = gc_alloc_val(&gc, VALUE_TUPLE);
+    gc_barrier(&gc, v);
+    value_deref(v)->v.tup[0] = value_from_ptr(w);
+    value_deref(w)->v.tup[0] = value_from_ptr(v);
+    value_deref(w)->v.tup[1] = value_from_ptr(w);
+    gc_scan_step(&gc);
+
+    x = gc_alloc_val(&gc, VALUE_TUPLE);
+    value_deref(x)->v.tup[0] = value_from_ptr(v);
+    y = gc_alloc_val(&gc, VALUE_TABLE);
+    value_table_put(value_deref(y)->v.tbl, value_from_int(10), value_from_ptr(x), NULL);
+    z = gc_alloc_val(&gc, VALUE_TABLE);
+    value_table_put(value_deref(z)->v.tbl, value_from_int(30), value_from_ptr(y), NULL);
+    gc_barrier(&gc, w);
+    value_deref(w)->v.tup[1] = value_from_ptr(x);
+
+    while (!gc_scan_step(&gc)) { }
+    // v, w, x alive, y, z, dead
+    PT_ASSERT_EQ(arena_allocated_count(b)+arena_allocated_count(c), 3u);
 END(sanity_check)
 
 

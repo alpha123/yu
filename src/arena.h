@@ -79,4 +79,4 @@ typedef void (* arena_move_fn)(struct boxed_value *, struct boxed_value *, void 
 void arena_promote(struct arena_handle *a, arena_move_fn move_cb, void *data);
 void arena_empty(struct arena_handle *a);
 
-struct arena_handle *arena_compact(struct arena_handle *a, arena_move_fn move_cb, void *data);
+void arena_compact(struct arena_handle *a, arena_move_fn move_cb, void *data);

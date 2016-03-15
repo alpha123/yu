@@ -31,6 +31,7 @@ static const u64 type_hashes[] = {
 };
 #undef BUILD_TYPE_TABLE
 
+// TODO hashing cyclic tuples overflows the stack
 static
 s32 tuple_hash1(value_t v, void *data) {
     u64 *h = data;

@@ -160,7 +160,7 @@ TEST(compact)
         v->v.fx = i;
         if (i & 1) arena_mark(a, v);
     }
-    a = arena_compact(a, NULL, NULL);
+    arena_compact(a, NULL, NULL);
     PT_ASSERT_EQ(arena_allocated_count(a), (u32)valcnt/2);
 
     bool contiguous = true;
