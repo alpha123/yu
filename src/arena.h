@@ -78,6 +78,9 @@ struct arena {
 struct arena_handle *arena_new(yu_memctx_t *mctx);
 void arena_free(struct arena_handle *a);
 
+typedef void (* arena_overflow_func)(struct arena_handle *, void *);
+
+struct boxed_value *arena_alloc_val_check(struct arena_handle *a, arena_overflow_func on_overflow, void *data);
 struct boxed_value *arena_alloc_val(struct arena_handle *a);
 
 u32 arena_allocated_count(struct arena_handle *a);

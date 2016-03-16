@@ -34,21 +34,29 @@ void arena_free(struct arena_handle *a) {
     yu_free(mctx, a);
 }
 
-struct boxed_value *arena_alloc_val(struct arena_handle *a) {
+struct boxed_value *arena_alloc_val_check(struct arena_handle *a, arena_overflow_func on_overflow, void *data) {
     struct arena *ar = a->self;
     if (YU_UNLIKELY(ar->next == ar->objs + GC_ARENA_NUM_OBJECTS)) {
-        struct arena_handle *next = arena_new(a->mem_ctx);
-        a->self = next->self;
-        next->self->meta = a;
-        next->self = ar;
-        ar->meta = next;
-        next->next_gen = a->next_gen;
-        next->next = a->next;
-        a->next = next;
-        ar = a->self;
+        // Give the callback the chance to free some space in this arena
+        // before we allocate a new one.
+        if (on_overflow == NULL || (on_overflow(a, data),ar->next == ar->objs + GC_ARENA_NUM_OBJECTS)) {
+            struct arena_handle *next = arena_new(a->mem_ctx);
+            a->self = next->self;
+            next->self->meta = a;
+            next->self = ar;
+            ar->meta = next;
+            next->next_gen = a->next_gen;
+            next->next = a->next;
+            a->next = next;
+            ar = a->self;
+        }
     }
     struct boxed_value *val = ar->next++;
     return val;
+}
+
+struct boxed_value *arena_alloc_val(struct arena_handle *a) {
+    return arena_alloc_val_check(a, NULL, NULL);
 }
 
 u32 arena_allocated_count(struct arena_handle *a) {

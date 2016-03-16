@@ -85,7 +85,8 @@ struct gc_info {
 
     yu_memctx_t *mem_ctx;
     struct arena_handle *active_gray; // Popped off the gray priority heap
-    u32 alloc_pressure_score;
+
+    u8 collecting_generation;
 };
 
 YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx);
@@ -106,3 +107,4 @@ struct boxed_value *gc_next_gray(struct gc_info *gc);
 bool gc_scan_step(struct gc_info *gc);
 
 void gc_sweep(struct gc_info *gc);
+void gc_full_collect(struct gc_info *gc);

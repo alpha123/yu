@@ -35,7 +35,7 @@ YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx) {
 
     gc->hs = yu_xalloc(gc->mem_ctx, 1, sizeof(struct gc_handle_set));
 
-    gc->alloc_pressure_score = 0;
+    gc->collecting_generation = 0;
     gc->active_gray = NULL;
 
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
@@ -75,8 +75,20 @@ value_handle gc_make_handle(struct gc_info *gc, struct boxed_value *v) {
     return h->handles;
 }
 
+static
+void collect_arena(struct arena_handle *a, void *data) {
+    struct gc_info *gc = data;
+    for (u8 i = 0; i < GC_NUM_GENERATIONS; i++) {
+        if (gc->arenas[i] == a) {
+            gc->collecting_generation = i;
+            break;
+        }
+    }
+    gc_full_collect(gc);
+}
+
 value_handle gc_alloc_val(struct gc_info *gc, value_type type) {
-    struct boxed_value *v = arena_alloc_val(gc->arenas[0]);
+    struct boxed_value *v = arena_alloc_val_check(gc->arenas[0], collect_arena, gc);
     boxed_value_set_type(v, type);
     boxed_value_set_gray(v, boxed_value_is_traversable(v));
     if (type == VALUE_TABLE) {
@@ -214,10 +226,14 @@ void move_ptr(struct boxed_value *old_ptr, struct boxed_value *new_ptr, void *da
 }
 
 void gc_sweep(struct gc_info *gc) {
-    arena_compact(gc->arenas[GC_NUM_GENERATIONS-1], move_ptr, gc);
-    for (u8 i = GC_NUM_GENERATIONS-1; i > 0; i--) {
-        arena_promote(gc->arenas[i-1], move_ptr, gc);
-        arena_empty(gc->arenas[i-1]);
+    u8 current_gen = gc->collecting_generation+1;
+    if (current_gen == GC_NUM_GENERATIONS) {
+        arena_compact(gc->arenas[GC_NUM_GENERATIONS-1], move_ptr, gc);
+        --current_gen;
+    }
+    while (current_gen--) {
+        arena_promote(gc->arenas[current_gen], move_ptr, gc);
+        arena_empty(gc->arenas[current_gen]);
     }
     // `promote` will have un-marked all root objects, so let's go ahead and do that again
     struct root_list_nodelist *n = gc->roots.nodes;
@@ -225,4 +241,8 @@ void gc_sweep(struct gc_info *gc) {
         gc_mark(gc, value_deref(n->n->dat));
         n = n->next;
     }
+}
+
+void gc_full_collect(struct gc_info *gc) {
+    while (!gc_scan_step(gc)) { }
 }

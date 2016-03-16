@@ -180,7 +180,11 @@ TEST(sanity_check)
     gc_barrier(&gc, w);
     value_deref(w)->v.tup[1] = value_from_ptr(x);
 
-    while (!gc_scan_step(&gc)) { }
+    gc.collecting_generation = GC_NUM_GENERATIONS-1;
+    gc_full_collect(&gc);
+    // Double collect to make sure the oldest generation is fully cleaned up
+    // so that we have an accurate count of living objects.
+    gc_full_collect(&gc);
     // v, w, x alive, y, z, dead
     PT_ASSERT_EQ(arena_allocated_count(b)+arena_allocated_count(c), 3u);
 END(sanity_check)
