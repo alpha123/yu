@@ -146,7 +146,11 @@ TEST(write_barrier)
 END(write_barrier)
 
 TEST(sanity_check)
-    int valcnt = 3000;
+#ifdef TEST_FAST
+    int valcnt = 2000;
+#else
+    int valcnt = 10000;
+#endif
     value_handle root = gc_alloc_val(&gc, VALUE_TABLE);
     gc_root(&gc, root);
     for (int i = 0; i < valcnt; i++) {
