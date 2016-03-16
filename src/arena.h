@@ -13,18 +13,20 @@
  * traversable objects and one for non-traversable objects. Objects are allocated with
  * a simple bump allocator.
  *
+ * Arenas contain N objects where N is the largest multiple of 64 that will fit in the
+ * configured GC_ARENA_SIZE/sizeof(boxed_value).
+ *
  * Assuming 8-byte pointers:
- * Arenas are 512 + 8 + 2048 * sizeof(boxed_value) bytes, arranged like so:
  * Traversable arena:
  *    +---------------------------------------------------+
- *    | gray queue (256 bytes)  | mark bitmap (256 bytes) |
+ *    | gray queue (N/8 bytes)  | mark bitmap (N/8 bytes) |
  *    +---------------------------------------------------+
  *    |     pointer to this arena's metadata (8 bytes)    |
  *    +---------------------------------------------------+
  *    |    pointer to next object to allocate (8 bytes)   |
  *    +---------------------------------------------------+
  *    |                   object space                    |
- *    |         2048 * sizeof(boxed_value) bytes          |
+ *    |           N * sizeof(boxed_value) bytes           |
  *    +---------------------------------------------------+
  */
 
@@ -32,7 +34,8 @@
 // queue and mark map were arrays of u8 instead of u64.
 // The number of objects must be a multiple of the size in
 // bits of the integer type used for the bitmaps, so u64
-// restricts our options a bit.
+// restricts our options a bit. On the other hand, it does
+// reduce loop iterations by 8x.
 
 #ifndef GC_ARENA_SIZE
 #define GC_ARENA_SIZE 65536
@@ -50,7 +53,7 @@
 #warning Arena sizes under 8KiB are inefficient
 #endif
 
-#define GC_ARENA_NUM_OBJECTS (GC_ARENA_SIZE/sizeof(struct boxed_value)/64*64)
+#define GC_ARENA_NUM_OBJECTS ((GC_ARENA_SIZE-sizeof(void *)*2)/sizeof(struct boxed_value)/64*64)
 
 #define GC_BITMAP_SIZE (GC_ARENA_NUM_OBJECTS/8)
 
