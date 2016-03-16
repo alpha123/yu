@@ -65,6 +65,8 @@ else
     CTAGS ?= ctags
 endif
 
+FLEX ?= flex
+
 ifeq ($(COVERAGE),yes)
     override CFLAGS += -fprofile-arcs -ftest-coverage
     override LINK_FLAGS += -fprofile-arcs -ftest-coverage
@@ -110,6 +112,12 @@ all:
 
 test/%.o: test/%.c
 	$(CC) $(subst std=c99,std=c11,$(CFLAGS)) $(INCLUDE_DIRS) -c $< -o $@
+
+src/lex.i: src/lex.l
+	$(FLEX) -o $@ $<
+
+src/lexer.o: src/lexer.c src/lex.i
+	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCLUDE_DIRS) -c $< -o $@

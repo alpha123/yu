@@ -28,8 +28,6 @@ cc = CC
 include_dirs = INCLUDE_DIRS
 cflags = CFLAGS $include_dirs
 
-ar = ar
-
 libs = LIBS
 link_flags = LINK_FLAGS
 
@@ -39,13 +37,19 @@ rule cc
   depfile = $out.d
 
 rule ar
-  command = $ar crs $out $in
+  command = ar crs $out $in
   description = Creating static library $out
 
 rule ld
   command = $cc $link_flags $in -o $out $libs
   description = Linking $out
 
+rule lex
+  command = flex -o $out $in
+  description = Flexing
+
+
+build src/lex.i: lex src/lex.l
 
 build_objs(`src/*.c')
 build_objs(`test/*.c', `cflags = patsubst(CFLAGS, `-std=c99', `-std=c11') $include_dirs')
@@ -56,5 +60,5 @@ build_objs(`utf8proc/utf8proc*.c', `cflags = -include utf8proc/utf8proc.h $cflag
 link_static(`SFMT/libsfmt.a', `SFMT/SFMT.o')
 link_static(`utf8proc/libutf8proc.a', `utf8proc/*.o')
 
-link_out(`test/test', `src/*.o test/*.o') | SFMT/libsfmt.a utf8proc/libutf8proc.a
+link_out(`test/test', `src/*.o test/*.o') | SFMT/libsfmt.a utf8proc/libutf8proc.a src/lex.i
   link_flags = -Wl,-Ttest/test.ld $link_flags
