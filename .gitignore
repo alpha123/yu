@@ -14,3 +14,4 @@ SFMT/test-*
 include/build_debug_templates.h
 build.ninja
 .ninja*
+.config

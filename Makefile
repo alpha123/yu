@@ -1,11 +1,25 @@
 # Options meant to be set on the command line, see the help rule for
 # some descriptions.
 
+CONFIG_FILE := .config
+
+ifeq ($(wildcard $(CONFIG_FILE)),)
+
 COVERAGE ?= no
 DEBUG ?= yes
 DMALLOC ?= no
 PREFIX ?= /usr/local/bin
 PROFILE ?= no
+
+else
+    CONF_VARS := COVERAGE DEBUG DMALLOC PREFIX PROFILE =
+    CONFIG := $(filter-out $(CONF_VARS),$(subst =, = ,$(sort $(shell cat $(CONFIG_FILE)))))
+    COVERAGE := $(word 1, $(CONFIG))
+    DEBUG := $(word 2, $(CONFIG))
+    DMALLOC := $(word 3, $(CONFIG))
+    PREFIX := $(word 4, $(CONFIG))
+    PROFILE := $(word 5, $(CONFIG))
+endif
 
 INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -I.
 LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
@@ -17,6 +31,12 @@ SFMT_MEXP ?= 19937
 override CFLAGS += -std=c99 -DSFMT_MEXP=$(SFMT_MEXP)
 
 override LINK_FLAGS += $(LIB_DIRS)
+
+$(file  >.config,COVERAGE=$(COVERAGE))
+$(file >>.config,DEBUG=$(DEBUG))
+$(file >>.config,DMALLOC=$(DMALLOC))
+$(file >>.config,PREFIX=$(PREFIX))
+$(file >>.config,PROFILE=$(PROFILE))
 
 # cgdb <http://cgdb.github.io/> is a more convenient ncurses frontend
 # for gdb. Unlike gdb -tui it does syntax coloring and stuff.
