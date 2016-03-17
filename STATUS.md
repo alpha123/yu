@@ -4,7 +4,7 @@ Implemented
 (This stuff may still be a work-in-progress, but significant parts are done)
 
 - Nanboxed value representation
-- Incremental, quad-color copying generational garbage collector
+- Copying, quad-color incremental, generational garbage collector
 - Arena-based bump allocator for heap-allocated values
 - Interned, immutable byte buffers
 - Unicode-correct String implementation
@@ -13,16 +13,16 @@ Implemented
 
 In-progress
 -----------
-- Parser (there's very little syntax, but there are a few things such as stack
-  effect and word definitions).
+- Stack checker
 
 Unimplemented
 -------------
 
+- Parser (there's very little syntax, but there are a few things such as stack
+  effect and word definitions).
 - Codegen
 - Numeric tower
 - VMgen-based stack interpreter
-- Stack checker
 - libffi-based cffi
 - Standard library
 
@@ -35,3 +35,6 @@ Future
 - Investigate the potential of an Interprocedural SSA interpreter
   + Generate ISSA bytecode and interpret it directly while also using it to JIT
   + Could also do constant-prop, CSE, etc online
+  + Top few stack items would be the "variables" for purposes of SSA; certain
+    functions like `dip` would be assignments to non-top slots.
+    - Makes register allocation for stack caching easier.
