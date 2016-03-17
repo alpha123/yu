@@ -12,6 +12,17 @@
 #include "sys_alloc.h"
 #include "ptest.h"
 
+#define ASSERT_YU_STR_EQ(expr, expect) do{ \
+    yu_str _actual = (expr), _hope = (expect); \
+    char *_msg; \
+    asprintf(&_msg, "%s yu_str_eq %s: Expected '%.*s', got '%.*s'.", \
+        #expr, #expect, \
+        (int)yu_str_len(_hope), _hope, \
+        (int)yu_str_len(_actual), _actual); \
+    pt_assert_run(yu_str_cmp(_actual,_hope)==0, _msg, __func__, __FILE__, __LINE__); \
+    free(_msg); \
+}while(0)
+
 #define SUITE_NAME(name) YU_NAME(suite, name)
 #define TEST_NAME(name) YU_NAME(test, name)
 

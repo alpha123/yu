@@ -6,16 +6,16 @@
 
 #define YY_EXTRA_TYPE struct lexer *
 
-#define EMIT_OFFSET(type, offs) do{ \
+#define EMIT_OFFSET(type, off_begin, off_end) do{ \
     if (type != TOK_ERR && type != TOK_STR && \
-        yu_str_new(&yyextra->str_ctx, (unsigned char *)yytext+offs, yyleng-offs, &yyextra->active_s) != YU_OK) { \
+        yu_str_new(&yyextra->str_ctx, (unsigned char *)yytext+off_begin, yyleng-off_begin-off_end, &yyextra->active_s) != YU_OK) { \
         yyextra->err_msg = "Internal lexer failure—bad UTF8-encoded input?"; \
         return TOK_ERR; \
     } \
     return type; \
 }while(0)
 
-#define EMIT(type) EMIT_OFFSET(type, 0)
+#define EMIT(type) EMIT_OFFSET(type,0,0)
 
 #define ERROR(msg) do{ \
     yyextra->err_msg = msg; \
@@ -45,7 +45,7 @@
 
 %}
 
-NAME	[^[:digit:][:space:]\(\)\[\]\{:.$"!\-][^[:space:]\[\]\{\}\(\):.$"]*\{?
+NAME	[^[:digit:][:space:]\(\)\[\]\{\}:.$"'!\;][^[:space:]\[\]\{\}\(\):.$";]*\{?
 
 %x STR RAW_STR
 
@@ -75,22 +75,25 @@ NAME	[^[:digit:][:space:]\(\)\[\]\{:.$"!\-][^[:space:]\[\]\{\}\(\):.$"]*\{?
 <STR>\\u\{				ERROR("Invalid Unicode escape sequence");
 <STR>[^\\\n"]+				S_CAT(yytext,yyleng);
 <STR>\"					yy_pop_state(yyscanner); EMIT(TOK_STR);
-{NAME}\.{NAME}				EMIT(TOK_WORD);
-{NAME}:					EMIT(TOK_DEF);
-{NAME}					EMIT(TOK_WORD);
-\.{NAME}				EMIT(TOK_LENS);
-\.[[:digit:]]+				EMIT(TOK_LENS);
-\.					EMIT(TOK_WORD);
-!{NAME}					EMIT_OFFSET(TOK_PRAGMA, 1);
-\${NAME}				EMIT_OFFSET(TOK_TAG, 1);
-\'{NAME}				EMIT(TOK_WQUOT);
 -?[[:digit:]]+\.[[:digit:]]+		EMIT(TOK_REAL);
 -?[[:digit:]]+				EMIT(TOK_INT);
-::					EMIT(TOK_STACK_DEF);
+{NAME}\.{NAME}				EMIT(TOK_WORD);
+{NAME}::				EMIT_OFFSET(TOK_STACK_DEF,0,2);
+{NAME}:					EMIT_OFFSET(TOK_DEF,0,1);
+{NAME}					EMIT(TOK_WORD);
+\.{NAME}				EMIT_OFFSET(TOK_LENS,1,0);
+\.[[:digit:]]+				EMIT_OFFSET(TOK_LENS,1,0);
+\.					EMIT(TOK_WORD);
+;					EMIT(TOK_WORD);
+!{NAME}					EMIT_OFFSET(TOK_PRAGMA,1,0);
+\${NAME}				EMIT_OFFSET(TOK_TAG,1,0);
+\'{NAME}				EMIT_OFFSET(TOK_WQUOT,1,0);
 \[					EMIT(TOK_QUOT_START);
 \]					EMIT(TOK_QUOT_END);
-\(					EMIT(TOK_TAGV_START);
-\)					EMIT(TOK_TAGV_END);
+\(					EMIT(TOK_TUPLE_START);
+\)					EMIT(TOK_TUPLE_END);
+\{					EMIT(TOK_TABLE_START);
+\}					EMIT(TOK_TABLE_END);
 
 %%
 

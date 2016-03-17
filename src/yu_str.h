@@ -57,6 +57,8 @@ u64 yu_str_len(yu_str s) {
     return YU_STR_DAT(s)->egc_count;
 }
 
+s32 yu_str_cmp(yu_str a, yu_str b);
+
 YU_ERR_RET yu_str_at(yu_str s, s64 idx, yu_str *char_out);
 
 YU_ERR_RET yu_str_cat(yu_str a, yu_str b, yu_str *out);

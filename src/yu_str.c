@@ -183,6 +183,15 @@ YU_ERR_RET yu_str_at(yu_str s, s64 idx, yu_str *char_out) {
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
 }
 
+s32 yu_str_cmp(yu_str a, yu_str b) {
+    // Use buf_len; it doesn't require any calculation and if str_len differs, buf_len will too.
+    s32 len_diff = yu_buf_len(a) > yu_buf_len(b) - (yu_buf_len(a) < yu_buf_len(b));
+    if (len_diff)
+        return len_diff;
+    // OK to memcmp since strings are stored in a consistent format (utf8, nfc)
+    return memcmp(a, b, yu_buf_len(a));
+}
+
 YU_ERR_RET yu_str_cat(yu_str a, yu_str b, yu_str *out) {
     YU_ERR_DEFVAR
 

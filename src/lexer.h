@@ -22,8 +22,10 @@
     X(TOK_WQUOT, "single-word quotation") \
     X(TOK_QUOT_START, "quotation start") \
     X(TOK_QUOT_END, "quotation end") \
-    X(TOK_TAGV_START, "tagged value start") \
-    X(TOK_TAGV_END, "tagged value end")
+    X(TOK_TUPLE_START, "tuple literal start") \
+    X(TOK_TUPLE_END, "tuple literal end") \
+    X(TOK_TABLE_START, "table literal start") \
+    X(TOK_TABLE_END, "table literal end")
 
 DEF_ENUM(token_type, LIST_TOKEN_TYPES)
 

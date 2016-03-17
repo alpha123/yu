@@ -9,11 +9,12 @@ Implemented
 - Interned, immutable byte buffers
 - Unicode-correct String implementation
 - Miscellaneous type-safe efficient data structures
+- Lexer
 
 In-progress
 -----------
-- Tuning GC
-- Lexer
+- Parser (there's very little syntax, but there are a few things such as stack
+  effect and word definitions).
 
 Unimplemented
 -------------
