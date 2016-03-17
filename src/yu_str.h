@@ -48,7 +48,9 @@ void yu_str_ctx_free(yu_str_ctx *ctx);
 YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 * restrict utf8_nfc, u64 byte_len, yu_str * restrict out);
 // Like yu_str_adopt, but composes utf8 to NFC and copies it.
 YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 * restrict utf8, u64 len, yu_str * restrict out);
-YU_ERR_RET yu_str_new_c(yu_str_ctx *ctx, const char * restrict cstr, yu_str * restrict out);
+YU_ERR_RET yu_str_new_z(yu_str_ctx *ctx, const char * restrict cstr, yu_str * restrict out);
+
+void yu_str_free(yu_str s);
 
 YU_INLINE
 u64 yu_str_len(yu_str s) {
@@ -58,3 +60,4 @@ u64 yu_str_len(yu_str s) {
 YU_ERR_RET yu_str_at(yu_str s, s64 idx, yu_str *char_out);
 
 YU_ERR_RET yu_str_cat(yu_str a, yu_str b, yu_str *out);
+YU_ERR_RET yu_str_cat_z(yu_str a, const char * restrict cstr, yu_str *out);

@@ -245,13 +245,13 @@ TEST(equal)
 
     boxed_value_set_type(b, VALUE_STR);
     yu_str s;
-    yu_err err = yu_str_new_c(&sctx, "silver soul", &s);
+    yu_err err = yu_str_new_z(&sctx, "silver soul", &s);
     assert(err == YU_OK);
     b->v.s = s;
     value_t y = value_from_ptr(&b);
     PT_ASSERT(!value_eq(x, y));
 
-    err = yu_str_new_c(&sctx, "silver soul", &s);
+    err = yu_str_new_z(&sctx, "silver soul", &s);
     assert(err == YU_OK);
     struct boxed_value *c = arena_alloc_val(a);
     boxed_value_set_type(c, VALUE_STR);

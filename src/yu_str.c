@@ -4,8 +4,13 @@ static
 struct yu_str_dat *get_strlist_node(yu_str_ctx *ctx) {
     YU_ERR_DEFVAR
     for (size_t i = 0; i < ctx->strdatpool_len; i++) {
-        if (!ctx->strdatpool[i].is_used)
+        if (!ctx->strdatpool[i].is_used) {
+            if (ctx->strdatpool[i].str != NULL) {
+                yu_buf_free(ctx->strdatpool[i].str);
+                ctx->strdatpool[i].str = NULL;
+            }
             return ctx->strdatpool + i;
+        }
     }
     size_t old_sz = ctx->strdatpool_len;
     ctx->strdatpool_len *= 2;
@@ -114,6 +119,9 @@ YU_ERR_RET yu_str_adopt(yu_str_ctx *ctx, const u8 * restrict utf8_nfc, u64 byte_
         // This string already exists, which means we can (and should) free
         // utf8_nfc (we own him now).
         yu_free(ctx->bufctx.memctx, (void *)utf8_nfc);  // shut up clang
+        // In case the string has been ‘freed’ (i.e. set to unused, but still
+        // holding on to allocated memory), say we're using it again.
+        ((struct yu_str_dat *)yu_buf_get_udata(*out))->is_used = true;
     }
     return 0;
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
@@ -145,8 +153,14 @@ YU_ERR_RET yu_str_new(yu_str_ctx *ctx, const u8 * restrict utf8, u64 len, yu_str
     return yu_local_err;
 }
 
-YU_ERR_RET yu_str_new_c(yu_str_ctx *ctx, const char * restrict cstr, yu_str * restrict out) {
+YU_ERR_RET yu_str_new_z(yu_str_ctx *ctx, const char * restrict cstr, yu_str * restrict out) {
     return yu_str_new(ctx, (const u8 *)cstr, strlen(cstr), out);
+}
+
+void yu_str_free(yu_str s) {
+    // Memory from `s` will be freed later if requested; until then keep it around
+    // in case the same string is requested again.
+    YU_STR_DAT(s)->is_used = false;
 }
 
 YU_ERR_RET yu_str_at(yu_str s, s64 idx, yu_str *char_out) {
@@ -181,5 +195,16 @@ YU_ERR_RET yu_str_cat(yu_str a, yu_str b, yu_str *out) {
     memcpy(contents + al, b, bl);
     YU_CHECK(yu_str_adopt(YU_STR_DAT(a)->ctx, contents, al + bl, out));
     return 0;
+    YU_ERR_DEFAULT_HANDLER(yu_local_err)
+}
+
+YU_ERR_RET yu_str_cat_z(yu_str a, const char * restrict cstr, yu_str *out) {
+    YU_ERR_DEFVAR
+
+    yu_str temp;
+    YU_CHECK(yu_str_new_z(YU_STR_DAT(a)->ctx, cstr, &temp));
+    YU_CHECK(yu_str_cat(a, temp, out));
+    yu_str_free(temp);
+
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
 }

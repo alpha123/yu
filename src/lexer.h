@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) 2016 Peter Cannici
+ * Licensed under the MIT (X11) license. See LICENSE.
+ */
+
 #pragma once
 
 #include "yu_common.h"
@@ -11,7 +16,9 @@
     X(TOK_STR, "string") \
     X(TOK_WORD, "word") \
     X(TOK_LENS, "lens") \
+    X(TOK_PRAGMA, "pragma") \
     X(TOK_DEF, "definition") \
+    X(TOK_STACK_DEF, "stack effect definition") \
     X(TOK_WQUOT, "single-word quotation") \
     X(TOK_QUOT_START, "quotation start") \
     X(TOK_QUOT_END, "quotation end") \
@@ -21,22 +28,28 @@
 DEF_ENUM(token_type, LIST_TOKEN_TYPES)
 
 struct token {
+    yu_str s;
     token_type what;
-    unsigned char *s;
-    u64 len;
 };
 
 struct lexer {
+    yu_str_ctx str_ctx;
+    yu_memctx_t *mem_ctx;
+
     void *scanner;
     void *buf;
     FILE *in;
+
+    yu_str active_s;
+
+    char *err_msg;
 };
 
-YU_ERR_RET lexer_open(struct lexer *lex, FILE *in);
+YU_ERR_RET lexer_open(struct lexer *lex, FILE *in, yu_memctx_t *mctx);
 void lexer_close(struct lexer *lex);
 bool lexer_next(struct lexer *lex, struct token *out);
 
 void lexer_free_token(struct lexer *lex, struct token *t);
 
 
-void print_token(struct token *t, FILE *out);
+const char *lexer_get_token_type_name(token_type type);

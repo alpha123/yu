@@ -1,13 +1,18 @@
-#if 0
+/**
+ * Copyright (c) 2016 Peter Cannici
+ * Licensed under the MIT (X11) license. See LICENSE.
+ */
 
 #include "lexer.h"
 
 #include "lex.i"
 
-YU_ERR_RET lexer_open(struct lexer *lex, FILE *in) {
+YU_ERR_RET lexer_open(struct lexer *lex, FILE *in, yu_memctx_t *mctx) {
     YU_ERR_DEFVAR
+    lex->mem_ctx = mctx;
+    yu_str_ctx_init(&lex->str_ctx, mctx);
     lex->in = in;
-    YU_THROWIF(yylex_init(&lex->scanner) != 0, YU_ERR_UNKNOWN_FATAL);
+    YU_THROWIF(yylex_init_extra(lex, &lex->scanner) != 0, YU_ERR_UNKNOWN_FATAL);
     lex->buf = yy_create_buffer(in, YY_BUF_SIZE, lex->scanner);
     YU_THROWIFNULL(lex->buf, YU_ERR_UNKNOWN_FATAL);
     yy_switch_to_buffer(lex->buf, lex->scanner);
@@ -15,6 +20,7 @@ YU_ERR_RET lexer_open(struct lexer *lex, FILE *in) {
 }
 
 void lexer_close(struct lexer *lex) {
+    yu_str_ctx_free(&lex->str_ctx);
     fclose(lex->in);
     yy_delete_buffer(lex->buf, lex->scanner);
     yylex_destroy(lex->scanner);
@@ -22,28 +28,16 @@ void lexer_close(struct lexer *lex) {
 
 bool lexer_next(struct lexer *lex, struct token *out) {
     if ((out->what = yylex(lex->scanner))) {
-        out->len = yyget_leng(lex->scanner);
-        out->s = calloc(out->len + 1, 1);
-        if (out->s == NULL) {
-            out->what = TOK_ERR;
-            out->s = (unsigned char *)"failed to allocate memory";
-            return false;
-        }
-        memcpy(out->s, yyget_text(lex->scanner), out->len);
-        // s[len] == 0 because we allocated with calloc
+        out->s = lex->active_s;
         return true;
     }
     return false;
 }
 
-void lexer_free_token(struct lexer *lex, struct token *t) {
-    if (t->what != TOK_ERR)
-        free(t->s);
+void lexer_free_token(struct lexer * YU_UNUSED(lex), struct token * YU_UNUSED(t)) {
 }
 
-
-static
-const char *get_type_desc(token_type type) {
+const char *lexer_get_token_type_name(token_type type) {
 #define CASE_TYPE(t, desc) case t: return desc;
     switch (type) {
     LIST_TOKEN_TYPES(CASE_TYPE)
@@ -51,9 +45,3 @@ const char *get_type_desc(token_type type) {
     }
 #undef CASE_TYPE
 }
-
-void print_token(struct token *t, FILE *out) {
-    fprintf(out, "TOKEN (%" PRIu64 ") %.*s %s ;", t->len, (s32)t->len, t->s, get_type_desc(t->what));
-}
-
-#endif
