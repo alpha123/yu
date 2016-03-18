@@ -4,13 +4,11 @@
 CONFIG_FILE := .config
 
 ifeq ($(wildcard $(CONFIG_FILE)),)
-
-COVERAGE ?= no
-DEBUG ?= yes
-DMALLOC ?= no
-PREFIX ?= /usr/local/bin
-PROFILE ?= no
-
+    COVERAGE ?= no
+    DEBUG ?= yes
+    DMALLOC ?= no
+    PREFIX ?= /usr/local/bin
+    PROFILE ?= no
 else
     CONF_VARS := COVERAGE DEBUG DMALLOC PREFIX PROFILE =
     CONFIG := $(filter-out $(CONF_VARS),$(subst =, = ,$(sort $(shell cat $(CONFIG_FILE)))))
@@ -21,9 +19,9 @@ else
     PROFILE := $(word 5, $(CONFIG))
 endif
 
-INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -I.
-LIB_DIRS := -L/usr/local/lib -LSFMT -Lutf8proc
-LIBS := -lmpfr -lgmp -lm -l:libsfmt.a -l:libutf8proc.a
+INCLUDE_DIRS := -I/usr/local/include -I/usr/local/include/blas -Itest -Isrc -Idep
+LIB_DIRS := -L/usr/local/lib -Ldep
+LIBS := -lmpfr -lgmp -lm -l:libdeps.a
 ASAN_FLAGS := -fsanitize=address -O1 -fno-optimize-sibling-calls -fno-omit-frame-pointer
 
 SFMT_MEXP ?= 19937
@@ -153,17 +151,13 @@ clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\03
 # explicit -l:libXYZ.a flags above. See $LIBS.                       #
 ######################################################################
 
-libsfmt:
-	$(CC) $(CFLAGS) -c SFMT/SFMT.c -o SFMT/SFMT.o
-	$(AR) rcs SFMT/$@.a SFMT/SFMT.o
-
-libutf8proc:
-	$(CC) $(CFLAGS) -include utf8proc/utf8proc.h -c utf8proc/utf8proc.c -o utf8proc/utf8proc.o
-	$(CC) $(CFLAGS) -include utf8proc/utf8proc.h -c utf8proc/utf8proc_data.c -o utf8proc/utf8proc_data.o
-	$(AR) rcs utf8proc/$@.a utf8proc/utf8proc.o utf8proc/utf8proc_data.o
-
-deps: libsfmt libutf8proc  ## Build static libraries of bundled dependencies
-
+deps:  ## Build a static library of bundled dependencies
+	$(CC) $(CFLAGS) -c dep/SFMT/SFMT.c -o dep/SFMT/SFMT.o
+	$(CC) $(CFLAGS) -include dep/utf8proc/utf8proc.h -c dep/utf8proc/utf8proc.c -o dep/utf8proc/utf8proc.o
+	$(CC) $(CFLAGS) -include dep/utf8proc/utf8proc.h -c dep/utf8proc/utf8proc_data.c -o dep/utf8proc/utf8proc_data.o
+	$(CC) $(CFLAGS) -c dep/linenoise.c -o dep/linenoise.o
+	$(CC) $(CFLAGS) -c dep/shoco.c -o dep/shoco.o
+	$(AR) rcs dep/lib$@.a dep/**/*.o
 
 
 ######################################################################

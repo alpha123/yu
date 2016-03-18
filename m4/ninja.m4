@@ -53,12 +53,13 @@ build src/lex.i: lex src/lex.l
 
 build_objs(`src/*.c')
 build_objs(`test/*.c', `cflags = patsubst(CFLAGS, `-std=c99', `-std=c11') $include_dirs')
-build_objs(`SFMT/SFMT.c')
-build_objs(`utf8proc/utf8proc*.c', `cflags = -include utf8proc/utf8proc.h $cflags')
+build_objs(`dep/SFMT/SFMT.c')
+build_objs(`dep/utf8proc/utf8proc*.c', `cflags = -include utf8proc/utf8proc.h $cflags')
+build_objs(`dep/linenoise.c')
+build_objs(`dep/shoco.c')
   
 
-link_static(`SFMT/libsfmt.a', `SFMT/SFMT.o')
-link_static(`utf8proc/libutf8proc.a', `utf8proc/*.o')
+link_static(`dep/libdeps.a', `dep/**/*.o')
 
-link_out(`test/test', `src/*.o test/*.o') | SFMT/libsfmt.a utf8proc/libutf8proc.a src/lex.i
+link_out(`test/test', `src/*.o test/*.o') | dep/libdeps.a src/lex.i
   link_flags = -Wl,-Ttest/test.ld $link_flags
