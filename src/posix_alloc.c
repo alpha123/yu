@@ -38,6 +38,23 @@ yu_err posix_release(posix_allocator * YU_UNUSED(ctx), void *ptr) {
   return YU_OK;
 }
 
+#if __linux__
+/* Linux's madvise() makes slightly stronger guarantees about decommitting memory than
+   posix_madvise() does. Specifically, MADV_FREE (on 4.5 or newer) will decommit, and
+   MADV_DONTNEED might decommit. Also, posix_madvise(..., DONTNEED) is a no-op on Linux
+   with most (all?) glibc versions. */
+#include <linux/version.h>
+#define MCOMMIT(addr,len) madvise((addr),(len),MADV_WILLNEED)
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,5,0)
+#define MDECOMMIT(addr,len) madvise((addr),(len),MADV_DONTNEED)
+#else
+#define MDECOMMIT(addr,len) madvise((addr),(len),MADV_FREE)
+#endif
+#else
+#define MCOMMIT(addr,len) posix_madvise((addr),(len),POSIX_MADV_WILLNEED)
+#define MDECOMMIT(addr,len) posix_madvise((addr),(len),POSIX_MADV_DONTNEED)
+#endif
+
 yu_err posix_commit(posix_allocator * YU_UNUSED(ctx), void *addr, size_t num, size_t elem_size) {
   assert(addr != NULL);
   assert(num > 0);
@@ -47,7 +64,7 @@ yu_err posix_commit(posix_allocator * YU_UNUSED(ctx), void *addr, size_t num, si
   // Round down to nearest page boundary
   if (((uintptr_t)addr & (page_sz-1)) != 0)
     addr = (void *)((uintptr_t)addr & ~(page_sz-1));
-  if (posix_madvise(addr, commit_sz, POSIX_MADV_WILLNEED) != 0)
+  if (MCOMMIT(addr, commit_sz) != 0)
     return YU_ERR_ALLOC_FAIL;
   return YU_OK;
 }
@@ -60,7 +77,7 @@ yu_err posix_decommit(posix_allocator * YU_UNUSED(ctx), void *addr, size_t num, 
   assert(decommit_sz / elem_size == num);
   if (((uintptr_t)addr & (page_sz-1)) != 0)
     addr = (void *)((uintptr_t)addr & ~(page_sz-1));
-  if (posix_madvise(addr, decommit_sz, POSIX_MADV_DONTNEED) != 0)
+  if (MDECOMMIT(addr, decommit_sz) != 0)
     return YU_ERR_UNKNOWN;
   return YU_OK;
 }
