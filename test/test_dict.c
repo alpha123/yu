@@ -17,8 +17,11 @@
 #define LIST_DICT_TESTS(X) \
     X(perfect_hash, "Perfect hash should have no collisions")
 
+#ifdef TEST_FAST
+const size_t WORD_COUNT = 8000;
+#else
 const size_t WORD_COUNT = 79339;
-
+#endif
 
 TEST(perfect_hash)
     phf_string_t ss[] = {{.p = "foo", .n = 3}, {.p = "bar", .n = 3}};
