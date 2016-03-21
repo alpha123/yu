@@ -111,6 +111,10 @@ typedef uint64_t u64;
 #define YU_32BIT 1
 #endif
 
+#if YU_32BIT
+#warn Please compile me in 64-bit mode! ＼(`ω′)／
+#endif
+
 // Endianness — POWER/SPARC/MIPS
 // Yu currently assumes little-endian, so this is all kind of moot.
 #if defined(__MIPSEB__) /* MIPS 32-bit */ \
@@ -176,7 +180,7 @@ u32 yu_ceil_log2(u64 n);
 })
 
 #define elemcount(arr) (sizeof((arr))/sizeof((arr)[0]))
-  
+
 #define containerof(ptr,type,member) ({ \
     __typeof__(((type *)0)->member) *_mp = (ptr); \
     (type *)((u8 *)_mp - offsetof(type,member)); \
