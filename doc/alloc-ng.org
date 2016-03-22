@@ -14,16 +14,13 @@ performance improvements.
  Have an explicit API to get the real usable size of an allocation. Care must be
  taken not to unnecessarily expose implementation details. However, this could
  avoid unnecessary calls to allocator functions in a number of circumstances.
-** Enable combining many allocation strategies
- Allocator ‘classes’ should be easily composable. Abstract allocators that only
- implement a few functions should be possible, and should be mixed and matched
- to form a full allocator.
 
 * Progress
 ** DONE Spec out allocator API
 CLOSED: [2016-03-22 Tue 11:16]
 See file:alloc-ng-specv2.org
 ** TODO [#B] Platform abstraction layer for virtual memory
+See file:../src/platform.h
  - [X] POSIX (mmap+posix_madvise) implementation
  - [X] Linux (mmap+madvise) implementation
    Linux has a little more flexibility than the pure POSIX API.

@@ -3,6 +3,6 @@
  * Licensed under the MIT (X11) license. See LICENSE.
  */
 
-#include "je_alloc.h"
+#pragma once
 
-
+#error Win32 platform unimplemented
