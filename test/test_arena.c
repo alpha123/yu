@@ -8,8 +8,7 @@
 #include "arena.h"
 
 #define SETUP \
-    yu_memctx_t mctx; \
-    TEST_GET_ALLOCATOR(&mctx); \
+    TEST_GET_ALLOCATOR(mctx); \
     struct arena_handle *a = arena_new(&mctx);
 
 #define TEARDOWN \

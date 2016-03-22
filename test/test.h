@@ -6,8 +6,6 @@
 #pragma once
 
 #include "yu_common.h"
-#include "bump_alloc.h"
-#include "debug_alloc.h"
 #include "internal_alloc.h"
 #include "sys_alloc.h"
 #include "ptest.h"
@@ -44,39 +42,25 @@
 
 #if TEST_ALLOC == TEST_USE_BUMP_ALLOC
 
-#define TEST_GET_ALLOCATOR(ctx) do{ \
-    yu_err _allocerr = bump_alloc_ctx_init((ctx), BUMP_ALLOC_SIZE); \
-    assert(_allocerr == YU_OK); \
-}while(0)
-
-#define TEST_GET_INTERNAL_ALLOCATOR(ctx) do{ \
-    yu_err _allocerr = bump_alloc_ctx_init((ctx), BUMP_ALLOC_SIZE); \
-    assert(_allocerr == YU_OK); \
-}while(0)
+#error Bump allocator is deprecated
 
 #elif TEST_ALLOC == TEST_USE_DEBUG_ALLOC
 
-#define TEST_GET_ALLOCATOR(ctx) do{ \
-    yu_err _allocerr = debug_alloc_ctx_init((ctx)); \
-    assert(_allocerr == YU_OK); \
-}while(0)
+#error Debug allocator not yet ported to new API
 
-#define TEST_GET_INTERNAL_ALLOCATOR(ctx) do{ \
-    yu_err _allocerr = debug_alloc_ctx_init((ctx)); \
-    assert(_allocerr == YU_OK); \
-}while(0)
+#define TEST_GET_ALLOCATOR(ctx) \
+  sys_allocator ctx; \
+  do{ \
+      yu_err _allocerr = sys_alloc_ctx_init(ctx); \
+      assert(_allocerr == YU_OK); \
+  }while(0)
 
-#else
-
-#define TEST_GET_ALLOCATOR(ctx) do{ \
-    yu_err _allocerr = sys_alloc_ctx_init((ctx)); \
-    assert(_allocerr == YU_OK); \
-}while(0)
-
-#define TEST_GET_INTERNAL_ALLOCATOR(ctx) do{ \
-    yu_err _allocerr = internal_alloc_ctx_init((ctx)); \
-    assert(_allocerr == YU_OK); \
-}while(0)
+#define TEST_GET_INTERNAL_ALLOCATOR(ctx) \
+  internal_allocator ctx; \
+  do{ \
+      yu_err _allocerr = internal_alloc_ctx_init((ctx)); \
+      assert(_allocerr == YU_OK); \
+  }while(0)
 
 #endif
 

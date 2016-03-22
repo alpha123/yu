@@ -3,9 +3,8 @@
 #include "sys_alloc.h"
 
 #define SETUP \
-    yu_memctx_t mctx; \
     yu_buf_ctx ctx; \
-    TEST_GET_ALLOCATOR(&mctx); \
+    TEST_GET_ALLOCATOR(mctx); \
     yu_buf_ctx_init(&ctx, &mctx);
 
 #define TEARDOWN \

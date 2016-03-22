@@ -9,8 +9,7 @@
 #include "value.h"
 
 #define SETUP \
-    yu_memctx_t mctx; \
-    TEST_GET_ALLOCATOR(&mctx);
+    TEST_GET_ALLOCATOR(mctx);
 
 #define TEARDOWN \
     yu_alloc_ctx_free(&mctx);

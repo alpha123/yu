@@ -14,9 +14,8 @@ YU_QUICKHEAP(maxh, int, INT_CMP, YU_QUICKHEAP_MAXHEAP)
 YU_QUICKHEAP_IMPL(maxh, int, INT_CMP, YU_QUICKHEAP_MAXHEAP)
 
 #define SETUP \
-    yu_memctx_t mctx; \
     sfmt_t rng; \
-    TEST_GET_INTERNAL_ALLOCATOR(&mctx); \
+    TEST_GET_INTERNAL_ALLOCATOR(mctx); \
     sfmt_init_gen_rand(&rng, 135135);
 
 #define TEARDOWN \

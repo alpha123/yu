@@ -30,8 +30,7 @@
 }while(0)
 
 #define SETUP \
-    yu_memctx_t mctx; \
-    TEST_GET_ALLOCATOR(&mctx); \
+    TEST_GET_ALLOCATOR(mctx); \
     struct lexer lex; \
     struct token tok;
 

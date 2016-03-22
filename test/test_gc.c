@@ -11,8 +11,7 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 #define SETUP \
-    yu_memctx_t mctx; \
-    TEST_GET_ALLOCATOR(&mctx); \
+    TEST_GET_ALLOCATOR(mctx); \
     struct gc_info gc; \
     yu_err _gciniterr = gc_init(&gc, &mctx); \
     assert(_gciniterr == YU_OK); \

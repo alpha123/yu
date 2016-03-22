@@ -8,7 +8,7 @@
 #include "sys_alloc.h"
 
 #define SETUP \
-    yu_memctx_t ctx; \
+    sys_allocator ctx; \
     sys_alloc_ctx_init(&ctx);
 
 #define TEARDOWN \
