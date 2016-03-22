@@ -7,7 +7,7 @@
 
 #include "lex.i"
 
-YU_ERR_RET lexer_open(struct lexer *lex, FILE *in, yu_memctx_t *mctx) {
+YU_ERR_RET lexer_open(struct lexer *lex, FILE *in, yu_allocator *mctx) {
     YU_ERR_DEFVAR
     lex->mem_ctx = mctx;
     yu_str_ctx_init(&lex->str_ctx, mctx);

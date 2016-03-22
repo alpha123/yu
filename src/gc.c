@@ -20,7 +20,7 @@ int arena_gray_cmp(struct arena_handle *a, struct arena_handle *b) {
 YU_SPLAYTREE_IMPL(root_list, value_handle, root_list_ptr_cmp, true)
 YU_QUICKHEAP_IMPL(arena_heap, struct arena_handle *, arena_gray_cmp, YU_QUICKHEAP_MAXHEAP)
 
-YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx) {
+YU_ERR_RET gc_init(struct gc_info *gc, yu_allocator *mctx) {
     YU_ERR_DEFVAR
 
     root_list_init(&gc->roots, mctx);

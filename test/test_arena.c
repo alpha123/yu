@@ -9,7 +9,7 @@
 
 #define SETUP \
     TEST_GET_ALLOCATOR(mctx); \
-    struct arena_handle *a = arena_new(&mctx);
+    struct arena_handle *a = arena_new((yu_allocator *)&mctx);
 
 #define TEARDOWN \
     arena_free(a); \
@@ -103,7 +103,7 @@ END(empty)
 extern const char *value_type_name(value_type x);
 
 TEST(promote)
-    struct arena_handle *b = arena_new(&mctx);
+    struct arena_handle *b = arena_new((yu_allocator *)&mctx);
     a->next_gen = b;
 #ifdef TEST_FAST
     int valcnt = 4000;

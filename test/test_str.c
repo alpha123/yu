@@ -10,7 +10,7 @@
 #define SETUP \
     yu_str_ctx ctx; \
     TEST_GET_ALLOCATOR(mctx); \
-    yu_str_ctx_init(&ctx, &mctx);
+    yu_str_ctx_init(&ctx, (yu_allocator *)&mctx);
 
 #define TEARDOWN \
     yu_str_ctx_free(&ctx); \

@@ -9,7 +9,7 @@
 
 #define lex_init_str(s) do{ \
     FILE *str = fmemopen(s, strlen(s), "r"); \
-    yu_err ser = lexer_open(&lex, str, &mctx); \
+    yu_err ser = lexer_open(&lex, str, (yu_allocator *)&mctx);  \
     assert(ser == YU_OK); \
 }while(0)
 

@@ -83,13 +83,13 @@ struct gc_info {
 
     struct arena_handle *arenas[GC_NUM_GENERATIONS];
 
-    yu_memctx_t *mem_ctx;
+    yu_allocator *mem_ctx;
     struct arena_handle *active_gray; // Popped off the gray priority heap
 
     u8 collecting_generation;
 };
 
-YU_ERR_RET gc_init(struct gc_info *gc, yu_memctx_t *mctx);
+YU_ERR_RET gc_init(struct gc_info *gc, yu_allocator *mctx);
 void gc_free(struct gc_info *gc);
 
 value_handle gc_make_handle(struct gc_info *gc, struct boxed_value *v);

@@ -5,7 +5,7 @@
 
 #include "arena.h"
 
-struct arena_handle *arena_new(yu_memctx_t *mctx) {
+struct arena_handle *arena_new(yu_allocator *mctx) {
     YU_ERR_DEFVAR
     struct arena *a = NULL;
     struct arena_handle *ah = NULL;
@@ -17,7 +17,7 @@ struct arena_handle *arena_new(yu_memctx_t *mctx) {
     a->meta = ah;
     ah->self = a;
     ah->mem_ctx = mctx;
-    
+
     return ah;
 
     yu_err_handler:
@@ -29,7 +29,7 @@ struct arena_handle *arena_new(yu_memctx_t *mctx) {
 void arena_free(struct arena_handle *a) {
     if (a->next)
         arena_free(a->next);
-    yu_memctx_t *mctx = a->mem_ctx;
+    yu_allocator *mctx = a->mem_ctx;
     yu_free(mctx, a->self);
     yu_free(mctx, a);
 }

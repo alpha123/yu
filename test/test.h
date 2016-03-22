@@ -28,9 +28,8 @@
     pt_add_test(TEST_NAME(name), desc, sname);
 
 #define TEST_USE_SYS_ALLOC 1
-#define TEST_USE_INTERNAL_ALLOC 2
-#define TEST_USE_BUMP_ALLOC 3
-#define TEST_USE_DEBUG_ALLOC 4
+#define TEST_USE_BUMP_ALLOC 2
+#define TEST_USE_DEBUG_ALLOC 3
 
 #ifndef TEST_ALLOC
 #define TEST_ALLOC TEST_USE_SYS_ALLOC
@@ -48,17 +47,19 @@
 
 #error Debug allocator not yet ported to new API
 
+#else
+
 #define TEST_GET_ALLOCATOR(ctx) \
   sys_allocator ctx; \
   do{ \
-      yu_err _allocerr = sys_alloc_ctx_init(ctx); \
+      yu_err _allocerr = sys_alloc_ctx_init(&ctx); \
       assert(_allocerr == YU_OK); \
   }while(0)
 
 #define TEST_GET_INTERNAL_ALLOCATOR(ctx) \
   internal_allocator ctx; \
   do{ \
-      yu_err _allocerr = internal_alloc_ctx_init((ctx)); \
+      yu_err _allocerr = internal_alloc_ctx_init(&ctx); \
       assert(_allocerr == YU_OK); \
   }while(0)
 

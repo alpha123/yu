@@ -40,8 +40,8 @@ size_t yu_virtual_alloc(void **out, void *addr, size_t sz, yu_virtual_mem_flags 
   // If FIXED_ADDR is provided, addr can't be NULL
   assert(addr != NULL || !(flags & YU_VIRTUAL_FIXED_ADDR));
 
+  size_t page_sz = yu_virtual_pagesize(0), real_sz;
   void *ptr;
-  size_t real_sz;
   bool fresh_reserve = false;
   if (flags & YU_VIRTUAL_RESERVE) {
     int opts = 0;

@@ -36,7 +36,7 @@ typedef void (* yu_buf_udata_cleanup_func)(void *);
 typedef struct {
     yu_buf_table frozen_bufs;
     yu_buf_udata_cleanup_func udata_free;
-    yu_memctx_t *memctx;
+    yu_allocator *memctx;
     struct yu_buf_dat *free;
     u64 num_free;
 } yu_buf_ctx;
@@ -57,7 +57,7 @@ struct yu_buf_dat {
     struct yu_buf_dat *next;
 };
 
-void yu_buf_ctx_init(yu_buf_ctx *ctx, yu_memctx_t *memctx);
+void yu_buf_ctx_init(yu_buf_ctx *ctx, yu_allocator *memctx);
 void yu_buf_ctx_free(yu_buf_ctx *ctx);
 
 yu_buf yu_buf_alloc(yu_buf_ctx *ctx, u64 size);

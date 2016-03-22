@@ -21,11 +21,17 @@ CLOSED: [2016-03-22 Tue 11:16]
 See file:alloc-ng-specv2.org
 ** TODO [#B] Platform abstraction layer for virtual memory
 See file:../src/platform.h
- - [X] POSIX (mmap+posix_madvise) implementation
- - [X] Linux (mmap+madvise) implementation
+- [X] POSIX (mmap+posix_madvise) implementation
+- [X] Linux (mmap+madvise) implementation
    Linux has a little more flexibility than the pure POSIX API.
- - [ ] Win32 (VirtualAlloc) implementation
+- [ ] Win32 (VirtualAlloc) implementation
 ** TODO [#A] Test suite for new features
+- [X] Reserving/releasing virtual memory
+- [ ] Committing/decommitting virtual memory
+- [ ] Both at once
+- [ ] free() and the _size() functions on pages
+- [ ] Reserving roughly at a fixed address
+- [ ] Reserving exactly at a fixed address
 ** TODO [#A] Provide a wrapper for system malloc()
 Can use system malloc() to implement bookkeeping for managing pages.
 ** TODO [#C] Provide a debug allocator
@@ -35,13 +41,14 @@ However, a true debug_alloc will have to track page-level allocations as well.
 Shimming this on top of dmalloc may not work, since subsystems expect to be able
 to reserve large address spaces. Might be OK on Linux with its lazy committing
 policy.
-** TODO [#A] Update existing subsystems to new allocator API
+** DONE [#A] Update existing subsystems to new allocator API
+CLOSED: [2016-03-22 Tue 16:16]
 Changes in most cases should be relatively minimal.
-- [ ] Test framework ([[file:../test/test.h][test/test.h]])
-- [ ] yu_buf, yu_str
-- [ ] test_alloc
-- [ ] Object arenas
-- [ ] Generic data structures
+- [X] Test framework ([[file:../test/test.h][test/test.h]])
+- [X] yu_buf, yu_str
+- [X] test_alloc
+- [X] Object arenas
+- [X] Generic data structures
 ** TODO [#C] Update existing subsystems to make efficient use of new features
  Arenas in particular can make efficient use of reserving huge chunks of
  addresses without actually committing. Part of the reason for the whole

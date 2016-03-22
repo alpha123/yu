@@ -73,7 +73,7 @@ struct phf {
 
     const void *g_jmp;
 
-    yu_memctx_t *mem_ctx;
+    yu_allocator *mem_ctx;
 
     phf_seed_t seed;
 
@@ -89,7 +89,7 @@ struct phf {
     bool nodiv;
 };
 
-PHF_PUBLIC phf_error_t phf_init(struct phf *, phf_string_t * const, size_t, size_t, size_t, phf_seed_t, bool, yu_memctx_t *);
+PHF_PUBLIC phf_error_t phf_init(struct phf *, phf_string_t * const, size_t, size_t, size_t, phf_seed_t, bool, yu_allocator *);
 PHF_PUBLIC void phf_free(struct phf *);
 
 PHF_PUBLIC phf_hash_t phf_hash(struct phf *, const phf_string_t);

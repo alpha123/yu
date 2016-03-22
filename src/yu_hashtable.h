@@ -43,14 +43,14 @@ struct YU_NAME(tbl, bucket) { \
 }; \
 \
 typedef struct { \
-    yu_memctx_t *memctx; \
+    yu_allocator *memctx; \
     struct YU_NAME(tbl, bucket) *left; \
     struct YU_NAME(tbl, bucket) *right; \
     u64 size; \
     u8 capacity;  /* size of left and right is 2^capacity */ \
 } tbl; \
 \
-void YU_NAME(tbl, init)(tbl *t, u64 init_capacity, yu_memctx_t *mctx); \
+void YU_NAME(tbl, init)(tbl *t, u64 init_capacity, yu_allocator *mctx); \
 u32 YU_NAME(tbl, iter)(tbl *t, YU_NAME(tbl, iter_cb) cb, void *data); \
 u8 YU_NAME(tbl, _findbucket_)(tbl *t, key_t k, struct YU_NAME(tbl, bucket) **b_out); \
 bool YU_NAME(tbl, get)(tbl *t, key_t k, val_t *v_out); \
@@ -61,7 +61,7 @@ bool YU_NAME(tbl, put)(tbl *t, key_t k, val_t v, val_t *v_out); \
 bool YU_NAME(tbl, remove)(tbl *t, key_t k, val_t *v_out);
 
 #define YU_HASHTABLE_IMPL(tbl, key_t, val_t, hash1, hash2, eq) \
-void YU_NAME(tbl, init)(tbl *t, u64 init_capacity, yu_memctx_t *mctx) { \
+void YU_NAME(tbl, init)(tbl *t, u64 init_capacity, yu_allocator *mctx) { \
     /* Since we store 2 keys per bucket and have 2 bucket arrays, \
        if we were to use init_capacity as-passed the actual number of \
        storable key-value pairs would exceed the requested capacity \

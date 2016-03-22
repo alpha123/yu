@@ -41,7 +41,7 @@ struct yu_str_dat {
 
 #define YU_STR_DAT(s) ((struct yu_str_dat *)(yu_buf_get_udata((s))))
 
-void yu_str_ctx_init(yu_str_ctx *ctx, yu_memctx_t *mctx);
+void yu_str_ctx_init(yu_str_ctx *ctx, yu_allocator *mctx);
 void yu_str_ctx_free(yu_str_ctx *ctx);
 
 // Creates a new string and takes ownership of the pointer (utf8_nfc) passed to it.

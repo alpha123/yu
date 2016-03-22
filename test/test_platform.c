@@ -15,10 +15,12 @@
 TEST(virtual_reserve)
   void *big;
   // Reserve 256GB just for fun
-  const size_t req_sz = 256*1024*1024*1024;
-  size_t usable_sz = yu_virtual_alloc(NULL, &big, req_sz, YU_VIRTUAL_RESERVE);
+  const size_t req_sz = UINT64_C(256)*1024*1024*1024;
+  size_t usable_sz = yu_virtual_alloc(&big, NULL, req_sz, YU_VIRTUAL_RESERVE);
+  PT_ASSERT(usable_sz > 0);
+  PT_ASSERT(big != NULL);
   PT_ASSERT_GTE(usable_sz, req_sz);
-  yu_virtual_free(big, usable_sz);
+  yu_virtual_free(big, usable_sz, YU_VIRTUAL_RELEASE);
 END(virtual_reserve)
 
 

@@ -18,19 +18,19 @@ typedef struct { \
         psc, /* pivot stack counter */ \
         *pivstack; /* stack of pivot indices */ \
     data_t *elems; \
-    yu_memctx_t *memctx; \
+    yu_allocator *memctx; \
     u8 cap, /* size of elems is 2^cap */ \
        pivstack_cap; \
 } qh; \
 \
-void YU_NAME(qh, init)(qh *heap, u64 size, yu_memctx_t *mctx); \
+void YU_NAME(qh, init)(qh *heap, u64 size, yu_allocator *mctx); \
 void YU_NAME(qh, free)(qh *heap); \
 data_t YU_NAME(qh, top)(qh *heap, data_t ifempty); \
 data_t YU_NAME(qh, pop)(qh *heap, data_t ifempty); \
 void YU_NAME(qh, push)(qh *heap, data_t val);
 
 #define YU_QUICKHEAP_IMPL(qh, data_t, cmp, is_maxheap) \
-void YU_NAME(qh, init)(qh *heap, u64 size, yu_memctx_t *mctx) { \
+void YU_NAME(qh, init)(qh *heap, u64 size, yu_allocator *mctx) { \
     heap->size = 0; \
     heap->psc = 1; \
     heap->fc_idx = 0; \
@@ -82,7 +82,7 @@ u64 YU_NAME(qh, partition)(data_t *elems, u64 lo, u64 hi) { \
     return i; \
 } \
 \
-void YU_NAME(qh, _iqs_)(yu_memctx_t *mctx, data_t *elems, u64 idx, u64 **ps, u64 *ps_sz, u8 *ps_cap) { \
+void YU_NAME(qh, _iqs_)(yu_allocator *mctx, data_t *elems, u64 idx, u64 **ps, u64 *ps_sz, u8 *ps_cap) { \
     u64 *s = *ps, z = *ps_sz - 1, pidx; \
     while (idx != s[z]) { \
         pidx = YU_NAME(qh, partition)(elems, idx, s[z]-1); \

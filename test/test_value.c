@@ -43,7 +43,7 @@ TEST(bool)
 END(bool)
 
 TEST(ptr)
-    struct arena_handle *a = arena_new(&mctx);
+    struct arena_handle *a = arena_new((yu_allocator *)&mctx);
     struct boxed_value *v = arena_alloc_val(a);
     value_t x = value_from_ptr(&v);
     PT_ASSERT_EQ(value_get_ptr(x), v);
@@ -51,7 +51,7 @@ TEST(ptr)
 END(ptr)
 
 TEST(value_type)
-    struct arena_handle *a = arena_new(&mctx);
+    struct arena_handle *a = arena_new((yu_allocator *)&mctx);
     struct boxed_value *v1 = arena_alloc_val(a), *v2 = arena_alloc_val(a);
     value_t w = value_from_int(655), x = value_true(),
             y = value_from_ptr(&v1),
@@ -66,7 +66,7 @@ TEST(value_type)
 END(value_type)
 
 TEST(gray_bit)
-    struct arena_handle *a = arena_new(&mctx);
+    struct arena_handle *a = arena_new((yu_allocator *)&mctx);
     struct boxed_value *v = arena_alloc_val(a);
     boxed_value_set_gray(v, false);
     PT_ASSERT(!boxed_value_is_gray(v));
@@ -90,9 +90,9 @@ YU_SPLAYTREE(rndset, uint32_t, cmp_uint32, false)
 YU_SPLAYTREE_IMPL(rndset, uint32_t, cmp_uint32, false)
 
 TEST(hash)
-    struct arena_handle *a = arena_new(&mctx);
+    struct arena_handle *a = arena_new((yu_allocator *)&mctx);
     yu_str_ctx sctx;
-    yu_str_ctx_init(&sctx, &mctx);
+    yu_str_ctx_init(&sctx, (yu_allocator *)&mctx);
     sfmt_t rng;
     sfmt_init_gen_rand(&rng, 55123);
 
@@ -114,7 +114,7 @@ TEST(hash)
     hashes2[1] = value_hash2(value_false());
 
     rndset rs;
-    rndset_init(&rs, &mctx);
+    rndset_init(&rs, (yu_allocator *)&mctx);
 
     for (u64 i = 2; i < valcnt; i++) {
         u32 n = sfmt_genrand_uint32(&rng);
@@ -204,7 +204,7 @@ TEST(hash)
 END(hash)
 
 TEST(hash_tuple)
-    struct arena_handle *a = arena_new(&mctx);
+    struct arena_handle *a = arena_new((yu_allocator *)&mctx);
     struct boxed_value *t = arena_alloc_val(a), *s = arena_alloc_val(a);
     boxed_value_set_type(t, VALUE_TUPLE);
     boxed_value_set_type(s, VALUE_TUPLE);
@@ -224,9 +224,9 @@ TEST(hash_tuple)
 END(hash_tuple)
 
 TEST(equal)
-    struct arena_handle *a = arena_new(&mctx);
+    struct arena_handle *a = arena_new((yu_allocator *)&mctx);
     yu_str_ctx sctx;
-    yu_str_ctx_init(&sctx, &mctx);
+    yu_str_ctx_init(&sctx, (yu_allocator *)&mctx);
     value_t w = value_from_int(42);
     mpz_t i;
     mpz_init_set_ui(i, 42);

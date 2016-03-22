@@ -128,38 +128,38 @@ typedef size_t (* yu_usable_size_fn)(struct yu_mem_funcs *ctx, void *ptr);
 
 typedef void (* yu_free_ctx_fn)(struct yu_mem_funcs *ctx);
 
-struct yu_mem_funcs {
+typedef struct yu_mem_funcs {
     yu_alloc_fn alloc;
     yu_realloc_fn realloc;
     yu_free_fn free;
 
-    yu_array_alloc_fn array_alloc;
-    yu_array_realloc_fn array_realloc;
-    yu_array_free_fn array_free;
-    yu_array_len_fn array_len;
-
     yu_free_ctx_fn free_ctx;
-};
+} yu_allocator;
+
+// These all take void *ctx to avoid warnings about imcompatible pointer types —
+// they'll always be passed a subclass of yu_allocator.
 
 YU_INLINE
-yu_err yu_alloc(struct yu_mem_funcs *ctx, void **out, size_t num, size_t elem_size, size_t alignment) {
-    return ctx->alloc(ctx, out, num, elem_size, alignment);
+yu_err yu_alloc(void *ctx, void **out, size_t num, size_t elem_size, size_t alignment) {
+  return ((yu_allocator *)ctx)->alloc(ctx, out, num, elem_size, alignment);
 }
 YU_INLINE
-yu_err yu_realloc(struct yu_mem_funcs *ctx, void **ptr, size_t num, size_t elem_size, size_t alignment) {
+yu_err yu_realloc(void *ctx, void **ptr, size_t num, size_t elem_size, size_t alignment) {
     assert(ptr != NULL);
     assert(elem_size > 0);
     if (*ptr == NULL)
-        return ctx->alloc(ctx, ptr, num, elem_size, alignment);
-    if (num == 0)
-        return ctx->free(ctx, *ptr);
-    return ctx->realloc(ctx, ptr, num, elem_size, alignment);
+        return ((yu_allocator *)ctx)->alloc(ctx, ptr, num, elem_size, alignment);
+    if (num == 0) {
+        ((yu_allocator *)ctx)->free(ctx, *ptr);
+        return YU_OK;
+    }
+    return ((yu_allocator *)ctx)->realloc(ctx, ptr, num, elem_size, alignment);
 }
 YU_INLINE
-void yu_free(struct yu_mem_funcs *ctx, void *ptr) { ctx->free(ctx, ptr); }
+void yu_free(void *ctx, void *ptr) { ((yu_allocator *)ctx)->free(ctx, ptr); }
 
 YU_INLINE
-void yu_alloc_ctx_free(struct yu_mem_funcs *ctx) { ctx->free_ctx(ctx); }
+void yu_alloc_ctx_free(void *ctx) { ((yu_allocator *)ctx)->free_ctx(ctx); }
 
-void *yu_xalloc(struct yu_mem_funcs *ctx, size_t num, size_t elem_size);
-void *yu_xrealloc(struct yu_mem_funcs *ctx, void *ptr, size_t num, size_t elem_size);
+void *yu_xalloc(void *ctx, size_t num, size_t elem_size);
+void *yu_xrealloc(void *ctx, void *ptr, size_t num, size_t elem_size);

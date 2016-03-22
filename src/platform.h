@@ -24,6 +24,9 @@
 // but it's detected here anyway for the sake of completeness and
 // future portability.
 
+#define YU_OSAPI_POSIX 1
+#define YU_OSAPI_WIN32 2
+
 #if defined(_AIX) \
     || defined(__APPLE__) /* Darwin */ \
     || defined(__FreeBSD__) || defined(__DragonFly__) \
@@ -35,9 +38,9 @@
     || defined(__QNXNTO__) \
     || defined(sun) || defined(__sun) /* Solaris */ \
     || defined(unix) || defined(__unix) || defined(__unix__)
-#define YU_OSAPI posix
+#define YU_OSAPI YU_OSAPI_POSIX
 #elif defined(WIN32) || defined(_WIN32)
-#define YU_OSAPI win32
+#define YU_OSAPI YU_OSAPI_WIN32
 #endif
 
 #ifndef YU_OSAPI
@@ -149,11 +152,3 @@ size_t yu_virtual_alloc(void **out, void *addr, size_t sz, yu_virtual_mem_flags 
  * value of the out pointer from that function.
  */
 void yu_virtual_free(void *ptr, size_t sz, yu_virtual_mem_flags flags);
-
-#if YU_OSAPI == win32
-#include "platform/win32.h"
-#elif __linux__
-#include "platform/linux.h"
-#else
-#include "platform/posix.h"
-#endif

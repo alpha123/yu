@@ -66,7 +66,7 @@ YU_ERR_RET find_grapheme_clusters(yu_str s) {
     YU_ERR_DEFAULT_HANDLER(yu_local_err)
 }
 
-void yu_str_ctx_init(yu_str_ctx *ctx, yu_memctx_t *mctx) {
+void yu_str_ctx_init(yu_str_ctx *ctx, yu_allocator *mctx) {
     YU_ERR_DEFVAR
 
     yu_buf_ctx_init(&ctx->bufctx, mctx);
@@ -89,7 +89,7 @@ void yu_str_ctx_free(yu_str_ctx *ctx) {
 
 static
 void *alloc_wrapper(void *mctx, void *ptr, size_t size) {
-    yu_memctx_t *memctx = (yu_memctx_t *)mctx;
+    yu_allocator *memctx = (yu_allocator *)mctx;
     if (ptr == NULL)
         return yu_xalloc(memctx, size, 1);
     if (yu_realloc(memctx, &ptr, size, 1, 0) != YU_OK)
@@ -99,7 +99,7 @@ void *alloc_wrapper(void *mctx, void *ptr, size_t size) {
 
 static
 void free_wrapper(void *mctx, void *ptr) {
-    yu_free((yu_memctx_t *)mctx, ptr);
+    yu_free((yu_allocator *)mctx, ptr);
 }
 
 // We now get ownership of utf8_nfc
