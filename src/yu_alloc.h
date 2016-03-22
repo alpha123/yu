@@ -126,14 +126,14 @@ typedef void (* yu_free_fn)(struct yu_mem_funcs *ctx, void *ptr);
 typedef size_t (* yu_allocated_size_fn)(struct yu_mem_funcs *ctx, void *ptr);
 typedef size_t (* yu_usable_size_fn)(struct yu_mem_funcs *ctx, void *ptr);
 
-typedef void (* yu_free_ctx_fn)(struct yu_mem_funcs *ctx);
+typedef void (* yu_ctx_free_fn)(struct yu_mem_funcs *ctx);
 
 typedef struct yu_mem_funcs {
     yu_alloc_fn alloc;
     yu_realloc_fn realloc;
     yu_free_fn free;
 
-    yu_free_ctx_fn free_ctx;
+    yu_ctx_free_fn free_ctx;
 } yu_allocator;
 
 // These all take void *ctx to avoid warnings about imcompatible pointer types —

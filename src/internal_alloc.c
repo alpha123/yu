@@ -10,7 +10,7 @@ yu_err internal_alloc_ctx_init(internal_allocator *ctx) {
   ctx->alloc = (yu_alloc_fn)internal_alloc;
   ctx->realloc = (yu_realloc_fn)internal_realloc;
   ctx->free = (yu_free_fn)internal_free;
-  ctx->free_ctx = (yu_free_ctx_fn)internal_alloc_ctx_free;
+  ctx->free_ctx = (yu_ctx_free_fn)internal_alloc_ctx_free;
   return YU_OK;
 }
 
