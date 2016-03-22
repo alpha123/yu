@@ -40,7 +40,7 @@ to reserve large address spaces. Might be OK on Linux with its lazy committing
 policy.
 ** TODO [#A] Update existing subsystems to new allocator API
 Changes in most cases should be relatively minimal.
-- [ ] Test framework ([[file:/usr/home/peter/yu-lang/test/test.h][test/test.h]])
+- [ ] Test framework ([[file:../test/test.h][test/test.h]])
 - [ ] yu_buf, yu_str
 - [ ] test_alloc
 - [ ] Object arenas
