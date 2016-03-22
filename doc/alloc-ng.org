@@ -21,33 +21,25 @@ performance improvements.
 
 * Progress
 ** DONE Spec out allocator API
-CLOSED: [2016-03-21 Mon 17:12]
-** TODO Provide POSIX and Win32 page allocators
-*** DONE POSIX (mmap+posix_madvise) allocator
-CLOSED: [2016-03-21 Mon 17:13]
-*** TODO Win32 (VirtualAlloc) allocator
-** TODO [#A] Provide a simple jemalloc wrapper
- jemalloc has APIs to get usable storage; see allocm/rallocm. jemalloc also has
- APIs for aligned realloc.
-** TODO [#B] Provide a system malloc() wrapper
-Avoid a dependency on jemalloc. It requires implementing things like aligned
-realloc manually, but much can probably be ported from the existing [[file:/usr/home/peter/yu-lang/src/sys_alloc.h][sys_alloc]].
-The hashtable thing from sys_alloc can go though—I think storing allocation
-metadata in front of the allocated pointer is just easier, even taking alignment
-into account.
+CLOSED: [2016-03-22 Tue 11:16]
+See file:alloc-ng-specv2.org
+** TODO [#B] Platform abstraction layer for virtual memory
+ - [X] POSIX (mmap+posix_madvise) implementation
+ - [X] Linux (mmap+madvise) implementation
+   Linux has a little more flexibility than the pure POSIX API.
+ - [ ] Win32 (VirtualAlloc) implementation
+** TODO [#A] Test suite for new features
+** TODO [#A] Provide a wrapper for system malloc()
+Can use system malloc() to implement bookkeeping for managing pages.
 ** TODO [#C] Provide a debug allocator
-Probably based on [[http://dmalloc.com/][dmalloc]]. Again requires implementing ‘extras’, especially
-since dmalloc does not support aligned_alloc. The existing [[file:/usr/home/peter/yu-lang/src/debug_alloc.h][debug_alloc]] may be of
-use. However, a true debug_alloc will have to track page-level allocations as
-well. Shimming this on top of dmalloc may not work, since subsystems expect to
-be able to reserve large address spaces.
-** TODO [#A] Provide a suitable default allocator mix
-Likely use jemalloc plus the system-specific page allocator. Alternatively, a
-plain malloc() wrapper might be preferable; while it would require more code and
-be slightly less efficient (we'd essentially be duplicating the system malloc's
-bookkeeping), it would remove one dependency.
-See file:../src/je_malloc.h
+Probably based on [[http://dmalloc.com/][dmalloc]]. Requires implementing ‘extras’, especially since
+dmalloc does not support aligned_alloc. The existing [[file:/usr/home/peter/yu-lang/src/debug_alloc.h][debug_alloc]] may be of use.
+However, a true debug_alloc will have to track page-level allocations as well.
+Shimming this on top of dmalloc may not work, since subsystems expect to be able
+to reserve large address spaces. Might be OK on Linux with its lazy committing
+policy.
 ** TODO [#A] Update existing subsystems to new allocator API
+Changes in most cases should be relatively minimal.
 - [ ] Test framework ([[file:/usr/home/peter/yu-lang/test/test.h][test/test.h]])
 - [ ] yu_buf, yu_str
 - [ ] test_alloc
