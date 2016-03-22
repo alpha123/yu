@@ -1,0 +1,59 @@
+The alloc-ng branch of the git repository contains the prototype for a
+next-generation allocator API. This new API is lower-level than the existing
+API, but the design is considerably more flexible and offers many potential
+performance improvements.
+
+* Goals
+** See file:../src/yu_alloc.h
+** Fast, 64-bit optimized, virtual-memory-aware allocator
+** Explicit control over virtual memory pages
+** Embrace over-reserving addresses
+ 64-bit address space is almost unlimited. Reserving the entire object heap of
+ addresses is feasible if we don't have to commit it.
+** Minimize allocations
+ Have an explicit API to get the real usable size of an allocation. Care must be
+ taken not to unnecessarily expose implementation details. However, this could
+ avoid unnecessary calls to allocator functions in a number of circumstances.
+** Enable combining many allocation strategies
+ Allocator ‘classes’ should be easily composable. Abstract allocators that only
+ implement a few functions should be possible, and should be mixed and matched
+ to form a full allocator.
+
+* Progress
+** DONE Spec out allocator API
+CLOSED: [2016-03-21 Mon 17:12]
+** TODO Provide POSIX and Win32 page allocators
+*** DONE POSIX (mmap+posix_madvise) allocator
+CLOSED: [2016-03-21 Mon 17:13]
+*** TODO Win32 (VirtualAlloc) allocator
+** TODO [#A] Provide a simple jemalloc wrapper
+ jemalloc has APIs to get usable storage; see allocm/rallocm. jemalloc also has
+ APIs for aligned realloc.
+** TODO [#B] Provide a system malloc() wrapper
+Avoid a dependency on jemalloc. It requires implementing things like aligned
+realloc manually, but much can probably be ported from the existing [[file:/usr/home/peter/yu-lang/src/sys_alloc.h][sys_alloc]].
+The hashtable thing from sys_alloc can go though—I think storing allocation
+metadata in front of the allocated pointer is just easier, even taking alignment
+into account.
+** TODO [#C] Provide a debug allocator
+Probably based on [[http://dmalloc.com/][dmalloc]]. Again requires implementing ‘extras’, especially
+since dmalloc does not support aligned_alloc. The existing [[file:/usr/home/peter/yu-lang/src/debug_alloc.h][debug_alloc]] may be of
+use. However, a true debug_alloc will have to track page-level allocations as
+well. Shimming this on top of dmalloc may not work, since subsystems expect to
+be able to reserve large address spaces.
+** TODO [#A] Provide a suitable default allocator mix
+Likely use jemalloc plus the system-specific page allocator. Alternatively, a
+plain malloc() wrapper might be preferable; while it would require more code and
+be slightly less efficient (we'd essentially be duplicating the system malloc's
+bookkeeping), it would remove one dependency.
+See file:../src/je_malloc.h
+** TODO [#A] Update existing subsystems to new allocator API
+- [ ] Test framework ([[file:/usr/home/peter/yu-lang/test/test.h][test/test.h]])
+- [ ] yu_buf, yu_str
+- [ ] test_alloc
+- [ ] Object arenas
+- [ ] Generic data structures
+** TODO [#C] Update existing subsystems to make efficient use of new features
+ Arenas in particular can make efficient use of reserving huge chunks of
+ addresses without actually committing. Part of the reason for the whole
+ redesign is to improve garbage collector performance.
