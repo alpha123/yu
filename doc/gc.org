@@ -27,7 +27,7 @@ white->black->white). Traversable objects are where the quad-color algorithm is
 employed for marking.
 
 
-#+BEGIN_CENTER
+#+BEGIN_EXAMPLE -i
 +--------------+      +-------+       +-----------------+
 | New Object   |     / Sweep /---->---| Object Is Freed |
 | *light gray* |-->-/-------/         +-----------------+
@@ -57,4 +57,4 @@ employed for marking.
              \        +-----+              -| Add Referenced Objects |
               \-->---/ Pop /------->------/ |     To Gray Stack      |
                     /-----/                 +------------------------+
-#+END_CENTER
+#+END_EXAMPLE
