@@ -135,14 +135,14 @@ clean:  ## Remove all build output — run as \\033[37m$MAKECMD clean --keep\\03
 # GNU Make treats this as --keep-going (which is harmless), and puts
 # "k" in $MAKEFLAGS.
 # Use bash instead of sh for the [[ ]] syntax for testing $MAKEFLAGS.
-	rm -f tags build.ninja src/*.o test/*.o $(TEST_OUT) src/preprocessed/test
+	rm -f tags build.ninja src/*.o test/*.o src/*.d test/*.d $(TEST_OUT) src/preprocessed/test
 	rm -f src/*.gcda src/*.gcno test/*.gcda test/*.gcno src/*.html test/*.html
 	@echo 'if [[ "$(MAKEFLAGS)" != *k* ]]; \
 	then \
-	  echo 'rm -f SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a'; \
-	  rm -f SFMT/*.o SFMT/libsfmt.a utf8proc/*.o utf8proc/libutf8proc.a; \
-	  echo 'rm -f SFMT/*.gcda SFMT/*.gcno utf8proc/*.gcda utf8proc/*.gcno'; \
-	  rm -f SFMT/*.gcda SFMT/*.gcno utf8proc/*.gcda utf8proc/*.gcno; \
+	  echo 'rm -f dep/**/*.o dep/**/*.d dep/libdeps.a'; \
+	  rm -f dep/**/*.o dep/**/*.d dep/libdeps.a; \
+	  echo 'rm -f dep/**/*.gcda dep/**/*.gcno'; \
+	  rm -f dep/**/*.gcda dep/**/*.gcno; \
 	fi' | bash
 
 
