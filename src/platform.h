@@ -133,6 +133,9 @@ size_t yu_virtual_pagesize(yu_virtual_mem_flags flags);
  * a multiple of the page size and is taken as the exact location at which to
  * reserve memory. If that is not possible, this function fails (see failure).
  *
+ * When committing already reserved memory, `addr` is the pointer to the memory
+ * to commit and `out` will be set to the start of the page that `addr` is in.
+ *
  * Returns:
  * The number of bytes actually reserved or committed. This will be at least the
  * requested `sz`, but may be greater if the underlying system rounds virtual

@@ -44,13 +44,15 @@
  * Allocators _must_ provide the following functions:
  *   • yu_err reserve(struct yu_mem_funcs *ctx, void **out, size_t num, size_t elem_size);
  *     Reserve pages of memory from the OS. These pages may be at any location.
+ *     *out should be aligned on a page boundary.
  *     This function _must never_ return an error EXCEPT in the following circumstances:
  *       • This process has exhausted its address space (highly unlikely)
  *       • `num` or `elem_size` is 0. This function may assert() that instead, but must
  *         still return an error in a release build.
  *
  *  • yu_err commit(struct yu_mem_funcs *ctx, void *addr, size_t num, size_t elem_size);
- *    Commit pages in the interval [addr,addr+num*elem_size) to physical memory.
+ *    Commit pages containing addresses in the interval [addr,addr+num*elem_size) to
+ *    physical memory.
  *    If `addr` is not on a page boundary, this function should round it down to the
  *    nearest page boundary and commit that.
  *    This function may return an error in the following circumstances:
@@ -66,9 +68,9 @@
  *      • `ptr` was reserved in a different memory context
  *
  *  • yu_err decommit(struct yu_mem_funcs *ctx, void *ptr, size_t num, size_t elem_size);
- *    Decommit pages in the interval [addr,addr+num*elem_size). If `addr` is not on
- *    a page boundary, this function should round it down to the nearest page boundary
- *    and decommit that.
+ *    Decommit pages containing addresses in the interval [addr,addr+num*elem_size).
+ *    If `addr` is not on a page boundary, this function should round it down to
+ *    the nearest page boundary and decommit that.
  *    This function may return an error in the following circumstances:
  *      • `addr` is not in a reserved page
  *      • `addr` was reserved in a different memory context
@@ -136,6 +138,11 @@ typedef struct yu_mem_funcs {
     yu_allocated_size_fn allocated_size;
     yu_usable_size_fn usable_size;
 
+    yu_reserve_fn reserve;
+    yu_release_fn release;
+    yu_commit_fn commit;
+    yu_decommit_fn decommit;
+
     yu_ctx_free_fn free_ctx;
 } yu_allocator;
 
@@ -165,6 +172,26 @@ YU_INLINE
 size_t yu_allocated_size(void *ctx, void *ptr) { return ((yu_allocator *)ctx)->allocated_size(ctx, ptr); }
 YU_INLINE
 size_t yu_usable_size(void *ctx, void *ptr) { return ((yu_allocator *)ctx)->usable_size(ctx, ptr); }
+
+YU_INLINE
+yu_err yu_reserve(void *ctx, void **out, size_t num, size_t elem_size) {
+    return ((yu_allocator *)ctx)->reserve(ctx, out, num, elem_size);
+}
+
+YU_INLINE
+yu_err yu_release(void *ctx, void *ptr) {
+    return ((yu_allocator *)ctx)->release(ctx, ptr);
+}
+
+YU_INLINE
+yu_err yu_commit(void *ctx, void *ptr, size_t num, size_t elem_size) {
+    return ((yu_allocator *)ctx)->commit(ctx, ptr, num, elem_size);
+}
+
+YU_INLINE
+yu_err yu_decommit(void *ctx, void *ptr, size_t num, size_t elem_size) {
+    return ((yu_allocator *)ctx)->decommit(ctx, ptr, num, elem_size);
+}
 
 YU_INLINE
 void yu_alloc_ctx_free(void *ctx) { ((yu_allocator *)ctx)->free_ctx(ctx); }

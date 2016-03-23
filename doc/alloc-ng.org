@@ -30,10 +30,11 @@ See file:../src/platform.h
 - [X] Reserving/releasing virtual memory
 - [ ] Committing/decommitting virtual memory
 - [ ] Both at once
-- [ ] free() and the _size() functions on pages
 - [ ] Reserving roughly at a fixed address
 - [ ] Reserving exactly at a fixed address
-** TODO [#A] Provide a wrapper for system malloc()
+- [ ] Context management of pages
+** DONE [#A] Provide a wrapper for system malloc()
+CLOSED: [2016-03-22 Tue 19:18]
 Can use system malloc() to implement bookkeeping for managing pages.
 ** TODO [#C] Provide a debug allocator
 Probably based on [[http://dmalloc.com/][dmalloc]]. Requires implementing ‘extras’, especially since
