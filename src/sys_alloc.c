@@ -32,6 +32,10 @@ yu_err sys_alloc_ctx_init(sys_allocator *ctx) {
   ctx->base.free_ctx = (yu_ctx_free_fn)sys_alloc_ctx_free;
   ctx->base.allocated_size = (yu_allocated_size_fn)sys_allocated_size;
   ctx->base.usable_size = (yu_usable_size_fn)sys_usable_size;
+  ctx->base.reserve = (yu_reserve_fn)sys_reserve;
+  ctx->base.release = (yu_release_fn)sys_release;
+  ctx->base.commit = (yu_commit_fn)sys_commit;
+  ctx->base.decommit = (yu_decommit_fn)sys_decommit;
 
   return YU_OK;
 }
@@ -187,7 +191,7 @@ yu_err sys_reserve(sys_allocator *ctx, void **out, size_t num, size_t elem_size)
   assert(usable_sz == alloc_sz);
   *out = pg;
   // Doesn't actually matter if this was already reserved
-  sysmem_pgtbl_put(&ctx->pgs, pg, alloc_sz, NULL);
+  sysmem_pgtbl_put(&ctx->pgs, pg, num * elem_size, NULL);
   return YU_OK;
 }
 

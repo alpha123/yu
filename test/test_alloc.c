@@ -21,7 +21,10 @@
     X(alloc_size, "Allocator should know the size of allocations") \
     X(usable_size, "Usable space should always be >= allocation size") \
     X(free_all, "All memory allocated within a context should be freed upon freeing the context") \
-    X(alloc_aligned, "Allocated pointers should obey the specified alignment")
+    X(alloc_aligned, "Allocated pointers should obey the specified alignment") \
+    X(alloc_pages, "Allocator should be able to request virtual pages from the underlying OS and release them on cleanup") \
+    X(page_free, "free() on a reserved address space should be equivalent to decommit+release") \
+    X(page_sizes, "_size() functions on a reserved address space should return the requested and rounded sizes")
 
 struct foo {
     u64 ll;
@@ -118,6 +121,21 @@ TEST(alloc_aligned)
     PT_ASSERT_EQ((uintptr_t)n % 4096, 0u);
     yu_free(&ctx, n);
 END(alloc_aligned)
+
+TEST(alloc_pages)
+END(alloc_pages)
+
+TEST(page_free)
+END(page_free)
+
+TEST(page_sizes)
+    void *ptr;
+    yu_err ok = yu_reserve(&ctx, &ptr, 1024, 1);
+    PT_ASSERT(ok == YU_OK);
+    PT_ASSERT(ptr != NULL);
+    PT_ASSERT_EQ(yu_allocated_size(&ctx, ptr), 1024u);
+    PT_ASSERT_EQ(yu_usable_size(&ctx, ptr), yu_virtual_pagesize(0));
+END(page_sizes)
 
 #if TEST_ALLOC == TEST_USE_SYS_ALLOC
 // Skip this test suite if we aren't defined to use the system allocator.
