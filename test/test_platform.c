@@ -85,12 +85,20 @@ TEST(reserve_address)
     if (((uintptr_t)addr & page_sz) != 0)
       addr = (char *)(((uintptr_t)addr+page_sz) & ~page_sz);
 
-    void *ptr;
+    void *ptr, *prev;
     size_t usable_sz = yu_virtual_alloc(&ptr, addr, page_sz+1, YU_VIRTUAL_RESERVE);
     PT_ASSERT(usable_sz > 0);
+    prev = ptr;
     // Allow a 3 page difference in where it was actually reserved. Dunno if
     // this is a good number.
     PT_ASSERT_LT((size_t)abs((uintptr_t)addr - (uintptr_t)ptr), page_sz*3+3);
+    // Now do it again on the same location and make sure we're still within a
+    // few pages.
+    usable_sz = yu_virtual_alloc(&ptr, addr, page_sz+1, YU_VIRTUAL_RESERVE);
+    PT_ASSERT(usable_sz > 0);
+    PT_ASSERT_LT((size_t)abs((uintptr_t)addr - (uintptr_t)ptr), page_sz*3+3);
+    yu_virtual_free(ptr, page_sz+1, YU_VIRTUAL_RELEASE);
+    yu_virtual_free(prev, page_sz+1, YU_VIRTUAL_RELEASE);
   }
 END(reserve_address)
 
