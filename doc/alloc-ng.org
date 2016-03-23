@@ -19,12 +19,14 @@ performance improvements.
 ** DONE Spec out allocator API
 CLOSED: [2016-03-22 Tue 11:16]
 See file:alloc-ng-specv2.org
-** TODO [#B] Platform abstraction layer for virtual memory
+** DONE [#B] Platform abstraction layer for virtual memory
+CLOSED: [2016-03-23 Wed 11:50]
 See file:../src/platform.h
 - [X] POSIX (mmap+posix_madvise) implementation
 - [X] Linux (mmap+madvise) implementation
-   Linux has a little more flexibility than the pure POSIX API.
-- [ ] Win32 (VirtualAlloc) implementation
+  Linux has a little more flexibility than the pure POSIX API.
+- [X] Win32 (VirtualAlloc) implementation
+  Untested
 ** TODO [#A] Test suite for new features
 - [X] Allocated/usable size functions
 - [X] Reserving/releasing virtual memory
