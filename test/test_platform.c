@@ -74,14 +74,14 @@ TEST(virtual_commit)
 END(virtual_commit)
 
 TEST(reserve_address)
-#if YU_32BIT
-  char *addr = (char *)((uintptr_t)&test_virtual_reserve + 0x40000000);
-#else
-  char *addr = (char *)((uintptr_t)&test_virtual_reserve + UINT64_C(0x0000400000000000));
-#endif
-size_t page_sz = yu_virtual_pagesize(0)-1;
+  // First allocate with no particular location preference in order to get some free space
+  char *addr;
+  size_t page_sz = yu_virtual_pagesize(0)-1,
+         addr_check = yu_virtual_alloc((void **)&addr, NULL, page_sz+1, YU_VIRTUAL_RESERVE);
+  assert(addr_check > 0);
+  yu_virtual_free(addr, page_sz+1, YU_VIRTUAL_RELEASE);
   for (int i = 0; i < 10; i++) {
-    addr += 0x200000;
+    addr += page_sz;
     if (((uintptr_t)addr & page_sz) != 0)
       addr = (char *)(((uintptr_t)addr+page_sz) & ~page_sz);
 
@@ -95,14 +95,13 @@ size_t page_sz = yu_virtual_pagesize(0)-1;
 END(reserve_address)
 
 TEST(reserve_fixed_address)
-  #if YU_32BIT
-  char *addr = (char *)((uintptr_t)&test_virtual_reserve + 0x40000000);
-  #else
-  char *addr = (char *)((uintptr_t)&test_virtual_reserve + UINT64_C(0x0000400000000000));
-  #endif
-  size_t page_sz = yu_virtual_pagesize(0)-1;
+  char *addr;
+  size_t page_sz = yu_virtual_pagesize(0)-1,
+         addr_check = yu_virtual_alloc((void **)&addr, NULL, page_sz+1, YU_VIRTUAL_RESERVE);
+  assert(addr_check > 0);
+  yu_virtual_free(addr, page_sz+1, YU_VIRTUAL_RELEASE);
   for (int i = 0; i < 10; i++) {
-    addr += 0x200000;
+    addr += page_sz;
     if (((uintptr_t)addr & page_sz) != 0)
       addr = (char *)(((uintptr_t)addr+page_sz) & ~page_sz);
 
