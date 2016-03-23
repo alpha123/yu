@@ -81,6 +81,12 @@ size_t yu_virtual_alloc(void **out, void *addr, size_t sz, yu_virtual_mem_flags 
       *out = NULL;
       return 0;
     }
+    // Ensure that committed memory is zeroed-out. Matches the behavior of
+    // Windows VirtualAlloc, which I think is better behavior. Windows' virtual
+    // memory API in general is a little nicer than *nix. Note that memory that
+    // was just reserved with mmap() will already be zero.
+    if (!fresh_reserve)
+      memset(ptr, 0, real_sz);
   }
 
   *out = ptr;
