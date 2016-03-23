@@ -53,11 +53,10 @@ build src/lex.i: lex src/lex.l
 
 build_objs(`src/*.c')
 build_objs(`test/*.c', `cflags = patsubst(CFLAGS, `-std=c99', `-std=c11') $include_dirs')
+build_objs(`dep/utf8proc/*.c', `cflags = -include utf8proc/utf8proc.h $cflags')
 build_objs(`dep/SFMT/SFMT.c')
-build_objs(`dep/utf8proc/utf8proc*.c', `cflags = -include utf8proc/utf8proc.h $cflags')
-build_objs(`dep/linenoise.c')
-build_objs(`dep/shoco.c')
-  
+build_objs(`dep/linenoise/linenoise.c')
+build_objs(`dep/shoco/shoco.c')
 
 link_static(`dep/libdeps.a', `dep/**/*.o')
 

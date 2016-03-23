@@ -155,8 +155,8 @@ deps:  ## Build a static library of bundled dependencies
 	$(CC) $(CFLAGS) -c dep/SFMT/SFMT.c -o dep/SFMT/SFMT.o
 	$(CC) $(CFLAGS) -include dep/utf8proc/utf8proc.h -c dep/utf8proc/utf8proc.c -o dep/utf8proc/utf8proc.o
 	$(CC) $(CFLAGS) -include dep/utf8proc/utf8proc.h -c dep/utf8proc/utf8proc_data.c -o dep/utf8proc/utf8proc_data.o
-	$(CC) $(CFLAGS) -c dep/linenoise.c -o dep/linenoise.o
-	$(CC) $(CFLAGS) -c dep/shoco.c -o dep/shoco.o
+	$(CC) $(CFLAGS) -c dep/linenoise/linenoise.c -o dep/linenoise/linenoise.o
+	$(CC) $(CFLAGS) -c dep/shoco/shoco.c -o dep/shoco/shoco.o
 	$(AR) rcs dep/lib$@.a dep/**/*.o
 
 
