@@ -30,7 +30,7 @@ See file:../src/platform.h
 ** TODO [#A] Test suite for new features
 - [X] Allocated/usable size functions
 - [X] Reserving/releasing virtual memory
-- [ ] Committing/decommitting virtual memory
+- [X] Committing/decommitting virtual memory
 - [ ] Both at once
 - [ ] Reserving roughly at a fixed address
 - [ ] Reserving exactly at a fixed address
