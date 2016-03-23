@@ -27,6 +27,8 @@ yu_err sys_alloc_ctx_init(sys_allocator *ctx) {
   ctx->base.realloc = (yu_realloc_fn)sys_realloc;
   ctx->base.free = (yu_free_fn)sys_free;
   ctx->base.free_ctx = (yu_ctx_free_fn)sys_alloc_ctx_free;
+  ctx->base.allocated_size = (yu_allocated_size_fn)sys_allocated_size;
+  ctx->base.usable_size = (yu_usable_size_fn)sys_usable_size;
 
   return YU_OK;
 }
@@ -83,13 +85,6 @@ yu_err sys_realloc(sys_allocator *ctx, void **ptr, size_t num, size_t elem_size,
   // Fortunately, Yu never does that. ;-)
   // But this code is technically possibly broken.
 
-  if (*ptr == NULL)
-    return sys_alloc(ctx, ptr, num, elem_size, alignment);
-  if (num == 0) {
-    sys_free(ctx, *ptr);
-    return YU_OK;
-  }
-
   size_t old_sz, alloc_sz = num * elem_size;
   bool we_own_this = sysmem_tbl_remove(&ctx->allocd, *ptr, &old_sz);
   assert(we_own_this);
@@ -124,4 +119,18 @@ yu_err sys_realloc(sys_allocator *ctx, void **ptr, size_t num, size_t elem_size,
 void sys_free(sys_allocator *ctx, void *ptr) {
   sysmem_tbl_remove(&ctx->allocd, ptr, NULL);
   free(ptr);
+}
+
+size_t sys_allocated_size(sys_allocator *ctx, void *ptr) {
+  bool ok;
+  size_t sz;
+  ok = sysmem_tbl_get(&ctx->allocd, ptr, &sz);
+  assert(ok);
+  return sz;
+}
+
+size_t sys_usable_size(sys_allocator *ctx, void *ptr) {
+  // Since we're mostly just wrapping malloc, we actually have no idea what the
+  // usable space of this thing is.
+  return sys_allocated_size(ctx, ptr);
 }

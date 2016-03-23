@@ -133,6 +133,9 @@ typedef struct yu_mem_funcs {
     yu_realloc_fn realloc;
     yu_free_fn free;
 
+    yu_allocated_size_fn allocated_size;
+    yu_usable_size_fn usable_size;
+
     yu_ctx_free_fn free_ctx;
 } yu_allocator;
 
@@ -157,6 +160,11 @@ yu_err yu_realloc(void *ctx, void **ptr, size_t num, size_t elem_size, size_t al
 }
 YU_INLINE
 void yu_free(void *ctx, void *ptr) { ((yu_allocator *)ctx)->free(ctx, ptr); }
+
+YU_INLINE
+size_t yu_allocated_size(void *ctx, void *ptr) { return ((yu_allocator *)ctx)->allocated_size(ctx, ptr); }
+YU_INLINE
+size_t yu_usable_size(void *ctx, void *ptr) { return ((yu_allocator *)ctx)->usable_size(ctx, ptr); }
 
 YU_INLINE
 void yu_alloc_ctx_free(void *ctx) { ((yu_allocator *)ctx)->free_ctx(ctx); }

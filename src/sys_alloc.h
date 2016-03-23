@@ -28,3 +28,6 @@ void sys_alloc_ctx_free(sys_allocator *ctx);
 yu_err sys_alloc(sys_allocator *ctx, void **out, size_t num, size_t elem_size, size_t alignment);
 yu_err sys_realloc(sys_allocator *ctx, void **ptr, size_t num, size_t elem_size, size_t alignment);
 void sys_free(sys_allocator *ctx, void *ptr);
+
+size_t sys_allocated_size(sys_allocator *ctx, void *ptr);
+size_t sys_usable_size(sys_allocator *ctx, void *ptr);

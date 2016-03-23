@@ -26,6 +26,7 @@ See file:../src/platform.h
    Linux has a little more flexibility than the pure POSIX API.
 - [ ] Win32 (VirtualAlloc) implementation
 ** TODO [#A] Test suite for new features
+- [X] Allocated/usable size functions
 - [X] Reserving/releasing virtual memory
 - [ ] Committing/decommitting virtual memory
 - [ ] Both at once

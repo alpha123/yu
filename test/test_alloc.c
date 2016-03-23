@@ -18,6 +18,8 @@
     X(alloc, "alloc() should allocate usable space of the requested size") \
     X(alloc_zero, "alloc() should initialize the requested space to 0") \
     X(alloc_free, "free() should free the allocated space") \
+    X(alloc_size, "Allocator should know the size of allocations") \
+    X(usable_size, "Usable space should always be >= allocation size") \
     X(free_all, "All memory allocated within a context should be freed upon freeing the context") \
     X(alloc_aligned, "Allocated pointers should obey the specified alignment")
 
@@ -62,6 +64,20 @@ TEST(alloc_free)
     yu_free(&ctx, f);
     PT_ASSERT(!sysmem_tbl_get(&ctx.allocd, f, NULL));
 END(alloc_free)
+
+TEST(alloc_size)
+    struct foo *f = yu_xalloc(&ctx, 3, sizeof(struct foo));
+    PT_ASSERT_EQ(yu_allocated_size(&ctx, f), 3 * sizeof(struct foo));
+    f = yu_xrealloc(&ctx, f, 10, sizeof(struct foo));
+    PT_ASSERT_EQ(yu_allocated_size(&ctx, f), 10 * sizeof(struct foo));
+END(alloc_size)
+
+TEST(usable_size)
+    struct foo *f = yu_xalloc(&ctx, 3, sizeof(struct foo));
+    PT_ASSERT_GTE(yu_usable_size(&ctx, f), 3 * sizeof(struct foo));
+    f = yu_xrealloc(&ctx, f, 10, sizeof(struct foo));
+    PT_ASSERT_GTE(yu_usable_size(&ctx, f), 10 * sizeof(struct foo));
+END(usable_size)
 
 TEST(free_all)
     struct foo *f = yu_xalloc(&ctx, 1, sizeof(struct foo)),
