@@ -11,7 +11,9 @@
 
 #define LIST_PLATFORM_TESTS(X) \
   X(virtual_reserve, "Reserving a huge address space should not run out of physical memory") \
-  X(virtual_commit, "Reserved pages can be committed individually")
+  X(virtual_commit, "Reserved pages can be committed individually") \
+  X(reserve_address, "virtual_alloc should attempt to obey the requested address") \
+  X(reserve_fixed_address, "With the FIXED_ADDR option, virtual_alloc should reserve starting at the provided address or commit sudoku")
 
 TEST(virtual_reserve)
   void *big;
@@ -70,6 +72,52 @@ TEST(virtual_commit)
 
   yu_virtual_free(ptr, usable_sz, YU_VIRTUAL_DECOMMIT | YU_VIRTUAL_RELEASE);
 END(virtual_commit)
+
+TEST(reserve_address)
+#if YU_32BIT
+  char *addr = (char *)((uintptr_t)&test_virtual_reserve + 0x40000000);
+#else
+  char *addr = (char *)((uintptr_t)&test_virtual_reserve + UINT64_C(0x0000400000000000));
+#endif
+size_t page_sz = yu_virtual_pagesize(0)-1;
+  for (int i = 0; i < 10; i++) {
+    addr += 0x200000;
+    if (((uintptr_t)addr & page_sz) != 0)
+      addr = (char *)(((uintptr_t)addr+page_sz) & ~page_sz);
+
+    void *ptr;
+    size_t usable_sz = yu_virtual_alloc(&ptr, addr, page_sz+1, YU_VIRTUAL_RESERVE);
+    PT_ASSERT(usable_sz > 0);
+    // Allow a 3 page difference in where it was actually reserved. Dunno if
+    // this is a good number.
+    PT_ASSERT_LT((size_t)abs((uintptr_t)addr - (uintptr_t)ptr), page_sz*3+3);
+  }
+END(reserve_address)
+
+TEST(reserve_fixed_address)
+  #if YU_32BIT
+  char *addr = (char *)((uintptr_t)&test_virtual_reserve + 0x40000000);
+  #else
+  char *addr = (char *)((uintptr_t)&test_virtual_reserve + UINT64_C(0x0000400000000000));
+  #endif
+  size_t page_sz = yu_virtual_pagesize(0)-1;
+  for (int i = 0; i < 10; i++) {
+    addr += 0x200000;
+    if (((uintptr_t)addr & page_sz) != 0)
+      addr = (char *)(((uintptr_t)addr+page_sz) & ~page_sz);
+
+    char *ptr;
+    size_t usable_sz = yu_virtual_alloc((void **)&ptr, addr, page_sz+1, YU_VIRTUAL_RESERVE | YU_VIRTUAL_FIXED_ADDR);
+    PT_ASSERT(usable_sz == 0 || ptr == addr);
+  }
+
+  // Reserve an illegal address so we can be sure to have a failure
+  addr = (char *)0x01;
+  void *ptr;
+  size_t usable_sz = yu_virtual_alloc(&ptr, addr, page_sz+1, YU_VIRTUAL_RESERVE | YU_VIRTUAL_FIXED_ADDR);
+  PT_ASSERT_EQ(usable_sz, 0u);
+  PT_ASSERT_EQ(ptr, NULL);
+END(reserve_fixed_address)
 
 
 SUITE(platform, LIST_PLATFORM_TESTS)

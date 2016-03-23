@@ -13,7 +13,7 @@ performance improvements.
 ** Minimize allocations
  Have an explicit API to get the real usable size of an allocation. Care must be
  taken not to unnecessarily expose implementation details. However, this could
- avoid unnecessary calls to allocator functions in a number of circumstances.
+ avoid unnecessary calls to allocator functions in a number of circumstances
 
 * Progress
 ** DONE Spec out allocator API
@@ -32,8 +32,8 @@ See file:../src/platform.h
 - [X] Reserving/releasing virtual memory
 - [X] Committing/decommitting virtual memory
 - [ ] Both at once
-- [ ] Reserving roughly at a fixed address
-- [ ] Reserving exactly at a fixed address
+- [X] Reserving roughly at a fixed address
+- [X] Reserving exactly at a fixed address
 - [ ] Context management of pages
 ** DONE [#A] Provide a wrapper for system malloc()
 CLOSED: [2016-03-22 Tue 19:18]
@@ -45,6 +45,10 @@ However, a true debug_alloc will have to track page-level allocations as well.
 Shimming this on top of dmalloc may not work, since subsystems expect to be able
 to reserve large address spaces. Might be OK on Linux with its lazy committing
 policy.
+** TODO [#C] Provide a higher-performing allocator wrapping jemalloc APIs directly
+jemalloc provides more control like aligned realloc and getting usable size.
+This does require using experimental jemalloc APIs, but should be much more
+efficient than shimming the functionality.
 ** DONE [#A] Update existing subsystems to new allocator API
 CLOSED: [2016-03-22 Tue 16:16]
 Changes in most cases should be relatively minimal.
@@ -53,7 +57,7 @@ Changes in most cases should be relatively minimal.
 - [X] test_alloc
 - [X] Object arenas
 - [X] Generic data structures
-** TODO [#C] Update existing subsystems to make efficient use of new features
+** TODO [#B] Update existing subsystems to make efficient use of new features
  Arenas in particular can make efficient use of reserving huge chunks of
  addresses without actually committing. Part of the reason for the whole
  redesign is to improve garbage collector performance.
