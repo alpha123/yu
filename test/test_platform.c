@@ -12,6 +12,7 @@
 #define LIST_PLATFORM_TESTS(X) \
   X(virtual_reserve, "Reserving a huge address space should not run out of physical memory") \
   X(virtual_commit, "Reserved pages can be committed individually") \
+  X(virtual_both, "Reserving and committing at the same time should be equivalent to sequential") \
   X(reserve_address, "virtual_alloc should attempt to obey the requested address") \
   X(reserve_fixed_address, "With the FIXED_ADDR option, virtual_alloc should reserve starting at the provided address or commit sudoku")
 
@@ -73,8 +74,26 @@ TEST(virtual_commit)
   yu_virtual_free(ptr, usable_sz, YU_VIRTUAL_DECOMMIT | YU_VIRTUAL_RELEASE);
 END(virtual_commit)
 
+TEST(virtual_both)
+  char *ptr;
+  size_t page_sz = yu_virtual_pagesize(0)-1,
+         usable_sz = yu_virtual_alloc((void **)&ptr, NULL, page_sz*2+2, YU_VIRTUAL_RESERVE | YU_VIRTUAL_COMMIT);
+  PT_ASSERT_GTE(usable_sz, page_sz*2+2);
+  ptr[0] = 42;
+  ptr[page_sz+1] = 32;
+  yu_virtual_free((void **)&ptr, page_sz+1, YU_VIRTUAL_DECOMMIT);
+  PT_ASSERT_EQ(ptr[page_sz+1], 32);
+  void *check;
+  size_t check_sz = yu_virtual_alloc(&check, (void *)ptr, page_sz+1, YU_VIRTUAL_COMMIT);
+  PT_ASSERT(check_sz > 0);
+  PT_ASSERT_EQ(ptr[0], 0);
+  PT_ASSERT_EQ(ptr[page_sz+1], 32);
+  yu_virtual_free(ptr, page_sz*2+2, YU_VIRTUAL_DECOMMIT | YU_VIRTUAL_RELEASE);
+END(virtual_both)
+
 TEST(reserve_address)
-  // First allocate with no particular location preference in order to get some free space
+  // First allocate with no particular location preference in order to get the
+  // address of some free space.
   char *addr;
   size_t page_sz = yu_virtual_pagesize(0)-1,
          addr_check = yu_virtual_alloc((void **)&addr, NULL, page_sz+1, YU_VIRTUAL_RESERVE);
