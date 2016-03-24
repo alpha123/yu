@@ -36,7 +36,7 @@ struct token {
 
 struct lexer {
     yu_str_ctx str_ctx;
-    yu_memctx_t *mem_ctx;
+    yu_allocator *mem_ctx;
 
     void *scanner;
     void *buf;
@@ -47,7 +47,7 @@ struct lexer {
     char *err_msg;
 };
 
-YU_ERR_RET lexer_open(struct lexer *lex, FILE *in, yu_memctx_t *mctx);
+YU_ERR_RET lexer_open(struct lexer *lex, FILE *in, yu_allocator *mctx);
 void lexer_close(struct lexer *lex);
 bool lexer_next(struct lexer *lex, struct token *out);
 

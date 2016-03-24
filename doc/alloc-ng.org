@@ -1,0 +1,64 @@
+The alloc-ng branch of the git repository contains the prototype for a
+next-generation allocator API. This new API is lower-level than the existing
+API, but the design is considerably more flexible and offers many potential
+performance improvements.
+
+* Goals
+** See file:../src/yu_alloc.h
+** Fast, 64-bit optimized, virtual-memory-aware allocator
+** Explicit control over virtual memory pages
+** Embrace over-reserving addresses
+ 64-bit address space is almost unlimited. Reserving the entire object heap of
+ addresses is feasible if we don't have to commit it.
+** Minimize allocations
+ Have an explicit API to get the real usable size of an allocation. Care must be
+ taken not to unnecessarily expose implementation details. However, this could
+ avoid unnecessary calls to allocator functions in a number of circumstances
+
+* Progress
+** DONE Spec out allocator API
+CLOSED: [2016-03-22 Tue 11:16]
+See file:alloc-ng-specv2.org
+** DONE [#B] Platform abstraction layer for virtual memory
+CLOSED: [2016-03-23 Wed 11:50]
+See file:../src/platform.h
+- [X] POSIX (mmap+posix_madvise) implementation
+- [X] Linux (mmap+madvise) implementation
+  Linux has a little more flexibility than the pure POSIX API.
+- [X] Win32 (VirtualAlloc) implementation
+  Untested
+** DONE [#A] Test suite for new features
+CLOSED: [2016-03-23 Wed 22:52]
+- [X] Allocated/usable size functions
+- [X] Reserving/releasing virtual memory
+- [X] Committing/decommitting virtual memory
+- [X] Both at once
+- [X] Reserving roughly at a fixed address
+- [X] Reserving exactly at a fixed address
+- [X] Context management of pages
+** DONE [#A] Provide a wrapper for system malloc()
+CLOSED: [2016-03-22 Tue 19:18]
+Can use system malloc() to implement bookkeeping for managing pages.
+** TODO [#C] Provide a debug allocator
+Probably based on [[http://dmalloc.com/][dmalloc]]. Requires implementing ‘extras’, especially since
+dmalloc does not support aligned_alloc. The existing [[file:/usr/home/peter/yu-lang/src/debug_alloc.h][debug_alloc]] may be of use.
+However, a true debug_alloc will have to track page-level allocations as well.
+Shimming this on top of dmalloc may not work, since subsystems expect to be able
+to reserve large address spaces. Might be OK on Linux with its lazy committing
+policy.
+** TODO [#C] Provide a higher-performing allocator wrapping jemalloc APIs directly
+jemalloc provides more control like aligned realloc and getting usable size.
+This does require using experimental jemalloc APIs, but should be much more
+efficient than shimming the functionality.
+** DONE [#A] Update existing subsystems to new allocator API
+CLOSED: [2016-03-22 Tue 16:16]
+Changes in most cases should be relatively minimal.
+- [X] Test framework ([[file:../test/test.h][test/test.h]])
+- [X] yu_buf, yu_str
+- [X] test_alloc
+- [X] Object arenas
+- [X] Generic data structures
+** TODO [#B] Update existing subsystems to make efficient use of new features
+ Arenas in particular can make efficient use of reserving huge chunks of
+ addresses without actually committing. Part of the reason for the whole
+ redesign is to improve garbage collector performance.

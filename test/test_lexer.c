@@ -9,7 +9,7 @@
 
 #define lex_init_str(s) do{ \
     FILE *str = fmemopen(s, strlen(s), "r"); \
-    yu_err ser = lexer_open(&lex, str, &mctx); \
+    yu_err ser = lexer_open(&lex, str, (yu_allocator *)&mctx);  \
     assert(ser == YU_OK); \
 }while(0)
 
@@ -30,8 +30,7 @@
 }while(0)
 
 #define SETUP \
-    yu_memctx_t mctx; \
-    TEST_GET_ALLOCATOR(&mctx); \
+    TEST_GET_ALLOCATOR(mctx); \
     struct lexer lex; \
     struct token tok;
 

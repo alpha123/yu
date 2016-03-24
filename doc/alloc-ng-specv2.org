@@ -1,0 +1,138 @@
+* Virtual memory API
+API to abstract over VirtualAlloc/mmap.
+- [X] POSIX implementation using mmap+posix_madvise
+- [ ] Win32 implementation using VirtualAlloc
+** Should pages be context-managed?
+Pros:
+- Consistency
+- Ease of integrating into existing arena implementation
+- Efficiency?
+  + madvise on Linux can decommit many pages at once
+Cons:
+- Requires allocating memory to keep track of owned pages
+** Solution
+*** Compile-time decision on which virtual memory backend to use
+No runtime overhead and the APIs are similar enough that this is easy.
+**** Requires platform abstraction layer of a sort
+file:../src/platform.h and file:../src/platform/posix.h
+*** Allocator subclasses should provide their own way of managing reserved pages
+For example, using the object-level allocator to manage a linked list.
+*** Forget mix_alloc et al
+Such a deep hierarchy is something of a design smell, not to mention loses
+efficiency quickly. Allocating memory shouldn't involve chasing 3 levels of
+function pointers.
+
+* Changes to existing APIs
+** yu_err alloc(allocator *ctx, void **out, size_t num, size_t elem_size, size_t alignment);
+Behaves much like it does currently. However, it should keep track of allocated
+and usable size.
+** yu_err realloc(allocator *ctx, void *ptr, size_t num, size_t elem_size, size_t alignment);
+Like the current realloc, but it must make an effort to resize the allocation
+in-place if possible. In particular, if [[size_t%20usable_size(allocator%20*ctx,%20void%20*ptr)%3B][usable_size()]] returns >= num *
+elem_size, realloc() /must/ resize in-place.
+*** TBD: “Sticky alignment”
+Should alignment = 0 use the current alignment of `ptr` or the default
+alignment? (i.e. should alignment be “sticky”) Does it ever make sense to
+reallocate to a default alignment if previously allocated to a non-default?
+** void free(allocator *ctx, void *ptr);
+No differences to current free contract.
+
+* New APIs
+** size_t allocated_size(allocator *ctx, void *ptr);
+Rationale: the allocator must keep track of this information anyway (primarily
+for realloc). Providing an API to access it may reduce redundancy in some cases.
+However, this function need not be particularly fast, and may have undesirable
+effects on the CPU cache.
+** size_t usable_size(allocator *ctx, void *ptr);
+Many allocators over-allocate slightly for a variety of reasons (having separate
+free lists for different sizes of object, being a power-of-2 allocator, etc).
+The application should have access to this information to reduce unnecessary
+allocations.
+** size_t reserve(allocator *ctx, void **out, size_t num, size_t elem_size);
+Reserves a section of virtual memory. Callers may rely on this function not
+necessarily committing the address space to physical memory, which makes this
+somewhat difficult to shim with dmalloc() for debugging.
+
+Since most or all OSes reserve memory at the page-level, this function returns
+the number of bytes actually reserved, which /must/ be >= the requested size.
+** void release(allocator *ctx, void *ptr);
+Unreserve all addresses starting at ptr. Portions of a reserved space cannot be
+released individually due to restrictions in VirtualAlloc. `ptr` /must/ be the
+out pointer from reserve().
+** yu_err commit(allocator *ctx, void *ptr, size_t num, size_t elem_size);
+Commit pages of virtual memory to physical memory. All pages containing
+addresses in the interval [ptr,ptr+num*elem_size) should be committed. `ptr`
+need not fall on a page boundary.
+** void decommit(allocator *ctx, void *ptr, size_t num, size_t elem_size);
+Decommit all pages containing addresses in the interval [ptr,ptr+num*elem_size).
+`ptr` need not fall on a page boundary.
+
+* Removed APIs
+** array_alloc, array_realloc, array_free, array_len
+While potentially useful, these haven't actually been used.
+
+* Creating an allocator
+** Move to a pseudo-subclass system
+Somewhat cleaner than the current system of polymorphism. Currently allocators
+must cast ctx->adata to their internal data structure. If they require multiple
+structures, then they have to define a special combination struct just to act as
+the adata member. This also makes stack allocating them somewhat awkward. With a
+subclass system, methods can take the allocator struct directly and be cast to
+the proper function signature in context init.
+
+c.f. Linux kernel, SQLite
+** Example
+#+BEGIN_SRC C
+struct my_allocator {
+  yu_mem_funcs base;  // Must be first struct member
+  data_structure bookkeeping;
+  ...
+};
+
+yu_err my_allocator_init(struct my_allocator *ctx) {
+  ctx->base.alloc = (yu_alloc_fn)my_alloc;
+  ...
+}
+
+yu_err my_alloc(struct my_allocator *ctx, void **out, size_t num, size_t elem_size) {
+  ...
+}
+
+...
+#+END_SRC
+
+* Remaining problems
+** *Should the origin of a pointer matter to free/allocated_size/usable_size?*
+This is one of the big reasons to prefer allocators even having to manage
+page-level allocations. Should free() on pointer allocated with [[size_t%20reserve(allocator%20*ctx,%20void%20**out,%20size_t%20num,%20size_t%20elem_size)%3B][reserve()]] be
+equivalent to doing decommit+release on that pointer? Additionally, should
+[[size_t%20allocated_size(allocator%20*ctx,%20void%20*ptr)%3B][allocated_size()]] and [[size_t%20usable_size(allocator%20*ctx,%20void%20*ptr)%3B][usable_size()]] behave as expected? At the moment, I am
+inclined to say *yes*, though this complicates the implementation of an
+allocator. Such a dichotomy would, to an extent, defeat the point of including
+page-level allocation in the allocator API to begin with.
+
+Seeing as reserved pages must be released when the context is freed, this does
+not necessarily introduce additional complexity into allocator implementations.
+
+On top of that, this makes automatically placing large objects in their own
+space without metadata much easier.
+** Should [[size_t%20reserve(allocator%20*ctx,%20void%20**out,%20size_t%20num,%20size_t%20elem_size)%3B][reserve()]] be required to provide an address allocated on a page boundary?
+Since it will have access to the object-level allocator for bookkeeping, I am
+inclined to say yes.
+** (size_t num, size_t elem_size) vs (size_t bytes)
+The former is slightly more awkward since most allocations will be sized in
+bytes. However, it reduces the possibility for accidental overflow (by
+multiplying signed ints to determine size, for example). Additionally, it opens
+the possibility of using an elem_size of 0 to be a default, such as system page
+size (this does not make sense for [[yu_err%20commit(allocator%20*ctx,%20void%20*ptr,%20size_t%20num,%20size_t%20elem_size)%3B][commit()]] since the caller has no way to
+determine how much was actually committed, but [[size_t%20reserve(allocator%20*ctx,%20void%20**out,%20size_t%20num,%20size_t%20elem_size)%3B][reserve()]] provides that
+information). The utility of that is perhaps somewhat limited.
+** [[TBD:%20%E2%80%9CSticky%20alignment%E2%80%9D][Sticky alignment]]
+Pros:
+- Removes possibility of accidentally reallocating to the default alignment.
+Cons:
+- Reallocating to a stricter alignment may be useful (for objects allocated to
+  their size), so the alignment parameter must remain anyway.
+- May require extra bookkeeping.
+  The pointer cannot be trusted to contain the actual alignment, since it may be
+  located stricter than necessary.

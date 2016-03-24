@@ -60,7 +60,7 @@
 struct arena;
 
 struct arena_handle {
-    yu_memctx_t *mem_ctx;
+    yu_allocator *mem_ctx;
     struct arena * restrict self;
     struct arena_handle * restrict next;
     struct arena_handle *next_gen;
@@ -78,7 +78,7 @@ struct arena {
     struct boxed_value objs[GC_ARENA_NUM_OBJECTS];
 };
 
-struct arena_handle *arena_new(yu_memctx_t *mctx);
+struct arena_handle *arena_new(yu_allocator *mctx);
 void arena_free(struct arena_handle *a);
 
 typedef void (* arena_overflow_func)(struct arena_handle *, void *);

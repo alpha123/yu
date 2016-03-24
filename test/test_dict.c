@@ -8,8 +8,7 @@
 #include "dict.h"
 
 #define SETUP \
-    yu_memctx_t mctx; \
-    TEST_GET_ALLOCATOR(&mctx);
+    TEST_GET_ALLOCATOR(mctx);
 
 #define TEARDOWN \
     yu_alloc_ctx_free(&mctx);
@@ -26,7 +25,7 @@ const size_t WORD_COUNT = 79339;
 TEST(perfect_hash)
     phf_string_t ss[] = {{.p = "foo", .n = 3}, {.p = "bar", .n = 3}};
     struct phf p;
-    phf_init(&p, ss, 2, 0, 77, 314, false, &mctx);
+    phf_init(&p, ss, 2, 0, 77, 314, false, (yu_allocator *)&mctx);
     u32 h1 = phf_hash(&p, ss[0]),
         h2 = phf_hash(&p, ss[1]),
         h3 = phf_hash(&p, ss[0]);
@@ -47,7 +46,7 @@ TEST(perfect_hash)
     }
 
     bool *hashes = yu_xalloc(&mctx, WORD_COUNT+1000, sizeof(bool));
-    phf_init(&p, words, WORD_COUNT, 0, WORD_COUNT+1000, 59991, false, &mctx);
+    phf_init(&p, words, WORD_COUNT, 0, WORD_COUNT+1000, 59991, false, (yu_allocator *)&mctx);
 
     bool no_collisions = true;
     for (u32 i = 0; i < WORD_COUNT; i++) {

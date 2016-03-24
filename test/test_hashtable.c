@@ -13,9 +13,8 @@ YU_HASHTABLE(ht, u32, char *, inthash_1, inthash_2, int_eq)
 YU_HASHTABLE_IMPL(ht, u32, char *, inthash_1, inthash_2, int_eq)
 
 #define SETUP \
-    yu_memctx_t mctx; \
     ht tbl; \
-    TEST_GET_INTERNAL_ALLOCATOR(&mctx); \
+    TEST_GET_INTERNAL_ALLOCATOR(mctx); \
     ht_init(&tbl, 3, &mctx);
 
 #define TEARDOWN \

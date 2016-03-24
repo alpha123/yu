@@ -141,7 +141,7 @@ static void yu_buf_ctx_clean_free_list(yu_buf_ctx *ctx) {
 
 static void null_free(void * YU_UNUSED(_)) { }
 
-void yu_buf_ctx_init(yu_buf_ctx *ctx, yu_memctx_t *memctx) {
+void yu_buf_ctx_init(yu_buf_ctx *ctx, yu_allocator *memctx) {
     yu_buf_table_init(&ctx->frozen_bufs, 10, memctx);
     ctx->memctx = memctx;
     ctx->free = NULL;

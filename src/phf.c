@@ -391,7 +391,7 @@ static int phf_keycmp(const phf_key *a, const phf_key *b) {
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-PHF_PUBLIC phf_error_t phf_init(struct phf *phf, phf_string_t * const k, size_t n, size_t l, size_t a, phf_seed_t seed, bool nodiv, yu_memctx_t *mctx) {
+PHF_PUBLIC phf_error_t phf_init(struct phf *phf, phf_string_t * const k, size_t n, size_t l, size_t a, phf_seed_t seed, bool nodiv, yu_allocator *mctx) {
     size_t n1 = PHF_MAX(n, 1); /* for computations that require n > 0 */
     size_t l1 = PHF_MAX(l, 1);
     size_t a1 = PHF_MAX(PHF_MIN(a, 100), 1);

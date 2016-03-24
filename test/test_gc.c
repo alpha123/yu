@@ -11,10 +11,9 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
 #define SETUP \
-    yu_memctx_t mctx; \
-    TEST_GET_ALLOCATOR(&mctx); \
+    TEST_GET_ALLOCATOR(mctx); \
     struct gc_info gc; \
-    yu_err _gciniterr = gc_init(&gc, &mctx); \
+    yu_err _gciniterr = gc_init(&gc, (yu_allocator *)&mctx);  \
     assert(_gciniterr == YU_OK); \
     struct arena_handle *a = gc.arenas[0], *b = gc.arenas[1], \
         *c = gc.arenas[2];

@@ -8,10 +8,9 @@
 #include "sys_alloc.h"
 
 #define SETUP \
-    yu_memctx_t mctx; \
     yu_str_ctx ctx; \
-    sys_alloc_ctx_init(&mctx); \
-    yu_str_ctx_init(&ctx, &mctx);
+    TEST_GET_ALLOCATOR(mctx); \
+    yu_str_ctx_init(&ctx, (yu_allocator *)&mctx);
 
 #define TEARDOWN \
     yu_str_ctx_free(&ctx); \

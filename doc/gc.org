@@ -1,0 +1,60 @@
+* High-level overview
+Yu's garbage collector is a copying incremental collector similar to the
+proposed collector for LuaJIT. Some familiarity with garbage collection
+algorithms and is recommended. See http://wiki.luajit.org/New-Garbage-Collector
+for LuaJIT's new GC proposal.
+
+Two bits, in separate locations, determine the GC status of an object. Stored
+in a boxed_value object is the ‘gray bit’, determining whether an object has
+been fully marked.
+
+* Progress
+** DONE Arena-based bump allocator for objects
+CLOSED: [2016-03-21 Mon 17:56]
+** DONE Quad-color incremental marking
+CLOSED: [2016-03-21 Mon 18:05]
+** DONE Cheap write barrier in the common case
+CLOSED: [2016-03-21 Mon 18:04]
+** DONE Mark-and-compact collection for oldest generation
+CLOSED: [2016-03-21 Mon 18:04]
+** DONE Copying generational collection for younger generations
+CLOSED: [2016-03-21 Mon 18:04]
+** TODO Special space (in cache?) for nursery generation
+
+* State Transitions
+Non-traversable objects have very simple state transitions (just
+white->black->white). Traversable objects are where the quad-color algorithm is
+employed for marking.
+
+
+#+BEGIN_EXAMPLE -i
++--------------+      +-------+       +-----------------+
+| New Object   |     / Sweep /---->---| Object Is Freed |
+| *light gray* |-->-/-------/         +-----------------+
++--------------+        /                  \
+  |                    ^                 --------+
+  |       +---------------+             / Sweep /
+  v       | Write Barrier |            +-------+
+  |       | *light gray*  |                  \
+  |       +---------------+            +-----------------+
+  |           v      \                 | Sweep Resets To |
++-------------------+ \-------<--------|     *white*     |
+| Traversal Starts: |                  +-----------------+
+| Object Was Rooted |                                \
+| Or Referenced     |                                 \
++-------------------+                                  ^
+      v                                                 \
+       \------+                                          \
+        \ Push \------<-----                           +------------------------+
+         +------+           \                          | Object Fully Traversed |
+           /              +---------------+  ----<-----|        *black*         |
+      +-------+           | Write Barrier |-/          +------------------------+
+      | Gray  |           +---------------+                    /
+      | Stack +-----+                                         ^
+      | *dark gray* |                                        /
+      +-------------+                                       /
+            \                               +------------------------+
+             \        +-----+              -| Add Referenced Objects |
+              \-->---/ Pop /------->------/ |     To Gray Stack      |
+                    /-----/                 +------------------------+
+#+END_EXAMPLE

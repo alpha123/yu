@@ -16,11 +16,11 @@ struct YU_NAME(spl, nodelist) { \
 typedef struct { \
     struct YU_NAME(spl, node) *root; \
     struct YU_NAME(spl, nodelist) *nodes; \
-    yu_memctx_t *memctx; \
+    yu_allocator *memctx; \
     u64 size; \
 } spl; \
 \
-void YU_NAME(spl, init)(spl *tree, yu_memctx_t *mctx); \
+void YU_NAME(spl, init)(spl *tree, yu_allocator *mctx); \
 void YU_NAME(spl, free)(spl *tree); \
 \
 void YU_NAME(spl, _left_rotate_)(spl *tree, struct YU_NAME(spl, node) *n); \
@@ -36,7 +36,7 @@ bool YU_NAME(spl, max)(spl *tree, data_t *out); \
 bool YU_NAME(spl, closest)(spl *tree, data_t target, data_t *out_smaller, data_t *out_larger);
 
 #define YU_SPLAYTREE_IMPL(spl, data_t, cmp, splay_on_find) \
-void YU_NAME(spl, init)(spl *tree, yu_memctx_t *mctx) { \
+void YU_NAME(spl, init)(spl *tree, yu_allocator *mctx) { \
     tree->size = 0; \
     tree->nodes = NULL; \
     tree->root = NULL; \
