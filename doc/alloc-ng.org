@@ -34,7 +34,7 @@ See file:../src/platform.h
 - [ ] Both at once
 - [X] Reserving roughly at a fixed address
 - [X] Reserving exactly at a fixed address
-- [ ] Context management of pages
+- [X] Context management of pages
 ** DONE [#A] Provide a wrapper for system malloc()
 CLOSED: [2016-03-22 Tue 19:18]
 Can use system malloc() to implement bookkeeping for managing pages.

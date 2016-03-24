@@ -22,8 +22,8 @@
     X(usable_size, "Usable space should always be >= allocation size") \
     X(free_all, "All memory allocated within a context should be freed upon freeing the context") \
     X(alloc_aligned, "Allocated pointers should obey the specified alignment") \
-    X(alloc_pages, "Allocator should be able to request virtual pages from the underlying OS and release them on cleanup") \
     X(page_free, "free() on a reserved address space should be equivalent to decommit+release") \
+    X(page_context_free, "When a context is freed all virtual pages allocated by it should be released") \
     X(page_sizes, "_size() functions on a reserved address space should return the requested and rounded sizes")
 
 struct foo {
@@ -122,16 +122,51 @@ TEST(alloc_aligned)
     yu_free(&ctx, n);
 END(alloc_aligned)
 
-TEST(alloc_pages)
-END(alloc_pages)
-
 TEST(page_free)
+    void *ptr;
+    size_t req_sz = UINT64_C(64)*1024*1024*1024, req_cnt = 3, sz;
+    yu_err err = yu_reserve(&ctx, &ptr, req_sz, req_cnt);
+    assert(err == YU_OK);
+    PT_ASSERT(sysmem_pgtbl_get(&ctx.pgs, ptr, &sz));
+    PT_ASSERT_EQ(sz, req_sz*req_cnt);
+    err = yu_commit(&ctx, ptr, 1024, 64);
+    assert(err == YU_OK);
+    memcpy((char *)ptr+300, "akira", 6);
+    yu_free(&ctx, ptr);
+    void *check;
+    size_t check_sz = yu_virtual_alloc(&check, ptr, 306, YU_VIRTUAL_RESERVE | YU_VIRTUAL_COMMIT | YU_VIRTUAL_FIXED_ADDR);
+    // This will fail if yu_free() failed to decommit or release `ptr` because we used FIXED_ADDR
+    PT_ASSERT(check_sz > 0);
+    PT_ASSERT_EQ(((char *)ptr)[301], 0);
 END(page_free)
+
+TEST(page_context_free)
+    void *ptr1, *ptr2;
+    size_t req_sz = 65536;
+    yu_err err = yu_reserve(&ctx, &ptr1, req_sz, 1);
+    assert(err == YU_OK);
+    err = yu_reserve(&ctx, &ptr2, req_sz, 2);
+    assert(err == YU_OK);
+    memcpy(ptr1, "aika", 5);
+    memcpy(ptr2, "alice", 6);
+    yu_alloc_ctx_free(&ctx);
+
+    char *check1, *check2;
+    size_t check_sz = yu_virtual_alloc((void **)&check1, ptr1, req_sz, YU_VIRTUAL_RESERVE | YU_VIRTUAL_COMMIT | YU_VIRTUAL_FIXED_ADDR);
+    PT_ASSERT(check_sz > 0);
+    check_sz = yu_virtual_alloc((void **)&check2, ptr2, req_sz*2, YU_VIRTUAL_RESERVE | YU_VIRTUAL_COMMIT | YU_VIRTUAL_FIXED_ADDR);
+    PT_ASSERT(check_sz > 0);
+    PT_ASSERT_EQ(check1[0]+check1[1]+check1[2], 0);
+    PT_ASSERT_EQ(check2[0]+check2[1]+check2[2], 0);
+
+    // Re-init so that TEARDOWN can free it
+    sys_alloc_ctx_init(&ctx);
+END(page_context_free)
 
 TEST(page_sizes)
     void *ptr;
-    yu_err ok = yu_reserve(&ctx, &ptr, 1024, 1);
-    PT_ASSERT(ok == YU_OK);
+    yu_err err = yu_reserve(&ctx, &ptr, 1024, 1);
+    assert(err == YU_OK);
     PT_ASSERT(ptr != NULL);
     PT_ASSERT_EQ(yu_allocated_size(&ctx, ptr), 1024u);
     PT_ASSERT_EQ(yu_usable_size(&ctx, ptr), yu_virtual_pagesize(0));
