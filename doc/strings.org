@@ -28,12 +28,12 @@ done, but do we want to use ICU? Also, what of the parser combinator<->regex
 integration? It's looking likely that I'll implement regexes from scratch. This
 will require *extensive* testing.
 
-* Normal Length Strings
+* Normal Strings
 - Heap allocated
 - Encoded as a UTF-8 byte buffer
 - Interned and immutable
 
-* Small ASCII Strings
+* Short ASCII Strings
 - _Not_ heap allocated!
 - Packed into the 32-bit payload of our nanboxed value representation
 - Compressed with [[https://github.com/Ed-von-Schleck/shoco][shoco]]
@@ -44,3 +44,19 @@ will require *extensive* testing.
 - Maybe characters can be even smaller, like 6 bits, if we exclude control
   characters – we are, after all, optimizing for the common case of short
   English strings.
+
+* Long Mutated Strings
+- Treap-ropes
+  Balanced binary trees using reweighted treaps
+  + “reweighted treap” ⇒ treap that generates a new random priority when a node
+    is accessed and if it is greater than the existing priority, replaces it and
+    rotates the tree.
+  + frequently accessed portions of the string can be used in amortized constant
+    time
+- Used for frequently-mutated strings
+- Only enabled for strings with one reference
+- Should be weighted based on length of string and frequency of mutation
+  + medium length strings that are concatenated very frequently should use rope
+    representation also
+  + long strings that aren't concatenated at all should stay with the contiguous
+    representation
