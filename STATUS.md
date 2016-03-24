@@ -10,18 +10,21 @@ Implemented
 - Unicode-correct String implementation
 - Miscellaneous type-safe efficient data structures
 - Lexer
+- Advanced 64-bit virtual-memory aware allocator API
 
 In-progress
 -----------
-- Stack checker
+
+- Unboxed packed string representation for short ASCII strings
 
 Unimplemented
 -------------
 
 - Parser (there's very little syntax, but there are a few things such as stack
   effect and word definitions).
-- Codegen
 - Numeric tower
+- Stack checker
+- Codegen
 - VMgen-based stack interpreter
 - libffi-based cffi
 - Standard library
