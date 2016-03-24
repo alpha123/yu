@@ -1,0 +1,46 @@
+For better or worse, lots of real-world programming involves string
+manipulation. For an efficient implementation, Yu should employ a hybrid
+strategy for dealing well with strings of any length.
+
+* String vs Bytes
+A proper Unicode string is a bit more than just an array of utf-8 bytes. Yu
+should separate text from binary, probably by providing an explicit ‘bytes’
+type. Such a type would be much like Python 2's strings.
+
+* Unicode Considerations
+Getting Unicode ‘right’ is hard, if not impossible. But we can take some steps
+to make handling Unicode text a little easier.
+** UTF-8
+Only utf-8 is supported. Additional encodings can be supplied as libraries that
+convert to utf-8.
+*** Far future: Add an option for an Asian encoding as the default
+Such an option would be much friendlier to CJK users. UTF-8 is obnoxiously
+inefficient for even the most common Hanzi. However the implementation generally
+assumes it is using utf-8 and changing this would require quite a lot of changes
+to the string implementation and possibly parts of the rest of the runtime.
+** Model: Perl6
+Perl 6 handles Unicode quite well, in particular with using graphemes as the
+default indexing and length unit. Yu seeks to emulate this functionality.
+** Regexes/Parsing
+Unicode-correct regexes are fun. `.` should match a single /grapheme/, not a
+utf-8 character. `\b` is a nightmare. Thankfully a lot of this has already been
+done, but do we want to use ICU? Also, what of the parser combinator<->regex
+integration? It's looking likely that I'll implement regexes from scratch. This
+will require *extensive* testing.
+
+* Normal Length Strings
+- Heap allocated
+- Encoded as a UTF-8 byte buffer
+- Interned and immutable
+
+* Small ASCII Strings
+- _Not_ heap allocated!
+- Packed into the 32-bit payload of our nanboxed value representation
+- Compressed with [[https://github.com/Ed-von-Schleck/shoco][shoco]]
+- Consider length 8 or under strings for compression with shoco; if the result
+  fits in 4 bytes or less then pack it.
+- ASCII = 7 bits, for purposes of this
+- Length can be stored in remaining 4 bits
+- Maybe characters can be even smaller, like 6 bits, if we exclude control
+  characters – we are, after all, optimizing for the common case of short
+  English strings.
