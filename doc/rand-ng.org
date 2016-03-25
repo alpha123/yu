@@ -1,0 +1,47 @@
+* Goals
+Yu's primary use for random numbers is certain probabilistic data structures.
+Cryptographically secure randomness is decidedly _not_ something I want to
+tackle—much smarter people have already done that. Cryptography functions should
+wrap well-tested C libraries and go in the Yu stdlib; the Yu VM has no need for
+cryptographically secure numbers.
+** Speed > Security
+Data structures such as skiplists and treaps don't need cryptographically secure
+random numbers. They need numbers roughly fitting a given distribution, and they
+need 'em *fast*.
+*** Security?
+For probabilistic data structures, the only attack vector I can think of is
+somehow generating a seed or insertion order or something that degrades the
+performance of, say, a skiplist from O(lg n) to O(n) and stages a
+denial-of-service attack. This would be _very_ hard to pull off, much harder
+than hash-collisions attacks. I /think/ the attacker would need control of the
+random seed to attempt such an attack, so if the RNG is seeded on, say, time of
+day such an attack is theoretically plausible. Actually managing to cause a
+random sequence that turns a skiplist into an almost-flat linked list is very
+likely not possible however. I think the possibility of a denial-of-service
+attack based on probabilistic data structures using insecure random numbers is
+ver, very slim, if possible at all.
+** Single Bytes
+Often a skiplist or treap only needs a single, random-ish byte. However, simply
+generating an int32 and returning it as 4 bytes will screw up the distribution,
+and such data structures rely on (relatively) uniform distributions for
+performance. This'll require a little math to figure out.
+** Tunable Distributions
+The random distribution naturally has somewhat significant performance
+implications on the performance of probabilistic structures. A flawed
+distribution could reduce a skiplist to a linked list or severely unbalance a
+treap. However, different data structures may fair better with a non-uniform
+distribution. Allowing the API to be generic to random distribution seems like a
+good idea.
+
+* API
+** yu_err init(yu_rand *rng, yu_allocator *mctx);
+Acquire any resources this random generator needs. Failure to do so _must_ cope
+somehow or return an error. Any memory allocations _must_ use the provided
+memory context.
+** void free(yu_rand *rng);
+De-init the rng, releasing any resources that init() acquired.
+** void seed(yu_rand *rng, u32 seed);
+Should seed the rng appropriately such that different values of `seed` produce
+different random sequences, but identical values _must_ produce the same
+sequence. A single rng instance should be able to be seeded multiple times.
+Resetting the seed must reset the random sequence.
