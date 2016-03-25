@@ -41,5 +41,5 @@ u8 yu_rand_byte(void *rng) {
 
 YU_INLINE
 void yu_rand_byte_array(void *rng, u8 *bytes_out, size_t count) {
-  return ((yu_rand *)rng)->rand_byte_array(rng, bytes_out, count);
+  ((yu_rand *)rng)->rand_byte_array(rng, bytes_out, count);
 }

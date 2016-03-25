@@ -5,6 +5,8 @@
 
 #include "test.h"
 
+#include "lzf/lzf.h"
+
 #define SETUP
 
 #define TEARDOWN
@@ -14,7 +16,8 @@
   X(virtual_commit, "Reserved pages can be committed individually") \
   X(virtual_both, "Reserving and committing at the same time should be equivalent to sequential") \
   X(reserve_address, "virtual_alloc should attempt to obey the requested address") \
-  X(reserve_fixed_address, "With the FIXED_ADDR option, virtual_alloc should reserve starting at the provided address or commit sudoku")
+  X(reserve_fixed_address, "With the FIXED_ADDR option, virtual_alloc should reserve starting at the provided address or commit sudoku") \
+  X(sys_random, "Random numbers should have suitable entropy")
 
 TEST(virtual_reserve)
   void *big;
@@ -144,6 +147,25 @@ TEST(reserve_fixed_address)
   PT_ASSERT_EQ(usable_sz, 0u);
   PT_ASSERT_EQ(ptr, NULL);
 END(reserve_fixed_address)
+
+
+TEST(sys_random)
+#ifdef TEST_FAST
+  u32 in[64*1024], out[80*1024];
+#else
+  u32 in[256*1024], out[300*1024];
+#endif
+  for (u32 i = 0; i < elemcount(in); i++)
+    in[i] = yu_sys_random();
+  size_t out_sz = lzf_compress(in, sizeof in, out, sizeof out);
+  // Generally compressed output should be bigger on most OSes with high-quality
+  // random generators. If you're porting to a system with a bad RNG, you can
+  // comment this test and uncomment the next one.
+  PT_ASSERT_GTE(out_sz, sizeof in);
+
+  // Arbitrarily decide it shouldn't compress by more than ~10%
+  //PT_ASSERT_GTE(out_sz, sizeof in * 10000 / 11111);
+END(sys_random)
 
 
 SUITE(platform, LIST_PLATFORM_TESTS)

@@ -7,6 +7,7 @@
 
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 // platform/linux.h redefines these
@@ -131,6 +132,7 @@ u32 yu_sys_random(void) {
   // TODO figure out a better way to cope with /dev/urandom failing
   todo_fixme:
   if (rng_fd > -1) close(rng_fd);
-  return 4+(uintptr_t)&rng_fd;
+  // Why does this seem like a terrible idea
+  return *(u32 *)((uintptr_t)&rng_fd-sizeof(u64)*2);
 }
 #endif
