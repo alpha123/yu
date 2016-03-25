@@ -47,7 +47,7 @@ requirements and the yu_rand API imposes no particular requirements on how
 generators are created. Most likely this function will accept an sfmt_t object
 and bounds. If it does accept upper and lower bounds, it is /recommended/ that
 they are interpreted as a closed interval.
-** void free(yu_rand *rng);
+** void rand_free(yu_rand *rng);
 De-init the rng, releasing any resources that initialization acquired.
 ** s32 rand_int(yu_rand *rng);
 Return a number within the closed interval [lower_bound,upper_bound] obeying
@@ -61,7 +61,7 @@ into byte arrays probably isn't gonna work.
 Callers may depend on this function to be relatively fast. It should not perform
 any memory allocations or other operations that may have unpredictable
 performance impact.
-** void rand_byte_array(yu_rand *rng, u8 *bytes_out, size_t num);
+** void rand_byte_array(yu_rand *rng, u8 *bytes_out, size_t count);
 Generate many bytes at once. Unlike rand_byte(), this function has no particular
 performance contract.
 
@@ -76,7 +76,7 @@ struct uniform_distribution {
 };
 
 yu_err uniform_distribution_init(struct uniform_distribution *rng) {
-  rng->base.free = (yu_rand_free_fn)uniform_distribution_free;
+  rng->base.rand_free = (yu_rand_free_fn)uniform_distribution_free;
   rng->base.rand_int = (yu_rand_int_fn)uniform_distribution_rand_int;
   ...
 }

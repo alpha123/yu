@@ -194,6 +194,15 @@ u32 yu_ceil_log2(u64 n);
 
 
 /**
+ * RANDOM NUMBERS
+ *
+ * Generic random distribution API. /Not/ an API for generator engines, just for
+ * random distributions. Usually SFMT19937 will be used as the generator engine.
+ */
+#include "yu_rand.h"
+
+
+/**
  * DYNAMIC BUFFERS
  *
  * Heap-allocated buffers implemented with ‘fat pointers’.
