@@ -6,6 +6,7 @@
 #pragma once
 
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 // platform/linux.h redefines these
@@ -105,3 +106,31 @@ void yu_virtual_free(void *ptr, size_t sz, yu_virtual_mem_flags flags) {
   if (flags & YU_VIRTUAL_RELEASE)
     munmap(ptr, sz);
 }
+
+
+// Linux platform implementation uses its own implementation based on
+// getrandom() for ≥3.19 kernels.
+#ifndef USING_GETRANDOM
+u32 yu_sys_random(void) {
+  int rng_fd = open("/dev/urandom", O_RDONLY);
+  if (rng_fd == -1)
+    goto todo_fixme;
+  char rand[sizeof(u32)];
+  size_t progress = 0;
+  // We will probabably always be able to read 4 bytes at once, but
+  // theoretically /dev/urandom could return 1-3, hence the loop.
+  while (progress < sizeof rand) {
+    ssize_t read_sz = read(rng_fd, rand + progress, sizeof rand - progress);
+    if (read_sz < 0)
+      goto todo_fixme;
+    progress += read_sz;
+  }
+  close(rng_fd);
+  return *(u32 *)rand;
+
+  // TODO figure out a better way to cope with /dev/urandom failing
+  todo_fixme:
+  if (rng_fd > -1) close(rng_fd);
+  return 4+(uintptr_t)&rng_fd;
+}
+#endif

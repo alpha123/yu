@@ -7,8 +7,9 @@
 #error "Don't include platform.h directly! Include yu_common.h instead."
 #endif
 
-/**
- * Platform detection (OS, 32/64-bit, endianness)
+/***
+ * PLATFORM DETECTION
+ * (OS, 32/64-bit, endianness)
  *
  * Defines the following:
  *   - YU_OSAPI: ‘posix’ or ‘win32’
@@ -17,12 +18,13 @@
  */
 
 // The platform detection code was taken more-or-less verbatim from
-// https://github.com/zuiderkwast/nanbox, which in turn was adapted
-// from WTF/wtf/Platform.h in WebKit.
+// https://github.com/zuiderkwast/nanbox, which in turn was adapted from
+// WTF/wtf/Platform.h in WebKit.
 
-// Note that Yu currently doesn't support big-endian platforms,
-// but it's detected here anyway for the sake of completeness and
-// future portability.
+// Note that Yu currently doesn't support big-endian platforms, but it's
+// detected here anyway for the sake of completeness and future portability.
+
+// Also support for 32-bit systems is questionable, but it probably works.
 
 #define YU_OSAPI_POSIX 1
 #define YU_OSAPI_WIN32 2
@@ -86,12 +88,17 @@
 #error Unsupported processor `(°̆︵°̆)’
 #endif
 
-/**
- * OS Interface
+
+/***
+ * OS INTERFACE
  *
  * Relatively thin wrapper over APIs that don't differ significantly between
- * operating systems, such as virtual memory.
+ * operating systems.
  */
+
+/******************
+ * VIRTUAL MEMORY *
+ ******************/
 
 /**
  * RESERVE/COMMIT cannot be combined with RELEASE/DECOMMIT, but both pairs can
@@ -155,3 +162,14 @@ size_t yu_virtual_alloc(void **out, void *addr, size_t sz, yu_virtual_mem_flags 
  * value of the out pointer from that function.
  */
 void yu_virtual_free(void *ptr, size_t sz, yu_virtual_mem_flags flags);
+
+
+/***************
+ * RANDOM SEED *
+ ***************/
+
+/**
+ * Request a random number from the OS. This function should not block while
+ * waiting for entropy. Basically it should behave exactly as /dev/urandom.
+ */
+u32 yu_sys_random(void);

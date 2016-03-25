@@ -6,6 +6,7 @@
 #pragma once
 
 #include <windows.h>
+#include <Ntsecapi.h>
 
 //  /¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\
 // /\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/¯\_/\
@@ -98,4 +99,18 @@ void yu_virtual_free(void *ptr, size_t sz, yu_virtual_mem_flags flags) {
     VirtualFree(ptr, sz, MEM_DECOMMIT);
   if (flags & YU_VIRTUAL_RELEASE)
     VirtualFree(ptr, sz, MEM_RELEASE);
+}
+
+
+u32 yu_sys_random(void) {
+  char rand[sizeof(u32)];
+  // The Windows docs say this function needs to be imported with LoadLibrary
+  // and GetProcAddress, but that doesn't actually seem to be true. Also, it's
+  // theoretically a semi-internal API, but it hasn't changed since XP so we're
+  // probably fine. The alternative is using the awful Crypt* APIs.
+  if (RtlGenRandom(rand, sizeof(u32)))
+    return *(u32 *)rand;
+  // I _think_ Windows always enables ASLR so the stack address of `rand` is
+  // probably random-ish.
+  return (u32)rand;
 }
