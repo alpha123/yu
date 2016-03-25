@@ -50,20 +50,11 @@ they are interpreted as a closed interval.
 ** void rand_free(yu_rand *rng);
 De-init the rng, releasing any resources that initialization acquired.
 ** s32 rand_int(yu_rand *rng);
-Return a number within the closed interval [lower_bound,upper_bound] obeying
-this generator's distribution. `gen_s32() % diff` isn't gonna cut it.
-** u8 rand_byte(yu_rand *rng);
-Generate a single byte obeying this generator's distribution. It's fine for the
-generator to make a bunch of bytes at once and cache them, but they still must
-be distributed properly. i.e. making some 32-bit ints and naively splitting them
-into byte arrays probably isn't gonna work.
-
-Callers may depend on this function to be relatively fast. It should not perform
-any memory allocations or other operations that may have unpredictable
-performance impact.
-** void rand_byte_array(yu_rand *rng, u8 *bytes_out, size_t count);
-Generate many bytes at once. Unlike rand_byte(), this function has no particular
-performance contract.
+Return the next random number in this sequence.
+** s32 rand_max(yu_rand *rng);
+Return the maximum integer that this distribution may produce.
+** s32 rand_min(yu_rand *rng);
+Return the minimum integer that this distribution may produce.
 
 * Distribution Implementation
 A random number distribution should be a structure type with its first member a
