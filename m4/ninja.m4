@@ -57,6 +57,7 @@ build_objs(`dep/utf8proc/*.c', `cflags = -include utf8proc/utf8proc.h $cflags')
 build_objs(`dep/SFMT/SFMT.c')
 build_objs(`dep/linenoise/linenoise.c')
 build_objs(`dep/shoco/shoco.c')
+build_objs(`dep/lzf/*.c')
 
 link_static(`dep/libdeps.a', `dep/**/*.o')
 
