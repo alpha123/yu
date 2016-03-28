@@ -11,10 +11,14 @@ struct yu_rand_funcs;
 
 typedef void (* yu_rand_free_fn)(struct yu_rand_funcs *rng);
 typedef s32 (* yu_rand_int_fn)(struct yu_rand_funcs *rng);
+typedef s32 (* yu_rand_min_fn)(struct yu_rand_funcs *rng);
+typedef s32 (* yu_rand_max_fn)(struct yu_rand_funcs *rng);
 
 typedef struct yu_rand_funcs {
   yu_rand_free_fn rand_free;
   yu_rand_int_fn rand_int;
+  yu_rand_min_fn rand_min;
+  yu_rand_max_fn rand_max;
 } yu_rand;
 
 // Take `rng` as a void pointer to avoid warnings about incompatible pointer
@@ -28,4 +32,13 @@ void yu_rand_free(void *rng) {
 YU_INLINE
 s32 yu_rand_int(void *rng) {
   return ((yu_rand *)rng)->rand_int(rng);
+}
+
+YU_INLINE
+s32 yu_rand_min(void *rng) {
+  return ((yu_rand *)rng)->rand_min(rng);
+}
+YU_INLINE
+s32 yu_rand_max(void *rng) {
+  return ((yu_rand *)rng)->rand_max(rng);
 }

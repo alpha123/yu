@@ -81,6 +81,5 @@ void uniform_distribution_rand_int(struct uniform_distribution *rng) {
 
 * Provided Distributions
 The following are probably important to have by default.
-- uniform_distribution
-- normal_distribution
-- poisson_distribution
+- [X] uniform_s32_distribution
+- [ ] uniform_u8_distribution

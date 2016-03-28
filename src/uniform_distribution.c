@@ -8,8 +8,10 @@
 void uniform_distribution_init(uniform_distribution *rng, u32 seed, s32 lower_bound, s32 upper_bound) {
   assert(lower_bound < upper_bound);
 
-  rng->base.rand_int = (yu_rand_int_fn)uniform_distribution_int;
   rng->base.rand_free = (yu_rand_free_fn)uniform_distribution_free;
+  rng->base.rand_int = (yu_rand_int_fn)uniform_distribution_int;
+  rng->base.rand_min = (yu_rand_min_fn)uniform_distribution_min;
+  rng->base.rand_max = (yu_rand_max_fn)uniform_distribution_max;
 
   sfmt_init_gen_rand(&rng->mt, seed);
   rng->low = lower_bound;

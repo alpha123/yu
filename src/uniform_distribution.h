@@ -17,3 +17,13 @@ void uniform_distribution_init(uniform_distribution *rng, u32 seed, s32 lower_bo
 
 void uniform_distribution_free(uniform_distribution * YU_UNUSED(rng)) { }
 s32 uniform_distribution_int(uniform_distribution *rng);
+
+YU_INLINE
+s32 uniform_distribution_min(uniform_distribution *rng) {
+  return rng->low;
+}
+
+YU_INLINE
+s32 uniform_distribution_max(uniform_distribution *rng) {
+  return rng->high;
+}
