@@ -28,7 +28,7 @@ cc = CC
 include_dirs = INCLUDE_DIRS
 cflags = CFLAGS $include_dirs
 
-libs = LIBS
+libs = LIBS -lpthread
 link_flags = LINK_FLAGS
 
 rule cc
@@ -57,6 +57,7 @@ build_objs(`dep/utf8proc/*.c', `cflags = -include utf8proc/utf8proc.h $cflags')
 build_objs(`dep/SFMT/SFMT.c')
 build_objs(`dep/linenoise/linenoise.c')
 build_objs(`dep/shoco/shoco.c')
+build_objs(`dep/nedmalloc/nedmalloc.c')
 
 link_static(`dep/libdeps.a', `dep/**/*.o')
 

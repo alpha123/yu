@@ -8,6 +8,7 @@
 #include "yu_common.h"
 #include "internal_alloc.h"
 #include "sys_alloc.h"
+#include "ned_alloc.h"
 #include "ptest.h"
 
 #define ASSERT_YU_STR_EQ(expr, expect) do{ \
@@ -30,6 +31,7 @@
 #define TEST_USE_SYS_ALLOC 1
 #define TEST_USE_BUMP_ALLOC 2
 #define TEST_USE_DEBUG_ALLOC 3
+#define TEST_USE_NEDMALLOC 4
 
 #ifndef TEST_ALLOC
 #define TEST_ALLOC TEST_USE_SYS_ALLOC
@@ -46,6 +48,22 @@
 #elif TEST_ALLOC == TEST_USE_DEBUG_ALLOC
 
 #error Debug allocator not yet ported to new API
+
+#elif TEST_ALLOC == TEST_USE_NEDMALLOC
+
+#define TEST_GET_ALLOCATOR(ctx)                   \
+  ned_allocator ctx;                              \
+  do{                                             \
+    yu_err _allocerr = ned_alloc_ctx_init(&ctx, 1*1024*1024); \
+    assert(_allocerr == YU_OK);                   \
+  }while(0)
+
+#define TEST_GET_INTERNAL_ALLOCATOR(ctx)         \
+  ned_allocator ctx;                             \
+  do{                                            \
+    yu_err _allocerr = ned_alloc_ctx_init(&ctx, 1*1024*1024); \
+    assert(_allocerr == YU_OK);                  \
+  }while(0)
 
 #else
 
