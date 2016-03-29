@@ -55,8 +55,8 @@ TEST(find)
 
 #ifdef TEST_FAST
     u32 valcnt = (u32)100;
-#elif TEST_ALLOC == TEST_USE_BUMP_ALLOC
-    u32 valcnt = (u32)1e6;
+#elif TEST_STRESS
+    u32 valcnt = (u32)5e7;
 #else
     u32 valcnt = (u32)3e6;
 #endif

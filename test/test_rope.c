@@ -19,11 +19,11 @@
 
 #define LIST_ROPE_TESTS(X) \
   X(create_str, "Initializing a rope with a string should create a rope with the same contents") \
-  X(unicode_str, "Code point counts should accurately be reported for UTF-8 strings")
+  X(unicode_str, "Code point counts should accurately be reported for UTF-8 strings") \
 
 
 TEST(create_str)
-  const char s[] = "If you have time to plan a beautiful death, you have time to live beautifully to the end.";
+  const char s[] = "Do you have any idea how stupid we are? Don't underestimate us!";
   rope *r2 = rope_new_with_utf8((yu_allocator *)&mctx, &rng, (const u8 *)s);
   PT_ASSERT_EQ(rope_byte_count(r2), strlen(s));
   PT_ASSERT_EQ(rope_char_count(r2), strlen(s));

@@ -35,6 +35,8 @@ TEST(alloc_val)
 
 #ifdef TEST_FAST
     u32 valcnt = 1000;
+#elif TEST_STRESS
+    u32 valcnt = 1 << 22;
 #else
     u32 valcnt = 1 << 20;
 #endif

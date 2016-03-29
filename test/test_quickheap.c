@@ -27,203 +27,225 @@ YU_QUICKHEAP_IMPL(maxh, int, INT_CMP, YU_QUICKHEAP_MAXHEAP)
     X(top_empty, "Accessing the top of an empty heap should return the default value")
 
 TEST(minheap)
-    minh h;
-    minh_init(&h, 20, &mctx);
+  minh h;
+  minh_init(&h, 20, &mctx);
 
-    int min = INT_MAX;
-    for (int i = 0; i < 50; i++) {
+  int min = INT_MAX;
+  for (int i = 0; i < 50; i++) {
 	int n = (int)(sfmt_genrand_uint32(&rng) % 500);
 	if (n < min)
-	    min = n;
-	minh_push(&h, n);
-    }
-    PT_ASSERT_EQ(h.size, 50u);
+    min = n;
+    minh_push(&h, n);
+  }
+  PT_ASSERT_EQ(h.size, 50u);
 
-    // `min` will always be positive (we're only generating positive ints),
-    // so -1 as a default value is fine.
-    PT_ASSERT_EQ(minh_top(&h, -1), min);
+  // `min` will always be positive (we're only generating positive ints),
+  // so -1 as a default value is fine.
+  PT_ASSERT_EQ(minh_top(&h, -1), min);
 
-    int last = -1;
-    for (int i = 0; i < 50; i++) {
-	int n = minh_pop(&h, INT_MIN);
-	PT_ASSERT_GTE(n, last);
-	last = n;
-    }
-    PT_ASSERT_EQ(h.size, 0u);
+  int last = -1;
+  for (int i = 0; i < 50; i++) {
+    int n = minh_pop(&h, INT_MIN);
+    PT_ASSERT_GTE(n, last);
+    last = n;
+  }
+  PT_ASSERT_EQ(h.size, 0u);
 
 #ifdef TEST_FAST
-    for (int i = 0; i < 100; i++)
+  int valcnt = 100;
+#elif TEST_STRESS
+  int valcnt = (int)5e7;
 #else
-    for (int i = 0; i < (int)2e6; i++)
+  int valcnt = (int)2e6;
 #endif
-    {
-	minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+    for (int i = 0; i < valcnt; i++) {
+      minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
     }
 
     bool all_gte = true;
     last = -10001;
-#ifdef TEST_FAST
-    for (int i = 0; i < 30; i++)
-#else
-    for (int i = 0; i < 5e4; i++)
-#endif
-    {
-	int n = minh_pop(&h, INT_MIN);
-	if (n < last) {
-	    all_gte = false;
-	    break;
-	}
-	last = n;
-    }
-    PT_ASSERT(all_gte);
 
 #ifdef TEST_FAST
-    for (int i = 0; i < 500; i++)
+  int popcnt = 30;
+#elif TEST_STRESS
+  int popcnt = (int)6e5;
 #else
-    for (int i = 0; i < (int)3e5; i++)
+  int popcnt = (int)5e4;
 #endif
-    {
-	minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+  for (int i = 0; i < popcnt; i++) {
+    int n = minh_pop(&h, INT_MIN);
+    if (n < last) {
+        all_gte = false;
+        break;
     }
-
-    all_gte = true;
-    last = -10001;
-#ifdef TEST_FAST
-    for (int i = 0; i < 200; i++)
-#else
-    for (int i = 0; i < 3e3; i++)
-#endif
-    {
-	int n = minh_pop(&h, INT_MIN);
-	if (n < last) {
-	    all_gte = false;
-	    break;
-	}
-	last = n;
-    }
-    PT_ASSERT(all_gte);
+    last = n;
+  }
+  PT_ASSERT(all_gte);
 
 #ifdef TEST_FAST
-    for (int i = 0; i < 400; i++)
+  int pushcnt = 500;
+#elif TEST_STRESS
+  int pushcnt = (int)9e5;
 #else
-    for (int i = 0; i < (int)2e4; i++)
+  int pushcnt = (int)3e5;
 #endif
-    {
-	minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
-    }
+  for (int i = 0; i < pushcnt; i++) {
+    minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+  }
 
-    all_gte = true;
-    last = -10001;
-    while (h.size) {
-	int n = minh_pop(&h, INT_MIN);
-	if (n < last) {
-	    all_gte = false;
-	    break;
-	}
-	last = n;
+  all_gte = true;
+  last = -10001;
+#ifdef TEST_FAST
+  popcnt = 200;
+#elif TEST_STRESS
+  popcnt = (int)4e5;
+#else
+  popcnt = (int)3e3;
+#endif
+  for (int i = 0; i < popcnt; i++) {
+    int n = minh_pop(&h, INT_MIN);
+    if (n < last) {
+        all_gte = false;
+        break;
     }
-    PT_ASSERT(all_gte);
+    last = n;
+  }
+  PT_ASSERT(all_gte);
 
-    minh_free(&h);
+#ifdef TEST_FAST
+  pushcnt = 400;
+#elif TEST_STRESS
+  pushcnt = (int)5e5;
+#else
+  pushcnt = (int)2e4;
+#endif
+  for (int i = 0; i < 400; i++) {
+    minh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+  }
+
+  all_gte = true;
+  last = -10001;
+  while (h.size) {
+    int n = minh_pop(&h, INT_MIN);
+    if (n < last) {
+        all_gte = false;
+        break;
+    }
+    last = n;
+  }
+  PT_ASSERT(all_gte);
+
+  minh_free(&h);
 END(minheap)
 
 TEST(maxheap)
-    maxh h;
-    maxh_init(&h, 20, &mctx);
+  maxh h;
+  maxh_init(&h, 20, &mctx);
 
-    int max = INT_MIN;
-    for (int i = 0; i < 50; i++) {
-	int n = (int)(sfmt_genrand_uint32(&rng) % 500);
-	if (n > max)
-	    max = n;
-	maxh_push(&h, n);
-    }
-    PT_ASSERT_EQ(h.size, 50u);
+  int max = INT_MIN;
+  for (int i = 0; i < 50; i++) {
+    int n = (int)(sfmt_genrand_uint32(&rng) % 500);
+    if (n > max)
+        max = n;
+      maxh_push(&h, n);
+  }
+  PT_ASSERT_EQ(h.size, 50u);
 
-    PT_ASSERT_EQ(maxh_top(&h, -1), max);
+  PT_ASSERT_EQ(maxh_top(&h, -1), max);
 
-    int last = INT_MAX;
-    for (int i = 0; i < 50; i++) {
-	int n = maxh_pop(&h, INT_MAX);
-	PT_ASSERT_LTE(n, last);
-	last = n;
-    }
-    PT_ASSERT_EQ(h.size, 0u);
-
-#ifdef TEST_FAST
-    for (int i = 0; i < 100; i++)
-#else
-    for (int i = 0; i < (int)2e6; i++)
-#endif
-    {
-	maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
-    }
-
-    bool all_lte = true;
-    last = 10001;
-#ifdef TEST_FAST
-    for (int i = 0; i < 30; i++)
-#else
-    for (int i = 0; i < 5e4; i++)
-#endif
-    {
-	int n = maxh_pop(&h, INT_MAX);
-	if (n > last) {
-	    all_lte = false;
-	    break;
-	}
-	last = n;
-    }
-    PT_ASSERT(all_lte);
+  int last = INT_MAX;
+  for (int i = 0; i < 50; i++) {
+    int n = maxh_pop(&h, INT_MAX);
+    PT_ASSERT_LTE(n, last);
+    last = n;
+  }
+  PT_ASSERT_EQ(h.size, 0u);
 
 #ifdef TEST_FAST
-    for (int i = 0; i < 500; i++)
+  int valcnt = 100;
+#elif TEST_STRESS
+  int valcnt = (int)5e7;
 #else
-    for (int i = 0; i < (int)3e5; i++)
+  int valcnt = (int)2e6;
 #endif
-    {
-	maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
-    }
+  for (int i = 0; i < valcnt; i++) {
+    maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+  }
 
-    all_lte = true;
-    last = 10001;
-#ifdef TEST_FAST
-    for (int i = 0; i < 200; i++)
-#else
-    for (int i = 0; i < 3e3; i++)
-#endif
-    {
-	int n = maxh_pop(&h, INT_MAX);
-	if (n > last) {
-	    all_lte = false;
-	    break;
-	}
-	last = n;
-    }
-    PT_ASSERT(all_lte);
 
 #ifdef TEST_FAST
-    for (int i = 0; i < 400; i++)
+  int popcnt = 30;
+#elif TEST_STRESS
+  int popcnt = (int)6e5;
 #else
-    for (int i = 0; i < (int)2e4; i++)
+  int popcnt = (int)5e4;
 #endif
-    {
-	maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+  bool all_lte = true;
+  last = 10001;
+  for (int i = 0; i < popcnt; i++) {
+    int n = maxh_pop(&h, INT_MIN);
+    if (n > last) {
+        all_lte = false;
+        break;
     }
+    last = n;
+  }
+  PT_ASSERT(all_lte);
 
-    all_lte = true;
-    last = 10001;
-    while (h.size) {
-	int n = maxh_pop(&h, INT_MAX);
-	if (n > last) {
-	    all_lte = false;
-	    break;
-	}
-	last = n;
+#ifdef TEST_FAST
+  int pushcnt = 500;
+#elif TEST_STRESS
+  int pushcnt = (int)9e5;
+#else
+  int pushcnt = (int)3e5;
+#endif
+  for (int i = 0; i < pushcnt; i++) {
+    maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+  }
+
+  all_lte = true;
+  last = 10001;
+#ifdef TEST_FAST
+  popcnt = 200;
+#elif TEST_STRESS
+  popcnt = (int)4e5;
+#else
+  popcnt = (int)3e3;
+#endif
+  for (int i = 0; i < popcnt; i++) {
+    int n = maxh_pop(&h, INT_MIN);
+    if (n > last) {
+        all_lte = false;
+        break;
     }
-    PT_ASSERT(all_lte);
+    last = n;
+  }
+  PT_ASSERT(all_lte);
 
-    maxh_free(&h);
+#ifdef TEST_FAST
+  pushcnt = 400;
+#elif TEST_STRESS
+  pushcnt = (int)5e5;
+#else
+  pushcnt = (int)2e4;
+#endif
+  for (int i = 0; i < 400; i++) {
+    maxh_push(&h, (int)(sfmt_genrand_uint32(&rng) % 20000 - 10000));
+  }
+
+  all_lte = true;
+  last = 10001;
+  while (h.size) {
+    int n = maxh_pop(&h, INT_MIN);
+    if (n > last) {
+        all_lte = false;
+        break;
+    }
+    last = n;
+  }
+  PT_ASSERT(all_lte);
+
+  maxh_free(&h);
 END(maxheap)
 
 TEST(top_empty)
