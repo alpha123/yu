@@ -119,7 +119,8 @@ uint8_t *rope_create_cstr(rope *r) {
   return bytes;
 }
 
-static uint8_t random_height(rope *r) {
+static
+uint8_t random_height(rope *r) {
   // This function is horribly inefficient. I'm throwing away heaps of entropy, and
   // the mod could be replaced by some clever shifting.
   //
@@ -138,14 +139,16 @@ static uint8_t random_height(rope *r) {
 }
 
 // Figure out how many bytes to allocate for a node with the specified height.
-static size_t node_size(uint8_t height) {
+static YU_CONST
+size_t node_size(uint8_t height) {
   return sizeof(rope_node) + height * sizeof(rope_skip_node);
 }
 
 // Allocate and return a new node. The new node will be full of junk, except
 // for its height.
 // This function should be replaced at some point with an object pool based version.
-static rope_node *alloc_node(rope *r, uint8_t height) {
+static YU_MALLOC_LIKE
+rope_node *alloc_node(rope *r, uint8_t height) {
   rope_node *node = yu_xalloc(r->mem_ctx, 1, node_size(height));
   node->height = height;
   return node;
@@ -154,7 +157,8 @@ static rope_node *alloc_node(rope *r, uint8_t height) {
 // Find out how many bytes the unicode character which starts with the specified byte
 // will occupy in memory.
 // Returns the number of bytes, or SIZE_MAX if the byte is invalid.
-static inline size_t codepoint_size(uint8_t byte) {
+static YU_CONST
+size_t codepoint_size(uint8_t byte) {
   if (byte == 0) { return SIZE_MAX; } // NULL byte.
   else if (byte <= 0x7f) { return 1; } // 0x74 = 0111 1111
   else if (byte <= 0xbf) { return SIZE_MAX; } // 1011 1111. Invalid for a starting byte.
@@ -167,7 +171,8 @@ static inline size_t codepoint_size(uint8_t byte) {
 }
 
 // This little function counts how many bytes a certain number of characters take up.
-static size_t count_bytes_in_utf8(const uint8_t *str, size_t num_chars) {
+static YU_PURE
+size_t count_bytes_in_utf8(const uint8_t *str, size_t num_chars) {
   const uint8_t *p = str;
   for (unsigned int i = 0; i < num_chars; i++) {
     p += codepoint_size(*p);
@@ -176,7 +181,8 @@ static size_t count_bytes_in_utf8(const uint8_t *str, size_t num_chars) {
 }
 
 // Count the number of characters in a string.
-static size_t strlen_utf8(const uint8_t *str) {
+static YU_PURE
+size_t strlen_utf8(const uint8_t *str) {
   const uint8_t *p = str;
   size_t i = 0;
   while (*p) {
@@ -188,7 +194,8 @@ static size_t strlen_utf8(const uint8_t *str) {
 
 // Checks if a UTF8 string is ok. Returns the number of bytes in the string if
 // it is ok, otherwise returns -1.
-static ssize_t bytelen_and_check_utf8(const uint8_t *str) {
+static YU_PURE
+ssize_t bytelen_and_check_utf8(const uint8_t *str) {
   const uint8_t *p = str;
   while (*p != '\0') {
     size_t size = codepoint_size(*p);
@@ -202,10 +209,7 @@ static ssize_t bytelen_and_check_utf8(const uint8_t *str) {
     }
   }
 
-#ifdef DEBUG
-  size_t num = p - str;
-  assert(num == strlen((char *)str));
-#endif
+  assert(p - str == strlen((char *)str));
 
   return p - str;
 }
@@ -219,7 +223,8 @@ typedef struct {
 // Internal function for navigating to a particular character offset in the rope.
 // The function returns the list of nodes which point past the position, as well as
 // offsets of how far into their character lists the specified characters are.
-static rope_node *iter_at_char_pos(rope *r, size_t char_pos, rope_iter *iter) {
+static
+rope_node *iter_at_char_pos(rope *r, size_t char_pos, rope_iter *iter) {
   assert(char_pos <= r->num_chars);
 
   rope_node *e = &r->head;
@@ -255,7 +260,8 @@ static rope_node *iter_at_char_pos(rope *r, size_t char_pos, rope_iter *iter) {
   return e;
 }
 
-static void update_offset_list(rope *r, rope_iter *iter, size_t num_chars) {
+static
+void update_offset_list(rope *r, rope_iter *iter, size_t num_chars) {
   for (int i = 0; i < r->head.height; i++) {
     iter->s[i].node->nexts[i].skip_size += num_chars;
   }
@@ -265,8 +271,8 @@ static void update_offset_list(rope *r, rope_iter *iter, size_t num_chars) {
 // Internal method of rope_insert.
 // This function creates a new node in the rope at the specified position and fills it with the
 // passed string.
-static void insert_at(rope *r, rope_iter *iter,
-    const uint8_t *str, size_t num_bytes, size_t num_chars) {
+static
+void insert_at(rope *r, rope_iter *iter, const uint8_t *str, size_t num_bytes, size_t num_chars) {
 
   // This describes how many levels of the iter are filled in.
   uint8_t max_height = r->head.height;
@@ -313,7 +319,8 @@ static void insert_at(rope *r, rope_iter *iter,
 }
 
 // Insert the given utf8 string into the rope at the specified position.
-static ROPE_RESULT rope_insert_at_iter(rope *r, rope_node *e, rope_iter *iter, const uint8_t *str) {
+static
+ROPE_RESULT rope_insert_at_iter(rope *r, rope_node *e, rope_iter *iter, const uint8_t *str) {
   // iter.offset contains how far (in characters) into the current element to skip.
   // Figure out how much that is in bytes.
   size_t offset_bytes = 0;
@@ -419,12 +426,10 @@ static ROPE_RESULT rope_insert_at_iter(rope *r, rope_node *e, rope_iter *iter, c
   return ROPE_OK;
 }
 
-ROPE_RESULT rope_insert(rope *r, size_t pos, const uint8_t *str) {
+ROPE_RESULT rope_insert(rope *r, size_t pos, const uint8_t * restrict str) {
   assert(r);
   assert(str);
-#ifdef DEBUG
-  _rope_check(r);
-#endif
+  ROPE_CHECK(r);
   pos = min(pos, r->num_chars);
 
   rope_iter iter;
@@ -433,16 +438,15 @@ ROPE_RESULT rope_insert(rope *r, size_t pos, const uint8_t *str) {
 
   ROPE_RESULT result = rope_insert_at_iter(r, e, &iter, str);
 
-#ifdef DEBUG
-  _rope_check(r);
-#endif
+  ROPE_CHECK(r);
 
   return result;
 }
 
 // Delete num characters at position pos. Deleting past the end of the string
 // has no effect.
-static void rope_del_at_iter(rope *r, rope_node *e, rope_iter *iter, size_t length) {
+static
+void rope_del_at_iter(rope *r, rope_node *e, rope_iter *iter, size_t length) {
   r->num_chars -= length;
   size_t offset = iter->s[0].skip_size;
   while (length) {
@@ -493,11 +497,9 @@ static void rope_del_at_iter(rope *r, rope_node *e, rope_iter *iter, size_t leng
 }
 
 void rope_del(rope *r, size_t pos, size_t length) {
-#ifdef DEBUG
-  _rope_check(r);
-#endif
-
   assert(r);
+  ROPE_CHECK(r);
+
   pos = min(pos, r->num_chars);
   length = min(length, r->num_chars - pos);
 
@@ -508,9 +510,7 @@ void rope_del(rope *r, size_t pos, size_t length) {
 
   rope_del_at_iter(r, e, &iter, length);
 
-#ifdef DEBUG
-  _rope_check(r);
-#endif
+  ROPE_CHECK(r);
 }
 
 void _rope_check(rope *r) {
