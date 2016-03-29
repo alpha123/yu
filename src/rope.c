@@ -55,7 +55,7 @@ rope *rope_copy(const rope *other) {
     // Would it be faster to just *n2 = *n; ?
     n2->num_bytes = n->num_bytes;
     n2->height = h;
-    memcpy(n2->str, n->str, n->num_bytes);
+    memcpy(n2->val.str, n->val.str, n->num_bytes);
     memcpy(n2->nexts, n->nexts, h * sizeof(rope_skip_node));
 
     for (int i = 0; i < h; i++) {
@@ -95,14 +95,14 @@ size_t rope_byte_count(const rope *r) {
 
 // Copies the rope's contents into a utf8 encoded C string. Also copies a trailing '\0' character.
 // Returns the number of bytes written, which is rope_byte_count(r) + 1.
-size_t rope_write_cstr(rope *r, uint8_t *dest) {
+size_t rope_write_cstr(rope *r, uint8_t * restrict dest) {
   size_t num_bytes = rope_byte_count(r);
   dest[num_bytes] = '\0';
 
   if (num_bytes) {
     uint8_t *p = dest;
     for (rope_node* restrict n = &r->head; n != NULL; n = n->nexts[0].node) {
-      memcpy(p, n->str, n->num_bytes);
+      memcpy(p, n->val.str, n->num_bytes);
       p += n->num_bytes;
     }
 
@@ -279,7 +279,7 @@ void insert_at(rope *r, rope_iter *iter, const uint8_t *str, size_t num_bytes, s
   uint8_t new_height = random_height(r);
   rope_node *new_node = alloc_node(r, new_height);
   new_node->num_bytes = num_bytes;
-  memcpy(new_node->str, str, num_bytes);
+  memcpy(new_node->val.str, str, num_bytes);
 
   assert(new_height < ROPE_MAX_HEIGHT);
 
@@ -328,7 +328,7 @@ ROPE_RESULT rope_insert_at_iter(rope *r, rope_node *e, rope_iter *iter, const ui
   size_t offset = iter->s[0].skip_size;
   if (offset) {
     assert(offset <= e->nexts[0].skip_size);
-    offset_bytes = count_bytes_in_utf8(e->str, offset);
+    offset_bytes = count_bytes_in_utf8(e->val.str, offset);
   }
 
   // We might be able to insert the new data into the current node, depending on
@@ -363,13 +363,13 @@ ROPE_RESULT rope_insert_at_iter(rope *r, rope_node *e, rope_iter *iter, const ui
   if (insert_here) {
     // First move the current bytes later on in the string.
     if (offset_bytes < e->num_bytes) {
-      memmove(&e->str[offset_bytes + num_inserted_bytes],
-              &e->str[offset_bytes],
+      memmove(&e->val.str[offset_bytes + num_inserted_bytes],
+              &e->val.str[offset_bytes],
               e->num_bytes - offset_bytes);
     }
 
     // Then copy in the string bytes
-    memcpy(&e->str[offset_bytes], str, num_inserted_bytes);
+    memcpy(&e->val.str[offset_bytes], str, num_inserted_bytes);
     e->num_bytes += num_inserted_bytes;
 
     r->num_bytes += num_inserted_bytes;
@@ -419,7 +419,7 @@ ROPE_RESULT rope_insert_at_iter(rope *r, rope_node *e, rope_iter *iter, const ui
     }
 
     if (num_end_bytes) {
-      insert_at(r, iter, &e->str[offset_bytes], num_end_bytes, num_end_chars);
+      insert_at(r, iter, &e->val.str[offset_bytes], num_end_bytes, num_end_chars);
     }
   }
 
@@ -462,11 +462,11 @@ void rope_del_at_iter(rope *r, rope_node *e, rope_iter *iter, size_t length) {
     int i;
     if (removed < num_chars || e == &r->head) {
       // Just trim this node down to size.
-      size_t leading_bytes = count_bytes_in_utf8(e->str, offset);
-      size_t removed_bytes = count_bytes_in_utf8(&e->str[leading_bytes], removed);
+      size_t leading_bytes = count_bytes_in_utf8(e->val.str, offset);
+      size_t removed_bytes = count_bytes_in_utf8(&e->val.str[leading_bytes], removed);
       size_t trailing_bytes = e->num_bytes - leading_bytes - removed_bytes;
       if (trailing_bytes) {
-        memmove(&e->str[leading_bytes], &e->str[leading_bytes + removed_bytes], trailing_bytes);
+        memmove(&e->val.str[leading_bytes], &e->val.str[leading_bytes + removed_bytes], trailing_bytes);
       }
       e->num_bytes -= removed_bytes;
       r->num_bytes -= removed_bytes;
@@ -534,7 +534,7 @@ void _rope_check(rope *r) {
   for (rope_node *n = &r->head; n != NULL; n = n->nexts[0].node) {
     assert(n == &r->head || n->num_bytes);
     assert(n->height <= ROPE_MAX_HEIGHT);
-    assert(count_bytes_in_utf8(n->str, n->nexts[0].skip_size) == n->num_bytes);
+    assert(count_bytes_in_utf8(n->val.str, n->nexts[0].skip_size) == n->num_bytes);
     for (int i = 0; i < n->height; i++) {
       assert(iter.s[i].node == n);
       assert(iter.s[i].skip_size == num_chars);
@@ -572,7 +572,7 @@ void _rope_print(rope *r) {
       printf(" |%3zd ", n->nexts[i].skip_size);
     }
     printf("        : \"");
-    fwrite(n->str, n->num_bytes, 1, stdout);
+    fwrite(n->val.str, n->num_bytes, 1, stdout);
     printf("\"\n");
   }
 }

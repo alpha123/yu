@@ -48,8 +48,20 @@ typedef struct {
   struct rope_node_t *node;
 } rope_skip_node;
 
+typedef enum { ROPE_NODE_STR, ROPE_NODE_STREAM, ROPE_NODE_FUNC } rope_node_type;
+typedef size_t (* rope_fn)(uint8_t *out, size_t start, size_t end, void *data);
+
 typedef struct rope_node_t {
-  uint8_t str[ROPE_NODE_STR_SIZE];
+  union {
+    uint8_t str[ROPE_NODE_STR_SIZE];
+    FILE *stream;
+    struct {
+      rope_fn func;
+      void *udata;
+    } func;
+  } val;
+
+  rope_node_type what;
 
   // The number of bytes in str in use
   uint16_t num_bytes;
@@ -80,7 +92,7 @@ rope *rope_new(yu_allocator *mctx, sfmt_t *rng);
 
 // Create a new rope containing a copy of the given string. Shorthand for
 // r = rope_new(); rope_insert(r, 0, str);
-rope *rope_new_with_utf8(yu_allocator *mctx, sfmt_t *rng, const uint8_t *str);
+rope *rope_new_with_utf8(yu_allocator *mctx, sfmt_t *rng, const uint8_t * restrict str);
 
 // Make a copy of an existing rope
 rope *rope_copy(const rope *r);
@@ -98,7 +110,7 @@ size_t rope_byte_count(const rope *r);
 // Copies the rope's contents into a utf8 encoded C string. Also copies a
 // trailing '\0' character.
 // Returns the number of bytes written, which is rope_byte_count(r) + 1.
-size_t rope_write_cstr(rope *r, uint8_t *dest);
+size_t rope_write_cstr(rope *r, uint8_t * restrict dest);
 
 // Create a new C string which contains the rope. The string will contain
 // the rope encoded as utf8, followed by a trailing '\0'.
@@ -112,7 +124,7 @@ typedef enum { ROPE_OK, ROPE_INVALID_UTF8 } rope_result_t;
 #define ROPE_RESULT YU_CHECK_RETURN(rope_result_t)
 
 // Insert the given utf8 string into the rope at the specified position.
-ROPE_RESULT rope_insert(rope *r, size_t pos, const uint8_t *str);
+ROPE_RESULT rope_insert(rope *r, size_t pos, const uint8_t * restrict str);
 
 // Delete num characters at position pos. Deleting past the end of the string
 // has no effect.
@@ -132,7 +144,7 @@ void rope_del(rope *r, size_t pos, size_t num);
 // Get the actual data inside a rope node.
 static YU_INLINE
 uint8_t *rope_node_data(rope_node *n) {
-  return n->str;
+  return n->val.str;
 }
 
 // Get the number of bytes inside a rope node. This is useful when you're
