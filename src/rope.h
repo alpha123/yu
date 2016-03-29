@@ -142,20 +142,21 @@ void rope_del(rope *r, size_t pos, size_t num);
   for (rope_node *iter = &(rope)->head; iter != NULL; iter = iter->nexts[0].node)
 
 // Get the actual data inside a rope node.
-static YU_INLINE
+YU_INLINE
 uint8_t *rope_node_data(rope_node *n) {
   return n->val.str;
 }
 
 // Get the number of bytes inside a rope node. This is useful when you're
 // looping through a rope.
-static YU_INLINE
-size_t rope_node_num_bytes(rope_node *n) {
+YU_INLINE
+size_t rope_node_num_bytes(const rope_node *n) {
   return n->num_bytes;
 }
 
 // Get the number of characters inside a rope node.
-static inline size_t rope_node_chars(rope_node *n) {
+YU_INLINE
+size_t rope_node_chars(const rope_node *n) {
   return n->nexts[0].skip_size;
 }
 

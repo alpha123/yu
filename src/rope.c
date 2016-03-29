@@ -23,7 +23,7 @@ rope *rope_new(yu_allocator *mctx, sfmt_t *rng) {
 // Create a new rope containing the specified string
 rope *rope_new_with_utf8(yu_allocator *mctx, sfmt_t *rng, const uint8_t *str) {
   rope *r = rope_new(mctx, rng);
-  ROPE_RESULT result = rope_insert(r, 0, str);
+  rope_result_t result = rope_insert(r, 0, str);
 
   if (result != ROPE_OK) {
     rope_free(r);
@@ -436,7 +436,7 @@ ROPE_RESULT rope_insert(rope *r, size_t pos, const uint8_t * restrict str) {
   // First we need to search for the node where we'll insert the string.
   rope_node *e = iter_at_char_pos(r, pos, &iter);
 
-  ROPE_RESULT result = rope_insert_at_iter(r, e, &iter, str);
+  rope_result_t result = rope_insert_at_iter(r, e, &iter, str);
 
   ROPE_CHECK(r);
 
