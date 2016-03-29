@@ -147,6 +147,8 @@ END(write_barrier)
 TEST(sanity_check)
 #ifdef TEST_FAST
     int valcnt = 2000;
+#elif TEST_STRESS
+    int valcnt = 100000;
 #else
     int valcnt = 10000;
 #endif

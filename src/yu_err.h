@@ -15,7 +15,7 @@ DEF_ENUM(yu_err, YU_ERR_LIST)
 
 extern const char *yu_err_messages[];
 
-YU_INLINE YU_CONST
+YU_INLINE
 const char *yu_err_msg(yu_err err) {
     return yu_err_messages[err];
 }
@@ -24,14 +24,7 @@ typedef void (* yu_err_handler_func)(yu_err);
 
 extern yu_err_handler_func yu_global_fatal_handler;
 
-#if defined(__GNUC__)
-#define YU_ERR_RET __attribute__((warn_unused_result)) yu_err
-/* TODO I don't even support MSCV */
-#elif defined(_MSC_VER)
-#define YU_ERR_RET _Check_return_ yu_err
-#else
-#define YU_ERR_RET yu_err
-#endif
+#define YU_ERR_RET YU_CHECK_RETURN(yu_err)
 
 #define YU_LIST_FATALS(X) \
   X(YU_ERR_ALLOC_FAIL) \

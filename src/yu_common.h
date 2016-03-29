@@ -42,6 +42,8 @@ typedef uint64_t u64;
 #define YU_RETURN_ALIGNED(n) __attribute__((assume_aligned(n)))
 #define YU_MALLOC_LIKE __attribute__((malloc))
 
+#define YU_CHECK_RETURN(type) __attribute__((warn_unused_result)) type
+
 #define YU_LIKELY(expr) __builtin_expect(!!(expr),1)
 #define YU_UNLIKELY(expr) __builtin_expect(!!(expr),0)
 
@@ -54,7 +56,9 @@ typedef uint64_t u64;
 #define YU_PURE
 #define YU_CONST
 #define YU_RETURN_ALIGNED(n)
-#define YU_MALLOC_LIKE
+#define YU_MALLOC_LIKE __declspec(restrict)
+
+#define YU_CHECK_RETURN(type) _Check_return_ type
 
 #define YU_LIKELY(expr) (expr)
 #define YU_UNLIKELY(expr) (expr)
@@ -66,6 +70,11 @@ typedef uint64_t u64;
 #define YU_CONST
 #define YU_RETURN_ALIGNED(n)
 #define YU_MALLOC_LIKE
+
+#define YU_CHECK_RETURN(type) type
+
+#define YU_LIKELY(expr) (expr)
+#define YU_UNLIKELY(expr) (expr)
 
 #endif
 

@@ -90,8 +90,8 @@ TEST(collide)
 
 #ifdef TEST_FAST
     u32 valcnt = 2000;
-#elif TEST_ALLOC == TEST_USE_BUMP_ALLOC
-    u32 valcnt = (u32)5e5;
+#elif TEST_STRESS
+    u32 valcnt = (u32)8e7;
 #else
     u32 valcnt = (u32)5e7;
 #endif

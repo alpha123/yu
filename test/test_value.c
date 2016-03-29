@@ -98,6 +98,8 @@ TEST(hash)
 
 #ifdef TEST_FAST
     u64 valcnt = 800;
+#elif TEST_STRESS
+    u64 valcnt = (u64)8e5;
 #else
     u64 valcnt = (u64)3e5;
 #endif
