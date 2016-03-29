@@ -1,62 +1,65 @@
-For better or worse, lots of real-world programming involves string
-manipulation. For an efficient implementation, Yu should employ a hybrid
-strategy for dealing well with strings of any length.
+* Unicode
+** [[http://www.utf8everywhere.org/][utf-8 everywhere]]
+Even for CJK utf-8 can be more efficient and frequently is not less efficient.
+** _No_ unqualified indexing or length operators
+Indexing or length must take place through code points, graphemes, bytes (code
+units, but utf-8 everywhere so there's no difference). Making intention about
+string usage explicit removes a whole host of potential problems. \\
+Examples:
+- Moving forward or backward in a text editor would use graphemes
+- Writing a file would use bytes
+** Iteration should be the preferred method of accessing strings
+Random-access in strings is usually not that useful anyway. Grapheme, code
+point, and byte iterators should all be provided.
+** Normalization                                                       :TBD:
+There are pros and cons to normalizing to NFC by default. Determine if there are
+use cases that would be broken by normalization or if it would lead to
+non-intuitive semantics. If strings aren't normalized, should hashing make a
+distinction between composed and non-composed Hangul?
+** Regexes
+Regular expressions are a little hard: should `.` be a code point or a grapheme?
+Two modes of regexes should be offered. Regular expressions on bytes are not
+useful and an easy way to break utf-8 encoding.
 
-* String vs Bytes
-A proper Unicode string is a bit more than just an array of utf-8 bytes. Yu
-should separate text from binary, probably by providing an explicit ‘bytes’
-type. Such a type would be much like Python 2's strings.
+Defaulting to grapheme mode seems like the smarter choice, as they're frequently
+used for parsing or validating user-inputted data.
+** Parsers
+Similar to regexes-after all, they are two sides of the same coin. However,
+parsing binary files is rather useful and so binary-mode parsers should be
+provided.
+** I/O
+Binary streams are like C strings, text streams are utf-8. No exceptions.
+Converting from other encodings to utf-8 could be a separate stream type in the
+standard library that wraps a binary stream.
 
-* Unicode Considerations
-Getting Unicode ‘right’ is hard, if not impossible. But we can take some steps
-to make handling Unicode text a little easier.
-** UTF-8
-Only utf-8 is supported. Additional encodings can be supplied as libraries that
-convert to utf-8.
-*** Far future: Add an option for an Asian encoding as the default
-Such an option would be much friendlier to CJK users. UTF-8 is obnoxiously
-inefficient for even the most common Hanzi. However the implementation generally
-assumes it is using utf-8 and changing this would require quite a lot of changes
-to the string implementation and possibly parts of the rest of the runtime.
-** Model: Perl6
-Perl 6 handles Unicode quite well, in particular with using graphemes as the
-default indexing and length unit. Yu seeks to emulate this functionality.
-** Regexes/Parsing
-Unicode-correct regexes are fun. `.` should match a single /grapheme/, not a
-utf-8 character. `\b` is a nightmare. Thankfully a lot of this has already been
-done, but do we want to use ICU? Also, what of the parser combinator<->regex
-integration? It's looking likely that I'll implement regexes from scratch. This
-will require *extensive* testing.
+* Representation
+Strings and integers are anecdotally the most commonly used data types in high
+level languages. String representation will have a significant effect on
+performance. Most strings are small, and avoiding allocation for those will put
+much less pressure on the GC.
+** Standard string representation
+Heap-allocated immutable interned utf-8 encoded NFC composed bytes.
+** Short strings
+_Not_ heap allocated! We have around 32-bits to stuff short strings into
+nanboxed doubles. Compress strings with [[https://github.com/Ed-von-Schleck/shoco][shoco]] to expand the class of strings
+that we can fit into doubles. \\
+Restrictions:
+- Must be ASCII; the majority of short strings are identifiers internal to code,
+  which tends to be ASCII even in CJK locales.
+- Must compress to 4 or fewer bytes
+- Length can be stored as the auxillary type in nanboxed values. We have 5 of
+  those, so 0-4 bytes fit. Shoco should be able to tell us the uncompressed
+  size.
+** Long immutable strings                                              :TBD:
+Consider keeping a global dictionary of frequent string parts and store long
+strings as entries into this dictionary. For example, run the [[http://www.sequitur.info/][sequitur]] algorithm
+on long strings and store entries into the global sequitur dictionary. Storing
+strings in this way preserves good random access characteristics while also
+being reasonably space efficient. Cleaning the dictionary periodically would
+probably have to happen to avoid resource leaks, which might have to recompress
+every relevant string. Fortunately, long strings tend to be fairly long-lived.
 
-* Normal Strings
-- Heap allocated
-- Encoded as a UTF-8 byte buffer
-- Interned and immutable
-
-* Short ASCII Strings
-- _Not_ heap allocated!
-- Packed into the 32-bit payload of our nanboxed value representation
-- Compressed with [[https://github.com/Ed-von-Schleck/shoco][shoco]]
-- Consider length 8 or under strings for compression with shoco; if the result
-  fits in 4 bytes or less then pack it.
-- ASCII = 7 bits, for purposes of this
-- Length can be stored in remaining 4 bits
-- Maybe characters can be even smaller, like 6 bits, if we exclude control
-  characters – we are, after all, optimizing for the common case of short
-  English strings.
-
-* Long Mutated Strings
-- Treap-ropes
-  Balanced binary trees using reweighted treaps
-  + “reweighted treap” ⇒ treap that generates a new random priority when a node
-    is accessed and if it is greater than the existing priority, replaces it and
-    rotates the tree.
-  + frequently accessed portions of the string can be used in amortized constant
-    time
-- Used for frequently-mutated strings
-- Only enabled for strings with one reference
-- Should be weighted based on length of string and frequency of mutation
-  + medium length strings that are concatenated very frequently should use rope
-    representation also
-  + long strings that aren't concatenated at all should stay with the contiguous
-    representation
+Note that YuVM avoids long strings for things like I/O with its streams
+implementation and usage of ropes and hierarchical streams/generators.
+** Medium-to-large frequently mutated strings
+Should be stored as ropes, somewhat like SpiderMonkey.
