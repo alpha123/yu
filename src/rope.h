@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Copyright (c) 2015 Joseph Gentle
  * Copyright (c) 2016 Peter Cannici
  *
