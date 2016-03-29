@@ -164,7 +164,7 @@ static inline size_t rope_node_chars(rope_node *n) {
 void _rope_check(rope *r);
 void _rope_print(rope *r);
 #ifdef DEBUG
-#define ROPE_CHECK _rope_check
+#define ROPE_CHECK(r) _rope_check(r)
 #else
-#define ROPE_CHECK
+#define ROPE_CHECK(r)
 #endif
