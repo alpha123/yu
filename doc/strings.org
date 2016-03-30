@@ -40,16 +40,16 @@ much less pressure on the GC.
 ** Standard string representation
 Heap-allocated immutable interned utf-8 encoded NFC composed bytes.
 ** Short strings
-_Not_ heap allocated! We have around 32-bits to stuff short strings into
-nanboxed doubles. Compress strings with [[https://github.com/Ed-von-Schleck/shoco][shoco]] to expand the class of strings
-that we can fit into doubles. \\
+_Not_ heap allocated! We have 48 bits to stuff short strings into nanboxed
+doubles. Compress strings with [[https://github.com/Ed-von-Schleck/shoco][shoco]] to expand the class of strings that we can
+fit into doubles. \\
 Restrictions:
 - Must be ASCII; the majority of short strings are identifiers internal to code,
   which tends to be ASCII even in CJK locales.
-- Must compress to 4 or fewer bytes
-- Length can be stored as the auxillary type in nanboxed values. We have 5 of
-  those, so 0-4 bytes fit. Shoco should be able to tell us the uncompressed
-  size.
+- Must compress to 6 or fewer bytes
+- Length can be stored as the auxillary type in nanboxed values. Shoco can tell
+  us the uncompressed size.
+See https://github.com/zuiderkwast/nanbox/blob/master/nanbox_shortstring.h
 ** Long immutable strings                                              :TBD:
 Consider keeping a global dictionary of frequent string parts and store long
 strings as entries into this dictionary. For example, run the [[http://www.sequitur.info/][sequitur]] algorithm
