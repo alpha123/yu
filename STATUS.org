@@ -1,0 +1,35 @@
+* Implemented
+(This stuff may still be a work-in-progress, but significant parts are done)
+
+** DONE Nanboxed value representation
+CLOSED: [2016-04-01 Fri 14:19]
+** DONE Copying, quad-color incremental, generational garbage collector
+CLOSED: [2016-04-01 Fri 14:22]
+See file:doc/gc.org
+** DONE Arena-based bump allocator for heap-allocated values
+CLOSED: [2016-04-01 Fri 14:19]
+** DONE Miscellaneous type-safe efficient data structures
+CLOSED: [2016-04-01 Fri 14:19]
+** DONE Memory allocator API
+CLOSED: [2016-04-01 Fri 14:22]
+See [[file:doc/alloc-ng.org]]
+
+* In-progress
+** TODO Unboxed packed string representation for short ASCII strings
+** TODO Unicode-correct String implementation
+See file:doc/strings.org
+
+* Unimplemented
+-------------
+
+** TODO Saving snapshots of the VM state (images)
+** TODO Numeric tower
+** TODO libffi-based cffi
+** TODO SSA interpreter
+See file:doc/issa.org
+** TODO Compiler from higher-level SSALisp to IROHA
+** TODO Tracing JIT compiler
+
+* Far Future
+** TODO Optimized assembly interpreter a la LuaJIT and JavaScriptCore
+** TODO Concurrent garbage collection
