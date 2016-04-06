@@ -3,7 +3,7 @@
  * Licensed under the MIT (X11) license. See LICENSE.
  */
 
-#include "interp.h"
+#include "vm.h"
 
 YU_CONST
 u8 vm_op_argcount(vm_opcode op) {

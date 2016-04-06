@@ -4,7 +4,7 @@
  */
 
 #include "test.h"
-#include "interp.h"
+#include "vm.h"
 
 #define INIT_VM(vm_var, prog, prog_sz)                                  \
   struct vm vm;                                                         \
@@ -63,7 +63,7 @@ size_t assemble(vm_instruction *prog, struct instr *bytecode) {
 #define TEARDOWN \
   yu_alloc_ctx_free(&mctx);
 
-#define LIST_INTERP_TESTS(X) \
+#define LIST_VM_TESTS(X) \
   X(opcode_argcount, "Should return the expected number of arguments of an opcode") \
   X(opcode_bitwidth, "Should return the expected size of an opcode's argument at an index") \
   X(instr_decode, "Should decode instructions according to that opcode's format")
@@ -113,4 +113,4 @@ TEST(instr_decode)
 END(instr_decode)
 
 
-SUITE(interp, LIST_INTERP_TESTS)
+SUITE(vm, LIST_VM_TESTS)
