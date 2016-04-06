@@ -30,19 +30,19 @@ size_t assemble(vm_instruction *prog, struct instr *bytecode) {
   size_t i = 0;
   while (op->op != (u64)-1) {
     out[i++] = (u8)op->op;
-    for (u8 j = 0; j < vm_op_argcount(op->op); j++) {
-      switch (j) {
+    for (u8 j = vm_op_argcount(op->op); j > 0; j--) {
+      switch (j-1) {
       case 0:
-        memcpy(out + i, &op->a, vm_op_bitwidth(op->op, j) / 8);
+        memcpy(out + i, &op->a, vm_op_bitwidth(op->op, j-1) / 8);
         break;
       case 1:
-        memcpy(out + i, &op->b, vm_op_bitwidth(op->op, j) / 8);
+        memcpy(out + i, &op->b, vm_op_bitwidth(op->op, j-1) / 8);
         break;
       case 2:
-        memcpy(out + i, &op->c, vm_op_bitwidth(op->op, j) / 8);
+        memcpy(out + i, &op->c, vm_op_bitwidth(op->op, j-1) / 8);
         break;
       }
-      i += vm_op_bitwidth(op->op, j) / 8;
+      i += vm_op_bitwidth(op->op, j-1) / 8;
     }
     ++op;
   }
@@ -85,9 +85,31 @@ TEST(instr_decode)
   ASM(mov, mov_a);
 
   u16 ra, rb;
-  vm_instr_decode(mov, &ra, &rb);
+  vm_instr_decode(mov, &rb, &ra);
   PT_ASSERT_EQ(ra, 50);
   PT_ASSERT_EQ(rb, 40);
+
+
+  value_t x = value_from_double(3.141592654);
+  u64 xx;
+  memcpy(&xx, &x, sizeof x);
+  struct instr loadk_a[] = {{VM_OP_LOADK, 65, xx, 0}, {(u64)-1, 0, 0, 0}};
+  ASM(loadk, loadk_a);
+
+  u64 im;
+  vm_instr_decode(loadk, &im, &ra);
+  PT_ASSERT_EQ(ra, 65);
+  PT_ASSERT_EQ(im, xx);
+
+
+  struct instr phi_a[] = {{VM_OP_PHI, 72, 70, 71}, {(u64)-1, 0, 0, 0}};
+  ASM(phi, phi_a);
+
+  u16 rc;
+  vm_instr_decode(phi, &rc, &rb, &ra);
+  PT_ASSERT_EQ(ra, 72);
+  PT_ASSERT_EQ(rb, 70);
+  PT_ASSERT_EQ(rc, 71);
 END(instr_decode)
 
 

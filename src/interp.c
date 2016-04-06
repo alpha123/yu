@@ -48,18 +48,18 @@ void vm_instr_decode(const vm_instruction * restrict inst, ...) {
     }
     break;
   case 2: arg2: switch (vm_op_bitwidth(inst->op, 1)) {
-    case  8:  val8 = va_arg(args,  u8 *);  memcpy(val8, rest,  sizeof(u8)); rest -=  sizeof(u8); break;
-    case 16: val16 = va_arg(args, u16 *); memcpy(val16, rest, sizeof(u16)); rest -= sizeof(u16); break;
-    case 32: val32 = va_arg(args, u32 *); memcpy(val32, rest, sizeof(u32)); rest -= sizeof(u32); break;
-    case 64: val64 = va_arg(args, u64 *); memcpy(val64, rest, sizeof(u64)); rest -= sizeof(u64); break;
+    case  8:  val8 = va_arg(args,  u8 *);  memcpy(val8, rest,  sizeof(u8)); rest +=  sizeof(u8); break;
+    case 16: val16 = va_arg(args, u16 *); memcpy(val16, rest, sizeof(u16)); rest += sizeof(u16); break;
+    case 32: val32 = va_arg(args, u32 *); memcpy(val32, rest, sizeof(u32)); rest += sizeof(u32); break;
+    case 64: val64 = va_arg(args, u64 *); memcpy(val64, rest, sizeof(u64)); rest += sizeof(u64); break;
     default: assert(!"Unexpected opcode argument length");
     }
     goto arg1;
   case 3: switch (vm_op_bitwidth(inst->op, 2)) {
-    case  8:  val8 = va_arg(args,  u8 *);  memcpy(val8, rest,  sizeof(u8)); rest -=  sizeof(u8); break;
-    case 16: val16 = va_arg(args, u16 *); memcpy(val16, rest, sizeof(u16)); rest -= sizeof(u16); break;
-    case 32: val32 = va_arg(args, u32 *); memcpy(val32, rest, sizeof(u32)); rest -= sizeof(u32); break;
-    case 64: val64 = va_arg(args, u64 *); memcpy(val64, rest, sizeof(u64)); rest -= sizeof(u64); break;
+    case  8:  val8 = va_arg(args,  u8 *);  memcpy(val8, rest,  sizeof(u8)); rest +=  sizeof(u8); break;
+    case 16: val16 = va_arg(args, u16 *); memcpy(val16, rest, sizeof(u16)); rest += sizeof(u16); break;
+    case 32: val32 = va_arg(args, u32 *); memcpy(val32, rest, sizeof(u32)); rest += sizeof(u32); break;
+    case 64: val64 = va_arg(args, u64 *); memcpy(val64, rest, sizeof(u64)); rest += sizeof(u64); break;
     default: assert(!"Unexpected opcode argument length");
     }
     goto arg2;
@@ -181,7 +181,7 @@ YU_ERR_RET vm_exec(struct vm *vm) {
   EXIT(YU_OK);
 
  I(PHI):
-  vm_instr_decode(ip, &imm1_16, &imm2_16, &imm3_16);
+  vm_instr_decode(ip, &imm3_16, &imm2_16, &imm1_16);
   vm_set(vm, imm1_16, vm_ces_pop(vm) ? vm_get(vm, imm3_16) : vm_get(vm, imm2_16));
   NEXT;
 
@@ -192,7 +192,7 @@ YU_ERR_RET vm_exec(struct vm *vm) {
   NEXT;
 
  I(MOV):
-  vm_instr_decode(ip, &imm1_16, &imm2_16);
+  vm_instr_decode(ip, &imm2_16, &imm1_16);
   vm_set(vm, imm1_16, vm_get(vm, imm2_16));
   vm_unset(vm, imm2_16);
   NEXT;
@@ -204,7 +204,7 @@ YU_ERR_RET vm_exec(struct vm *vm) {
   NEXT;
 
  I(LOADK): {
-  vm_instr_decode(ip, &imm1_16, &imm2_64);
+  vm_instr_decode(ip, &imm2_64, &imm1_16);
   // TREAD CAREFULLY \\
   // Type-pun the second immediate value exploiting the fact that values are
   // represented as nanboxed 64-bit doubles.
