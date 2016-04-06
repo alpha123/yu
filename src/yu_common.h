@@ -138,12 +138,24 @@ u32 yu_ceil_log2(u64 n);
 // TODO I feel like there's a better way.
 #define DEF_ENUM(typename, XX) \
     typedef enum { _ ## typename ## dummy = -1, XX(DEF_ENUM_MEMBER) } typename; \
+
+#define DEF_ENUM_NAME_FUNC(typename, XX) \
     inline const char *YU_NAME(typename, name)(typename x) { \
         switch (x) { \
         XX(DEF_ENUM_NAME_CASE) \
         default: return "unknown"; \
         } \
     }
+
+#ifdef __GNUC__
+#define DEF_PACKED_ENUM(typename, XX) \
+    typedef enum __attribute__((packed)) { XX(DEF_ENUM_MEMBER) } typename;
+#elif _MSVC_VER_
+#define DEF_PACKED_ENUM(typename, XX) \
+    enum typename : unsigned char { XX(DEF_ENUM_MEMBER) };
+#else
+#define DEF_PACKED_ENUM(typename, XX) DEF_ENUM(typename, XX)
+#endif
 
 /* Assertions */
 #include <assert.h>
