@@ -54,15 +54,16 @@ u64 raw_value_hash1(value_t v) {
     case VALUE_BOOL:
         return value_to_bool(v) ? UINT64_C(0xDECAFBAD) : UINT64_C(0xDEADBEEF);
     case VALUE_DOUBLE: {
-        // Hashing doubles is somewhat problematic in general.
-        // Double ‘equality’ is abs(a-b) < delta, so doubles that are
-        // ‘equal’ might not hash the same with a naive algorithm.
-        // I attempted converting them to a string with 30 digits of
-        // precision and hashing that instead, but that resulted in
-        // quite a lot of collisions.
-        // TODO this is less than ideal.
+        // Hashing doubles is somewhat problematic in general. Double ‘equality’
+        // is abs(a-b) < delta, so doubles that are ‘equal’ might not hash the
+        // same with a naive algorithm. I attempted converting them to a string
+        // with 30 digits of precision and hashing that instead, but that
+        // resulted in quite a lot of collisions for some reason.
+        // TODO this is less than ideal—or is it? Could be the only solution.
         double x = value_to_double(v);
-        return *(u64 *)&x;
+        u64 h;
+        memcpy(&h, &x, sizeof x);
+        return h;
     }
     case VALUE_STR:
         return YU_BUF_DAT(value_get_ptr(v)->v.s)->hash[0];
