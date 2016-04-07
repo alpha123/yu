@@ -17,7 +17,13 @@ value_t value_add(struct gc_info *gc, value_t a, value_t b) {
     int c;
     if (yu_checked_add_s32(value_to_int(a), value_to_int(b), &c)) {
       out = value_from_ptr(gc_alloc_val(gc, VALUE_INT));
-      value_init_intval(out, value_to_int(a));
+      mpz_t *x = value_get_ptr(out)->v.i = yu_xalloc(gc->mem_ctx, 1, sizeof(mpz_t));
+      mpz_init_set_si(*x, value_to_int(a));
+      // Apparently there's no mpz_add_si
+      if (value_to_int(b) < 0)
+        mpz_sub_ui(*x, *x, (u32)abs(value_to_int(b)));
+      else
+        mpz_add_ui(*x, *x, (u32)value_to_int(b));
     }
     else
       out = value_from_int(c);

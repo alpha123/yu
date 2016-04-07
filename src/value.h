@@ -72,8 +72,6 @@ value_type value_what(value_t val);
 
 bool value_is_truthy(value_t val);
 
-void value_init_intval(value_t val, s64 x);
-
 typedef s32 (* value_tuple_iter_fn)(value_t val, void *data);
 s32 value_tuple_foreach(struct boxed_value *v, value_tuple_iter_fn iter, void *data);
 u64 value_tuple_len(struct boxed_value *v);
