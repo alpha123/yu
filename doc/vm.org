@@ -1,0 +1,27 @@
+YuVM supports several languages, so having an intermediate representation
+capable of not only supporting all of them but allowing decompiling from IR to
+any of the languages is at the core of the design.
+
+* Prior Art
+- [[http://www.cs.utsa.edu/~vonronne/pubs/ics-tr-03-19.pdf][A Virtual Machine for Interpreting Programs in Static Single Assignment Form]]
+  Jeffery von Ronne et al, 2003. Revised 2004. \\
+  Probably the most interesting paper, given that they got an actual SSA-based
+  VM running.
+- [[https://books.google.com/books?id=oy8uReZwiAAC&printsec=frontcover#v=onepage&q&f=false][An Efficient Static Single Assignment Interpreter with Translation]]
+  Adam L Cramer, 2008. \\
+  Unfortunately the full version does not seem to be accessable. This seems more
+  complete than the above paper, but I can't access the full work.
+
+* PHIRE
+“Phi IR”
+
+- Very very close to the VM's native bytecode, which is essentially just a
+  flattened Phire code
+- Used by the JIT compiler to generate native code
+- Most optimizations operate on this representation
+
+* IROHA
+“Intermediate Representation Of Higher Abstractions”
+
+- Flat; languages that support closures must convert them and do lambda lifting
+- Straightforward compilation to [[PHIRE][PHIRE]] code

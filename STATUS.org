@@ -15,6 +15,8 @@ CLOSED: [2016-04-01 Fri 14:22]
 See [[file:doc/alloc-ng.org]]
 
 * In-progress
+** TODO SSA interpreter
+See file:doc/vm.org
 ** TODO Unboxed packed string representation for short ASCII strings
 ** TODO Unicode-correct String implementation
 See file:doc/strings.org
@@ -25,10 +27,9 @@ See file:doc/strings.org
 ** TODO Saving snapshots of the VM state (images)
 ** TODO Numeric tower
 ** TODO libffi-based cffi
-** TODO SSA interpreter
-See file:doc/issa.org
-** TODO Compiler from higher-level SSALisp to IROHA
+** TODO Compiler from IROHA to low-level Phire bytecode
 ** TODO Tracing JIT compiler
+Use [[https://gcc.gnu.org/wiki/JIT][libgccjit]] for code generation?
 
 * Far Future
 ** TODO Optimized assembly interpreter a la LuaJIT and JavaScriptCore

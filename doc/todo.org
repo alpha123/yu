@@ -1,0 +1,24 @@
+* Strings
+** TODO Generic iteration for different types of strings
+- [-] yu_str
+  - [X] Grapheme iterator
+  - [ ] Codepoint iterator
+  - [ ] Bytes iterator
+- [-] rope
+  - [ ] Grapheme iterator
+  - [ ] Codepoint iterator
+  - [X] Bytes iterator
+- [ ] packed string
+  - [ ] Grapheme iterator
+  - [ ] Codepoint iterator
+  - [ ] Bytes iterator
+** TODO Split into heap strings and packed strings
+- [-] Heap strings
+  - [X] yu_str
+  - [X] rope
+  - [ ] heap_string ‘class’
+- [ ] Short strings
+  - [ ] Shoco packer
+  - [ ] Nanboxing
+** TODO Treat short strings as their own nanboxed value type
+- [ ] Implement unbox_untagged for short heap strings
