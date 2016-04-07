@@ -19,7 +19,7 @@
 #endif
 
 #ifndef VM_MAX_CALL_DEPTH
-#define VM_MAX_CALL_DEPTH 8092
+#define VM_MAX_CALL_DEPTH 8192
 #endif
 
 #ifndef VM_USE_THREADED_DISPATCH

@@ -51,11 +51,16 @@ size_t assemble(vm_instruction *prog, struct instr *bytecode) {
 
 #define ASM(var, arr)                           \
   vm_instruction *var;                          \
+  size_t var##_sz;                              \
   do{                                           \
-    size_t sz = assemble(NULL, (arr));          \
-    var = alloca(sz);                           \
+    var##_sz = assemble(NULL, (arr));           \
+    var = alloca(var##_sz);                     \
     assemble(var, (arr));                       \
   }while(0)
+
+#define DONE {(u64)-1,0,0,0}
+#define HALT {VM_OP_HALT,0,0,0},DONE
+#define SLOT 0
 
 #define SETUP \
   TEST_GET_ALLOCATOR(mctx);
@@ -66,7 +71,8 @@ size_t assemble(vm_instruction *prog, struct instr *bytecode) {
 #define LIST_VM_TESTS(X) \
   X(opcode_argcount, "Should return the expected number of arguments of an opcode") \
   X(opcode_bitwidth, "Should return the expected size of an opcode's argument at an index") \
-  X(instr_decode, "Should decode instructions according to that opcode's format")
+  X(instr_decode, "Should decode instructions according to that opcode's format") \
+  X(instr_dispatch, "VM should execute instructions in the correct order")
 
 TEST(opcode_argcount)
   PT_ASSERT_EQ(vm_op_argcount(VM_OP_RET), 0);
@@ -81,7 +87,7 @@ TEST(opcode_bitwidth)
 END(opcode_bitwidth)
 
 TEST(instr_decode)
-  struct instr mov_a[] = {{VM_OP_MOV, 50, 40, 0}, {(u64)-1, 0, 0, 0}};
+  struct instr mov_a[] = {{VM_OP_MOV, 50, 40, 0}, DONE};
   ASM(mov, mov_a);
 
   u16 ra, rb;
@@ -93,7 +99,7 @@ TEST(instr_decode)
   value_t x = value_from_double(3.141592654);
   u64 xx;
   memcpy(&xx, &x, sizeof x);
-  struct instr loadk_a[] = {{VM_OP_LOADK, 65, xx, 0}, {(u64)-1, 0, 0, 0}};
+  struct instr loadk_a[] = {{VM_OP_LOADK, 65, xx, 0}, DONE};
   ASM(loadk, loadk_a);
 
   u64 im;
@@ -102,7 +108,7 @@ TEST(instr_decode)
   PT_ASSERT_EQ(im, xx);
 
 
-  struct instr phi_a[] = {{VM_OP_PHI, 72, 70, 71}, {(u64)-1, 0, 0, 0}};
+  struct instr phi_a[] = {{VM_OP_PHI, 72, 70, 71}, DONE};
   ASM(phi, phi_a);
 
   u16 rc;
@@ -111,6 +117,21 @@ TEST(instr_decode)
   PT_ASSERT_EQ(rb, 70);
   PT_ASSERT_EQ(rc, 71);
 END(instr_decode)
+
+TEST(instr_dispatch)
+  struct instr prog_a[] = {{VM_OP_LOADK, 64, SLOT, 0}, {VM_OP_LOADK, 65, SLOT, 0},
+                          {VM_OP_ADD, 66, 64, 65}, HALT};
+  value_t a = value_from_int(42), b = value_from_int(5);
+  memcpy(&prog_a[0].b, &a, sizeof a);
+  memcpy(&prog_a[1].b, &b, sizeof b);
+  ASM(prog, prog_a);
+  INIT_VM(vm, prog, prog_sz)
+  yu_err ok = vm_exec(&vm);
+  assert(ok == YU_OK);
+  PT_ASSERT(value_is_int(vm.r[66]));
+  PT_ASSERT_EQ(value_to_int(vm.r[66]), 47);
+  vm_destroy(&vm);
+END(instr_dispatch)
 
 
 SUITE(vm, LIST_VM_TESTS)

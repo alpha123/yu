@@ -4,6 +4,7 @@
  */
 
 #include "vm.h"
+#include "math_ops.h"
 
 YU_CONST
 u8 vm_op_argcount(vm_opcode op) {
@@ -230,6 +231,11 @@ YU_ERR_RET vm_exec(struct vm *vm) {
   vm_set(vm, imm1_16, k);
   NEXT;
  }
+
+ I(ADD):
+  vm_instr_decode(ip, &imm3_16, &imm2_16, &imm1_16);
+  vm_set(vm, imm1_16, value_add(&vm->gc, vm_get(vm, imm2_16), vm_get(vm, imm3_16)));
+  NEXT;
 
 #if !VM_USE_THREADED_DISPATCH
   }
