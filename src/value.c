@@ -183,6 +183,14 @@ bool value_eq(value_t a, value_t b) {
            value_hash2(a) == value_hash2(b);
 }
 
+bool value_is_truthy(value_t val) {
+  if (value_is_bool(val))
+    return value_to_bool(val);
+  if (value_is_ptr(val) && value_what(val) == VALUE_BOOL && value_can_unbox_untagged(value_get_ptr(val)))
+    return value_to_bool(value_unbox(value_get_ptr(val)));
+  return true;
+}
+
 s32 value_tuple_foreach(struct boxed_value *val, value_tuple_iter_fn iter, void *data) {
     assert(boxed_value_get_type(val) == VALUE_TUPLE);
 

@@ -46,9 +46,9 @@ struct boxed_value {
         mpfr_t *r;
         yu_str s;
         value_table *tbl;
-	int fx;
-	double d;
-	bool b;
+        int fx;
+        double d;
+        bool b;
     } v;
     yu_str tag;
 
@@ -69,6 +69,10 @@ struct boxed_value *value_get_ptr(value_t v) {
 }
 
 value_type value_what(value_t val);
+
+bool value_is_truthy(value_t val);
+
+void value_init_intval(value_t val, s64 x);
 
 typedef s32 (* value_tuple_iter_fn)(value_t val, void *data);
 s32 value_tuple_foreach(struct boxed_value *v, value_tuple_iter_fn iter, void *data);

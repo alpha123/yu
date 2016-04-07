@@ -52,7 +52,7 @@ size_t assemble(vm_instruction *prog, struct instr *bytecode) {
 #define ASM(var, arr)                           \
   vm_instruction *var;                          \
   do{                                           \
-    size_t sz = assemble( NULL, (arr));         \
+    size_t sz = assemble(NULL, (arr));          \
     var = alloca(sz);                           \
     assemble(var, (arr));                       \
   }while(0)
@@ -76,7 +76,7 @@ END(opcode_argcount)
 
 TEST(opcode_bitwidth)
   PT_ASSERT_EQ(vm_op_bitwidth(VM_OP_MOV, 0), 16);
-  PT_ASSERT_EQ(vm_op_bitwidth(VM_OP_JZI, 2), 32);
+  PT_ASSERT_EQ(vm_op_bitwidth(VM_OP_TESTI, 2), 32);
   PT_ASSERT_EQ(vm_op_bitwidth(VM_OP_LOADK, 1), 64);
 END(opcode_bitwidth)
 

@@ -22,6 +22,10 @@
 #define VM_MAX_CALL_DEPTH 8092
 #endif
 
+#ifndef VM_USE_THREADED_DISPATCH
+#define VM_USE_THREADED_DISPATCH 0
+#endif
+
 // VA_ARGS are a 0-terminated list of bit widths of the opcode's expected
 // arguments. Remember to modify yu_instr_decode if you add any opcodes with
 // more than 3 arguments.
@@ -33,15 +37,19 @@
   X(VM_OP_RET, 0)                               \
   X(VM_OP_MOV, 16,16,0)                         \
   X(VM_OP_CMP, 16,16,16,0)                      \
-  X(VM_OP_JZI, 16,32,32,0)                      \
-  X(VM_OP_LOADK, 16,64,0)
+  X(VM_OP_JMPI, 32,0)                           \
+  X(VM_OP_TESTI, 16,32,32,0)                    \
+  X(VM_OP_LOADK, 16,64,0)                       \
+  X(VM_OP_ADD, 16,16,16,0)
 
 DEF_PACKED_ENUM(vm_opcode, LIST_OPCODES)
 
 static const u8 VM_OP_SIZES[] = {
   [VM_OP_NOP] = 1, [VM_OP_HALT] = 1, [VM_OP_PHI] = 7,
   [VM_OP_CALL] = 7, [VM_OP_RET] = 1, [VM_OP_MOV] = 5,
-  [VM_OP_CMP] = 7, [VM_OP_JZI] = 11, [VM_OP_LOADK] = 11,
+  [VM_OP_CMP] = 7, [VM_OP_JMPI] = 5, [VM_OP_TESTI] = 11,
+  [VM_OP_LOADK] = 11,
+  [VM_OP_ADD] = 7,
 };
 
 typedef struct {

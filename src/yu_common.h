@@ -167,6 +167,7 @@ u32 yu_ceil_log2(u64 n);
 
 /** Platform Abstraction Layer **/
 #include "platform.h"
+#include "yu_checked_math.h"
 
 /** Core common Yu functions **/
 

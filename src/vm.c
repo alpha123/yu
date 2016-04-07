@@ -36,7 +36,7 @@ void vm_instr_decode(const vm_instruction * restrict inst, ...) {
   u16 *val16;
   u32 *val32;
   u64 *val64;
-  u8 *rest = inst->rest;
+  const u8 *rest = inst->rest;
   switch (argc) {
   case 0: break;
   case 1: arg1: switch (vm_op_bitwidth(inst->op, 0)) {
@@ -92,19 +92,16 @@ void vm_destroy(struct vm *vm) {
   yu_free(vm->mem_ctx, vm->prog);
 }
 
-#if VM_USE_TOKEN_THREADING
-
-#define NEXT goto *dispatch[(ip = (vm_instruction *)((char *)ip + VM_OP_SIZES[ip->op]))->op]
-
+#if VM_USE_THREADED_DISPATCH
+#define ABSJUMP(addr) goto *dispatch[(ip = (vm_instruction *)(addr))->op]
 #define I(name) I_VM_OP_ ## name
-
 #else
-
-#define NEXT (ip = (vm_instruction *)((char *)ip + VM_OP_SIZES[ip->op])); continue
-
+#define ABSJUMP(addr) (ip = (vm_instruction *)(addr)); continue
 #define I(name) case VM_OP_ ## name
-
 #endif
+
+#define JUMP(addr) ABSJUMP(vm->prog + (size_t)(addr))
+#define NEXT ABSJUMP((char *)ip + VM_OP_SIZES[ip->op])
 
 // Be sure to save the current instruction offset in bytes in the program
 // counter so that the VM can be resumed with a subsequent vm_exec() call.
@@ -113,6 +110,7 @@ void vm_destroy(struct vm *vm) {
 static YU_INLINE
 void vm_set(struct vm *vm, u16 r, value_t x) {
   vm->r[r] = x;
+  assert(!(vm->r_state[r/elemcount(vm->r_state)] & (UINT64_C(1) << r%elemcount(vm->r_state))));
   vm->r_state[r/elemcount(vm->r_state)] |= (UINT64_C(1) << r%elemcount(vm->r_state));
 }
 
@@ -145,7 +143,7 @@ bool vm_ces_pop(struct vm *vm) {
 }
 
 YU_ERR_RET vm_exec(struct vm *vm) {
-#if VM_USE_TOKEN_THREADING
+#if VM_USE_THREADED_DISPATCH
 #define DEF_DISPATCH_TABLE(op, ...) [op] = &&I_##op,
   static void *dispatch[] = {
     LIST_OPCODES(DEF_DISPATCH_TABLE)
@@ -168,10 +166,10 @@ YU_ERR_RET vm_exec(struct vm *vm) {
   u32 imm1_32, imm2_32, imm3_32;
   u64 imm1_64, imm2_64, imm3_64;
 
-#if !VM_USE_TOKEN_THREADING
-  while (true) switch (ip->op) {
-#else
+#if VM_USE_THREADED_DISPATCH
   goto *dispatch[ip->op];
+#else
+  while (true) switch (ip->op) {
 #endif
 
  I(NOP):
@@ -182,7 +180,14 @@ YU_ERR_RET vm_exec(struct vm *vm) {
 
  I(PHI):
   vm_instr_decode(ip, &imm3_16, &imm2_16, &imm1_16);
-  vm_set(vm, imm1_16, vm_ces_pop(vm) ? vm_get(vm, imm3_16) : vm_get(vm, imm2_16));
+  if (vm_ces_pop(vm)) {
+    vm_set(vm, imm1_16,  vm_get(vm, imm3_16));
+    vm_unset(vm, imm3_16);
+  }
+  else {
+    vm_set(vm, imm1_16, vm_get(vm, imm2_16));
+    vm_unset(vm, imm2_16);
+  }
   NEXT;
 
  I(CALL):
@@ -200,12 +205,24 @@ YU_ERR_RET vm_exec(struct vm *vm) {
  I(CMP):
   NEXT;
 
- I(JZI):
-  NEXT;
+ I(JMPI):
+  vm_instr_decode(ip, &imm1_32);
+  JUMP(imm1_32);
+
+ I(TESTI):
+  vm_instr_decode(ip, &imm3_32, &imm2_32, &imm1_16);
+  if (value_is_truthy(vm_get(vm, imm1_16))) {
+    vm_ces_push(vm, false);
+    JUMP(imm2_32);
+  }
+  else {
+    vm_ces_push(vm, true);
+    JUMP(imm3_32);
+  }
 
  I(LOADK): {
   vm_instr_decode(ip, &imm2_64, &imm1_16);
-  // TREAD CAREFULLY \\
+  // TREAD CAREFULLY
   // Type-pun the second immediate value exploiting the fact that values are
   // represented as nanboxed 64-bit doubles.
   value_t k;
@@ -214,7 +231,7 @@ YU_ERR_RET vm_exec(struct vm *vm) {
   NEXT;
  }
 
-#if !VM_USE_TOKEN_THREADING
+#if !VM_USE_THREADED_DISPATCH
   }
 #endif
 }
